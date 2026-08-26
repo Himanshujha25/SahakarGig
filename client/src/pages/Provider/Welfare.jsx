@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../../lib/api";
 import { ShieldCheck, Save, CheckCircle2, QrCode } from "lucide-react";
 import WelfareBadge from "../../components/WelfareBadge";
+import WorkerWelfareDashboard from "../../components/WorkerWelfareDashboard";
 
 const inputCls = "h-11 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-on-surface-variant/50";
 
@@ -68,6 +69,9 @@ export default function Welfare() {
           </div>
         )}
       </div>
+
+      {/* Worker Welfare Dashboard */}
+      <WorkerWelfareDashboard />
 
       {loading ? (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">

@@ -39,6 +39,7 @@ import FederationDashboard from './pages/Federation/Dashboard';
 import FederationCooperatives from './pages/Federation/Cooperatives';
 import FederationSettings from './pages/Federation/Settings';
 import FederationSignup from './pages/auth/FederationSignup';
+import Architecture from './pages/Architecture';
 
 import PwaInstallBanner from './components/PwaInstallBanner';
 
@@ -62,6 +63,7 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/coop-signup" element={<CoopSignup />} />
         <Route path="/federation-signup" element={<FederationSignup />} />
+        <Route path="/architecture" element={<Architecture />} />
         <Route path="/" element={<Landing />} />
 
         <Route element={<RoleRoute role="Household" />}>

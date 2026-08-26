@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/api";
 import { Percent, Save, IndianRupee, TrendingUp, Users } from "lucide-react";
+import FairWageBreakdown from "../../components/FairWageBreakdown";
 
 export default function Commission() {
   const [rate, setRate] = useState("");
@@ -84,6 +85,15 @@ export default function Commission() {
           ))}
         </div>
       )}
+
+      {/* Configurable Fair Wage Distribution Engine */}
+      <FairWageBreakdown
+        customerPays={booking || 1000}
+        workerSharePercent={100 - (current || 8) - 5}
+        coopSharePercent={current || 8}
+        welfareSharePercent={5}
+        adminSharePercent={5}
+      />
 
       {/* Main grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
