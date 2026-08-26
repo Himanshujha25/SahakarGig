@@ -2,17 +2,17 @@ import { Link } from 'react-router-dom';
 import {
   Search, MapPin, BadgeCheck, ShieldCheck, Zap,
   Wrench, GraduationCap, Sparkles, HeartPulse, LayoutGrid,
-  ArrowRight, Users, CalendarCheck, Star, Handshake, ChevronRight
+  ArrowRight, Users, CalendarCheck, Star, Handshake, ChevronRight, ArrowUpRight
 } from 'lucide-react';
 
 const HERO_IMG =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBQ-dpYJMEXWGjKVWEtlFNYAPrFrGMUncXsN08msvogjefS62LwnCQ1bUeItkSrlQSZYpq5JrB8qKHNifnjbW0rHcNkbQY9x_gnoxQqWcWi-cqXBPtYQcopyEOxc1pQc4HyPUfW753FHhzpHa1Q7iqyfvjr5CMRSKmil9ODYutUqHafvNbhWSptBy9GXzM09Au9PHyKYYpeMrAayssGeRytpEpRtDvUHzfHKsko5gpP7qzGC8T3jA';
 
 const SMALL_CATS = [
-  { Icon: GraduationCap, label: 'Education & Tutoring', sub: 'Home tutors, Coaching',  bg: 'bg-[#e8edff]', ic: 'text-[#00288e]' },
-  { Icon: Sparkles,      label: 'Cleaning Services',    sub: 'Deep clean, Laundry',   bg: 'bg-[#e6f9ec]', ic: 'text-[#006d30]' },
-  { Icon: HeartPulse,    label: 'Caregiving',           sub: 'Elder care, Nursing',   bg: 'bg-[#fff3e0]', ic: 'text-[#6b4200]' },
-  { Icon: LayoutGrid,    label: 'View All Services',    sub: 'Explore 50+ categories',bg: 'bg-[#f0f0f5]', ic: 'text-[#444653]' },
+  { Icon: GraduationCap, label: 'Education & Tutoring', sub: 'Home tutors, Coaching & Skill Training', count: '120+ Tutors' },
+  { Icon: Sparkles,      label: 'Cleaning & Sanitization', sub: 'Deep cleaning, Laundry & Housekeeping', count: '95+ Verified' },
+  { Icon: HeartPulse,    label: 'Caregiving & Nursing', sub: 'Elder care, Patient care & Assistance', count: '80+ Specialists' },
+  { Icon: LayoutGrid,    label: 'Explore 50+ Services', sub: 'View full cooperative service directory', count: '50+ Categories' },
 ];
 
 const STATS = [
@@ -182,16 +182,34 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* 4 small cards */}
-            {SMALL_CATS.map(({ Icon, label, sub, bg, ic }) => (
-              <div key={label}
-                className="group relative overflow-hidden rounded-2xl border border-[#c4c5d5]/40 bg-white cursor-pointer flex flex-col items-center justify-center gap-2.5 p-5 aspect-square hover:shadow-[0_8px_28px_rgba(0,40,142,0.12)] hover:-translate-y-1 hover:border-[#00288e]/20 transition-all duration-300">
-                <div className={`w-16 h-16 rounded-2xl ${bg} flex items-center justify-center group-hover:scale-110 group-hover:shadow-[0_4px_16px_rgba(0,40,142,0.15)] transition-all duration-300`}>
-                  <Icon size={30} className={ic} strokeWidth={1.75} />
+            {/* 4 small cards — Shadcn / Linear SaaS Style */}
+            {SMALL_CATS.map(({ Icon, label, sub, count }) => (
+              <Link
+                key={label}
+                to="/signup"
+                className="group relative overflow-hidden rounded-2xl border border-outline-variant/60 bg-surface p-5 flex flex-col justify-between hover:shadow-[0_8px_30px_rgba(0,40,142,0.12)] hover:-translate-y-1 hover:border-primary/40 transition-all duration-300"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="w-11 h-11 rounded-xl bg-surface-container-low border border-outline-variant/40 text-primary flex items-center justify-center group-hover:bg-[#00288e] group-hover:text-white group-hover:border-[#00288e] transition-all duration-300 shadow-sm">
+                    <Icon size={22} strokeWidth={2} />
+                  </div>
+                  <ArrowUpRight size={18} className="text-outline-variant group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200" />
                 </div>
-                <p className="text-[13px] font-bold text-[#0d1c2e] text-center leading-tight">{label}</p>
-                <p className="text-[11px] text-[#757684] text-center leading-tight">{sub}</p>
-              </div>
+
+                <div className="mt-6 text-left">
+                  <h4 className="text-[15px] font-bold text-on-surface group-hover:text-primary transition-colors leading-tight" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+                    {label}
+                  </h4>
+                  <p className="text-[12px] text-on-surface-variant/80 mt-1 line-clamp-2 leading-relaxed">
+                    {sub}
+                  </p>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-[11px] font-bold text-primary">
+                  <span>{count}</span>
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity">Book Now →</span>
+                </div>
+              </Link>
             ))}
           </div>
         </section>
@@ -258,8 +276,8 @@ export default function Landing() {
                 className="group relative overflow-hidden rounded-2xl border border-[#c4c5d5]/50 bg-white p-8 hover:shadow-[0_12px_40px_rgba(0,40,142,0.12)] hover:-translate-y-2 hover:border-[#00288e]/20 transition-all duration-300">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-[#00288e]/3 rounded-full blur-3xl -translate-y-10 translate-x-10 group-hover:bg-[#00288e]/8 transition-colors duration-400 pointer-events-none" />
                 <div className="relative z-10">
-                  <div className="w-14 h-14 rounded-2xl bg-[#e8edff] flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-[#00288e] group-hover:shadow-[0_8px_24px_rgba(0,40,142,0.3)] transition-all duration-300">
-                    <Icon size={26} strokeWidth={1.75} className="text-[#00288e] group-hover:text-white transition-colors duration-300" />
+                  <div className="w-12 h-12 rounded-xl bg-surface-container-low border border-outline-variant/40 text-primary flex items-center justify-center mb-6 group-hover:bg-[#00288e] group-hover:text-white group-hover:border-[#00288e] transition-all duration-300 shadow-sm">
+                    <Icon size={22} strokeWidth={2} />
                   </div>
                   <h3 className="text-[18px] font-bold text-[#0d1c2e] mb-3">{title}</h3>
                   <p className="text-[15px] text-[#444653] leading-relaxed">{desc}</p>
