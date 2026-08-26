@@ -74,7 +74,9 @@ export default function BookingRequest() {
             </p>
           </div>
           <div className="text-right shrink-0">
-            <p className="font-heading text-lg font-bold text-primary">₹{provider.hourlyRate}/hr</p>
+            <p className="font-heading text-lg font-bold text-primary">
+              ₹{provider.hourlyRate && provider.hourlyRate > 0 ? provider.hourlyRate : 250}/hr
+            </p>
             <p className="font-body-md text-xs text-on-surface-variant">hourly rate</p>
           </div>
         </div>

@@ -12,6 +12,10 @@ async function createBooking(req, res) {
   if (!provider) return res.status(404).json({ message: 'Provider not found' });
   if (!provider.verified) return res.status(400).json({ message: 'Provider is not verified' });
 
+  const effectivePrice = (price && Number(price) > 0)
+    ? Number(price)
+    : ((provider.hourlyRate && provider.hourlyRate > 0) ? provider.hourlyRate : 250);
+
   const booking = await Booking.create({
     householdId: req.user.userId,
     providerId,
@@ -20,7 +24,7 @@ async function createBooking(req, res) {
     scheduledTime,
     isEmergency: !!isEmergency,
     priority: isEmergency ? 1 : 0,
-    price: price || provider.hourlyRate || 0,
+    price: effectivePrice,
   });
 
   const provUserId = provider.userId._id.toString();
