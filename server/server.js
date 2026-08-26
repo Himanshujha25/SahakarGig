@@ -12,8 +12,24 @@ const connectDB = require('./src/config/db');
 const dns = require("dns");
 const app = express();
 
-const ALLOWED_ORIGIN = process.env.CLIENT_ORIGIN || (process.env.NODE_ENV === 'production' ? true : 'http://localhost:5173');
-app.use(cors({ origin: ALLOWED_ORIGIN, credentials: true }));
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    // If CLIENT_ORIGIN is explicitly defined in env and not '*', enforce it
+    if (process.env.CLIENT_ORIGIN && process.env.CLIENT_ORIGIN !== '*') {
+      const allowed = process.env.CLIENT_ORIGIN.split(',').map((s) => s.trim());
+      if (allowed.includes(origin)) return callback(null, true);
+    }
+    // Dynamic origin reflection (allows Vercel deployments, localhost, etc. cleanly)
+    return callback(null, origin);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
@@ -21,7 +37,7 @@ dns.setServers(["8.8.8.8", "1.1.1.1"]);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: ALLOWED_ORIGIN, credentials: true } });
+const io = new Server(server, { cors: corsOptions });
 initSocket(io);
 
 app.use('/api/auth', require('./src/routes/auth'));
