@@ -16,8 +16,11 @@ export default function FindServices() {
     async function load() {
       try {
         const { data } = await api.get("/providers");
-        setProviders(data || []);
-      } catch {} finally { setLoading(false); }
+        // Backend responds with { providers, total, page, pages }
+        setProviders(Array.isArray(data) ? data : (data?.providers ?? []));
+      } catch {
+        setProviders([]);
+      } finally { setLoading(false); }
     }
     load();
     const id = setInterval(load, 30000);

@@ -37,8 +37,10 @@ export default function Home() {
         api.get("/bookings/household/mine"),
         api.get("/providers"),
       ]);
-      setBookings(bk || []);
-      setProviders((pv || []).slice(0, 6));
+      setBookings(Array.isArray(bk) ? bk : (bk?.bookings ?? []));
+      // Backend responds with { providers, total, page, pages }
+      const list = Array.isArray(pv) ? pv : (pv?.providers ?? []);
+      setProviders(list.slice(0, 6));
     } catch {} finally { setLoading(false); }
   }, []);
 
