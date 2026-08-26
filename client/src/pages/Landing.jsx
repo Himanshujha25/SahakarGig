@@ -41,7 +41,7 @@ export default function Landing() {
 
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-50 w-full backdrop-blur-2xl bg-white/80 border-b border-[#e8edff]" style={{boxShadow:'0 1px 0 0 #e8edff, 0 4px 24px rgba(0,40,142,0.06)'}}>
-        <div className="w-full px-8 h-[66px] flex items-center justify-between gap-8">
+        <div className="w-full px-4 sm:px-8 h-[66px] flex items-center justify-between gap-4 sm:gap-8">
 
           {/* Logo — far left edge */}
           <Link to="/" className="flex items-center gap-2 shrink-0 group">
@@ -64,14 +64,13 @@ export default function Landing() {
           </nav>
 
           {/* Auth — far right edge */}
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <Link to="/login"
-              className="hidden sm:inline-flex items-center px-4 py-2 rounded-lg text-[14px] font-semibold text-[#444653] hover:text-[#00288e] hover:bg-[#f0f4ff] transition-all duration-200">
+              className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-[13px] sm:text-[14px] font-semibold text-[#444653] hover:text-[#00288e] hover:bg-[#f0f4ff] transition-all duration-200">
               Sign In
             </Link>
-            <div className="w-px h-4 bg-[#c4c5d5] mx-2 hidden sm:block" />
             <Link to="/signup"
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-[14px] font-semibold text-[#00288e] hover:text-[#173bab] transition-colors duration-200">
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-[13px] sm:text-[14px] font-semibold bg-[#00288e] text-white hover:bg-[#173bab] transition-all duration-200 shadow-sm">
               Sign Up <ArrowRight size={13} strokeWidth={2.5} />
             </Link>
           </div>
@@ -92,7 +91,7 @@ export default function Landing() {
 
           {/* headline */}
           <h1
-            className="text-[56px] md:text-[64px] font-bold tracking-[-0.025em] leading-[1.06] text-[#0d1c2e] max-w-3xl mb-5"
+            className="text-[32px] sm:text-[48px] md:text-[64px] font-bold tracking-[-0.025em] leading-[1.1] sm:leading-[1.06] text-[#0d1c2e] max-w-3xl mb-5"
             style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
             Find Trusted{' '}
             <span className="text-[#00288e]">Cooperative</span>{' '}

@@ -112,14 +112,14 @@ export default function HouseholdLayout() {
       </main>
 
       {/* ── Mobile bottom nav ── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-outline-variant/60 flex">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-outline-variant/60 flex pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-2px_10px_rgba(0,0,0,0.06)]">
         {NAV.map(({ label, Icon, to, end }) => (
-          <NavLink key={label} to={to} end={end} className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+          <NavLink key={label} to={to} end={end} className="flex-1 flex flex-col items-center justify-center py-2 gap-1 min-h-[48px] active:scale-95 transition-transform">
             {({ isActive }) => (
               <>
                 <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8}
                   className={isActive ? 'text-[#00288e]' : 'text-on-surface-variant'} />
-                <span className={`text-[10px] font-semibold ${isActive ? 'text-[#00288e]' : 'text-on-surface-variant'}`}>
+                <span className={`text-[11px] font-semibold ${isActive ? 'text-[#00288e]' : 'text-on-surface-variant'}`}>
                   {label}
                 </span>
               </>

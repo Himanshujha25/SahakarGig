@@ -50,9 +50,9 @@ export default function Signup() {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-white flex items-center justify-center">
+    <div className="min-h-screen w-full bg-white flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
 
-      <div className="flex w-full max-w-[1200px] h-[680px]">
+      <div className="flex w-full max-w-[1200px] min-h-[600px] my-auto flex-col lg:flex-row rounded-2xl">
 
         {/* Left: Image card — identical to Login */}
         <div className="hidden lg:flex w-[420px] shrink-0 relative flex-col justify-between p-8 overflow-hidden group rounded-2xl shadow-lg ring-1 ring-black/5">
