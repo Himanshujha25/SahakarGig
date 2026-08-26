@@ -96,9 +96,14 @@ export default function Landing() {
           {/* subtle radial bg */}
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(0,40,142,0.08),transparent)]" />
 
-          {/* pill badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#e8edff] border border-[#00288e]/20 text-[#00288e] text-[13px] font-bold mb-6">
-            <Zap size={13} /> Cooperative Gig Platform · SIH 2026
+          {/* pill badge — Premium Corporate Badge */}
+          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white border border-[#c4c5d5]/80 text-[#0d1c2e] text-[12px] font-bold tracking-tight shadow-[0_2px_12px_rgba(0,40,142,0.06)] hover:border-[#00288e]/40 transition-all duration-300 mb-6 cursor-default">
+            <div className="w-5 h-5 rounded-full bg-[#e8edff] text-[#00288e] flex items-center justify-center shrink-0">
+              <ShieldCheck size={12} strokeWidth={2.5} />
+            </div>
+            <span>Cooperative Gig Platform</span>
+            <span className="w-1 h-1 rounded-full bg-[#c4c5d5]" />
+            <span className="text-[#00288e]">Ministry of Cooperation SIH 2026</span>
           </div>
 
           {/* headline */}
@@ -183,13 +188,13 @@ export default function Landing() {
             </div>
 
             {/* 4 small cards */}
-            {SMALL_CATS.map(({ Icon, label, sub, bg, ic }) => (
+            {SMALL_CATS.map(({ Icon, label, sub }) => (
               <div key={label}
-                className="group relative overflow-hidden rounded-2xl border border-[#c4c5d5]/40 bg-white cursor-pointer flex flex-col items-center justify-center gap-2.5 p-5 aspect-square hover:shadow-[0_8px_28px_rgba(0,40,142,0.12)] hover:-translate-y-1 hover:border-[#00288e]/20 transition-all duration-300">
-                <div className={`w-16 h-16 rounded-2xl ${bg} flex items-center justify-center group-hover:scale-110 group-hover:shadow-[0_4px_16px_rgba(0,40,142,0.15)] transition-all duration-300`}>
-                  <Icon size={30} className={ic} strokeWidth={1.75} />
+                className="group relative overflow-hidden rounded-2xl border border-[#c4c5d5]/60 bg-white cursor-pointer flex flex-col items-center justify-center gap-3 p-5 aspect-square shadow-sm hover:shadow-[0_8px_28px_rgba(0,40,142,0.12)] hover:-translate-y-1 hover:border-[#00288e]/40 transition-all duration-300">
+                <div className="w-12 h-12 rounded-xl bg-[#f8f9ff] border border-[#c4c5d5]/60 text-[#00288e] flex items-center justify-center group-hover:bg-[#00288e] group-hover:text-white group-hover:border-[#00288e] transition-all duration-300 shadow-sm">
+                  <Icon size={22} strokeWidth={2} />
                 </div>
-                <p className="text-[13px] font-bold text-[#0d1c2e] text-center leading-tight">{label}</p>
+                <p className="text-[13.5px] font-bold text-[#0d1c2e] text-center leading-tight group-hover:text-[#00288e] transition-colors">{label}</p>
                 <p className="text-[11px] text-[#757684] text-center leading-tight">{sub}</p>
               </div>
             ))}
