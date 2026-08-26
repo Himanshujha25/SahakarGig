@@ -28,23 +28,33 @@ async function createOrder(req, res) {
   if (b.paymentStatus === 'paid')
     return res.status(400).json({ message: 'Already paid' });
 
-  const amountPaise = Math.round((b.price || 0) * 100); // Razorpay uses paise
-  if (amountPaise < 100) return res.status(400).json({ message: 'Amount too low (min ₹1)' });
+  // Ensure price is valid (minimum ₹200 fallback for zero-price bookings)
+  if (!b.price || b.price <= 0) {
+    b.price = 200;
+    await b.save();
+  }
 
-  const rzp = getRazorpay();
-  const order = await rzp.orders.create({
-    amount: amountPaise,
-    currency: 'INR',
-    receipt: `sg_${bookingId}`,
-    notes: { bookingId: bookingId.toString(), service: b.service },
-  });
+  const amountPaise = Math.round(b.price * 100); // Razorpay uses paise
 
-  res.json({
-    orderId: order.id,
-    amount: order.amount,
-    currency: order.currency,
-    keyId: process.env.RAZORPAY_KEY_ID,
-  });
+  try {
+    const rzp = getRazorpay();
+    const order = await rzp.orders.create({
+      amount: amountPaise,
+      currency: 'INR',
+      receipt: `sg_${bookingId}`,
+      notes: { bookingId: bookingId.toString(), service: b.service },
+    });
+
+    res.json({
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      keyId: process.env.RAZORPAY_KEY_ID,
+    });
+  } catch (err) {
+    console.error('[Razorpay Order Error]', err.message);
+    res.status(500).json({ message: err.message || 'Razorpay order creation failed. Please check key configuration.' });
+  }
 }
 
 // Step 2 — verify Razorpay signature, then release payment

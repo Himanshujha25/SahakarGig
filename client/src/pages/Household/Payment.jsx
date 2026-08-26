@@ -147,34 +147,41 @@ export default function Payment() {
           <div className="my-1 h-px bg-outline-variant" />
 
           {/* Amount */}
-          <div className="flex items-center justify-between rounded-xl bg-secondary-container/50 px-4 py-3">
-            <span className="font-heading font-semibold text-on-secondary-container">Amount due</span>
-            <span className="font-heading text-2xl font-bold text-on-secondary-container">
-              ₹{booking.price}
-            </span>
-          </div>
+          {(() => {
+            const displayPrice = (booking.price && booking.price > 0) ? booking.price : 200;
+            return (
+              <>
+                <div className="flex items-center justify-between rounded-xl bg-secondary-container/50 px-4 py-3">
+                  <span className="font-heading font-semibold text-on-secondary-container">Amount due</span>
+                  <span className="font-heading text-2xl font-bold text-on-secondary-container">
+                    ₹{displayPrice}
+                  </span>
+                </div>
 
-          {/* Error */}
-          {error && (
-            <div className="flex items-center gap-2 rounded-lg border border-error/30 bg-error-container px-4 py-3">
-              <Icon name="error" className="text-[18px] text-error shrink-0" />
-              <p className="font-body-md text-sm text-on-error-container">{error}</p>
-            </div>
-          )}
+                {/* Error */}
+                {error && (
+                  <div className="flex items-center gap-2 rounded-lg border border-error/30 bg-error-container px-4 py-3">
+                    <Icon name="error" className="text-[18px] text-error shrink-0" />
+                    <p className="font-body-md text-sm text-on-error-container">{error}</p>
+                  </div>
+                )}
 
-          {/* Pay button */}
-          <button
-            onClick={pay}
-            disabled={paying || booking.paymentStatus === "paid"}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary font-heading font-semibold text-on-primary transition-all hover:shadow-[0_4px_12px_rgba(0,40,142,0.18)] disabled:opacity-60"
-          >
-            <Icon name="lock" className=" text-[20px]" />
-            {booking.paymentStatus === "paid"
-              ? "Already Paid"
-              : paying
-              ? "Opening Razorpay…"
-              : `Pay ₹${booking.price} via Razorpay`}
-          </button>
+                {/* Pay button */}
+                <button
+                  onClick={pay}
+                  disabled={paying || booking.paymentStatus === "paid"}
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary font-heading font-semibold text-on-primary transition-all hover:shadow-[0_4px_12px_rgba(0,40,142,0.18)] disabled:opacity-60"
+                >
+                  <Icon name="lock" className=" text-[20px]" />
+                  {booking.paymentStatus === "paid"
+                    ? "Already Paid"
+                    : paying
+                    ? "Opening Razorpay…"
+                    : `Pay ₹${displayPrice} via Razorpay`}
+                </button>
+              </>
+            );
+          })()}
 
           {/* Trust note */}
           <div className="flex items-center justify-center gap-2 text-center">

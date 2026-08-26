@@ -36,7 +36,7 @@ export default function BookingRequest() {
         service,
         scheduledTime,
         isEmergency,
-        price: provider?.hourlyRate || 0,
+        price: provider?.hourlyRate && provider.hourlyRate > 0 ? provider.hourlyRate : 200,
       });
       // Redirect to Razorpay Checkout for instant secure payment
       navigate(`/household/pay/${data._id}`);
