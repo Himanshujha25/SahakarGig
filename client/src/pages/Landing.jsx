@@ -2,17 +2,17 @@ import { Link } from 'react-router-dom';
 import {
   Search, MapPin, BadgeCheck, ShieldCheck, Zap,
   Wrench, GraduationCap, Sparkles, HeartPulse, LayoutGrid,
-  ArrowRight, Users, CalendarCheck, Star, Handshake, ChevronRight, ArrowUpRight
+  ArrowRight, Users, CalendarCheck, Star, Handshake, ChevronRight
 } from 'lucide-react';
 
 const HERO_IMG =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBQ-dpYJMEXWGjKVWEtlFNYAPrFrGMUncXsN08msvogjefS62LwnCQ1bUeItkSrlQSZYpq5JrB8qKHNifnjbW0rHcNkbQY9x_gnoxQqWcWi-cqXBPtYQcopyEOxc1pQc4HyPUfW753FHhzpHa1Q7iqyfvjr5CMRSKmil9ODYutUqHafvNbhWSptBy9GXzM09Au9PHyKYYpeMrAayssGeRytpEpRtDvUHzfHKsko5gpP7qzGC8T3jA';
 
 const SMALL_CATS = [
-  { Icon: GraduationCap, label: 'Education & Tutoring', sub: 'Home tutors, Coaching & Skill Training', count: '120+ Tutors' },
-  { Icon: Sparkles,      label: 'Cleaning & Sanitization', sub: 'Deep cleaning, Laundry & Housekeeping', count: '95+ Verified' },
-  { Icon: HeartPulse,    label: 'Caregiving & Nursing', sub: 'Elder care, Patient care & Assistance', count: '80+ Specialists' },
-  { Icon: LayoutGrid,    label: 'Explore 50+ Services', sub: 'View full cooperative service directory', count: '50+ Categories' },
+  { Icon: GraduationCap, label: 'Education & Tutoring', sub: 'Home tutors, Coaching',  bg: 'bg-[#e8edff]', ic: 'text-[#00288e]' },
+  { Icon: Sparkles,      label: 'Cleaning Services',    sub: 'Deep clean, Laundry',   bg: 'bg-[#e6f9ec]', ic: 'text-[#006d30]' },
+  { Icon: HeartPulse,    label: 'Caregiving',           sub: 'Elder care, Nursing',   bg: 'bg-[#fff3e0]', ic: 'text-[#6b4200]' },
+  { Icon: LayoutGrid,    label: 'View All Services',    sub: 'Explore 50+ categories',bg: 'bg-[#f0f0f5]', ic: 'text-[#444653]' },
 ];
 
 const STATS = [
@@ -91,144 +91,61 @@ export default function Landing() {
 
       <main className="flex-grow">
 
-        {/* ── HERO — Premium Split Corporate Layout ── */}
-        <section className="relative pt-12 pb-20 px-6 sm:px-12 max-w-[1280px] mx-auto overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
-            {/* Left Content Column */}
-            <div className="lg:col-span-7 space-y-6 text-left">
-              
-              {/* Official Institutional Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/60 text-primary text-[12px] font-bold tracking-tight">
-                <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-                Ministry of Cooperation PS 26089 · NLCF Registered
-              </div>
+        {/* ── HERO — centered, exactly like Stitch ── */}
+        <section className="relative pt-20 pb-16 px-6 flex flex-col items-center text-center overflow-hidden">
+          {/* subtle radial bg */}
+          <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(0,40,142,0.08),transparent)]" />
 
-              {/* Main Headline */}
-              <h1
-                className="text-[36px] sm:text-[52px] lg:text-[58px] font-extrabold tracking-[-0.03em] leading-[1.08] text-on-surface"
-                style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}
-              >
-                India’s Premier <span className="text-primary">Cooperative-Owned</span> Digital Workforce Platform.
-              </h1>
+          {/* pill badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#e8edff] border border-[#00288e]/20 text-[#00288e] text-[13px] font-bold mb-6">
+            <Zap size={13} /> Cooperative Gig Platform · SIH 2026
+          </div>
 
-              {/* Subtitle */}
-              <p className="text-[16px] sm:text-[18px] leading-[1.6] text-on-surface-variant font-normal max-w-2xl">
-                Connecting households directly with background-verified local service professionals.
-                Transparent 75/10/5/10 fair wage distribution backed by registered primary labor cooperatives.
-              </p>
+          {/* headline */}
+          <h1
+            className="text-[32px] sm:text-[48px] md:text-[64px] font-bold tracking-[-0.025em] leading-[1.1] sm:leading-[1.06] text-[#0d1c2e] max-w-3xl mb-5"
+            style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+            Find Trusted{' '}
+            <span className="text-[#00288e]">Cooperative</span>{' '}
+            Services
+          </h1>
 
-              {/* High-Performance Search Bar */}
-              <div className="w-full max-w-[620px] bg-surface rounded-2xl p-2 border border-outline-variant/80 shadow-[0_8px_30px_rgba(0,40,142,0.08)] flex flex-col sm:flex-row gap-2">
-                <div className="flex-1 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/30">
-                  <Search size={18} className="text-primary shrink-0" />
-                  <input
-                    className="w-full bg-transparent border-none outline-none text-[14px] text-on-surface placeholder:text-on-surface-variant/50"
-                    placeholder="Search e.g. Electrician, Plumbing..."
-                  />
-                </div>
+          {/* subtitle */}
+          <p className="text-[18px] leading-[1.7] text-[#444653] max-w-xl mb-10">
+            Connect directly with verified local professionals backed by your community cooperative.
+            Reliable, safe, and empowering for everyone.
+          </p>
 
-                <div className="flex-1 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/30">
-                  <MapPin size={18} className="text-primary shrink-0" />
-                  <input
-                    className="w-full bg-transparent border-none outline-none text-[14px] text-on-surface placeholder:text-on-surface-variant/50"
-                    placeholder="Your Pincode or City"
-                  />
-                </div>
-
-                <Link
-                  to="/signup"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-white text-[14px] font-bold hover:bg-primary-container transition-all shadow-md shrink-0"
-                >
-                  <Search size={16} /> Search Gigs
-                </Link>
-              </div>
-
-              {/* Quick Filter Categories */}
-              <div className="flex items-center gap-2 pt-1 text-[12px] flex-wrap">
-                <span className="text-on-surface-variant/70 font-semibold">Popular:</span>
-                {['Plumbing', 'Electrical', 'Tutors', 'Cleaning', 'Elder Care'].map((s) => (
-                  <Link
-                    key={s}
-                    to="/signup"
-                    className="px-3 py-1 rounded-full bg-surface-container-low border border-outline-variant/40 text-on-surface-variant hover:text-primary hover:border-primary/40 text-[12px] font-semibold transition-all"
-                  >
-                    {s}
-                  </Link>
-                ))}
-              </div>
-
-              {/* Trust Indicators */}
-              <div className="pt-4 border-t border-outline-variant/40 flex flex-wrap items-center gap-6 text-[13px] font-bold text-on-surface-variant">
-                <div className="flex items-center gap-1.5 text-secondary">
-                  <BadgeCheck size={16} /> 12,000+ Verified Workers
-                </div>
-                <div className="flex items-center gap-1.5 text-primary">
-                  <ShieldCheck size={16} /> Razorpay Escrow Protection
-                </div>
-                <div className="flex items-center gap-1.5 text-[#6b4200]">
-                  <Zap size={16} /> 24x7 Emergency SOS Dispatch
-                </div>
-              </div>
-
+          {/* search bar */}
+          <div className="w-full max-w-[720px] flex flex-col sm:flex-row gap-2 bg-white rounded-2xl p-2 border border-[#c4c5d5] shadow-[0_4px_32px_rgba(0,40,142,0.10)] hover:shadow-[0_8px_40px_rgba(0,40,142,0.15)] hover:border-[#00288e]/30 transition-all duration-300 mb-6">
+            <div className="flex-1 flex items-center gap-2.5 bg-[#f8f9ff] rounded-xl px-4 py-3 border border-[#c4c5d5]/50 focus-within:border-[#00288e]/60 focus-within:bg-white transition-all duration-200">
+              <Search size={17} className="text-[#00288e] shrink-0" />
+              <input
+                className="w-full bg-transparent border-none outline-none text-[15px] text-[#0d1c2e] placeholder:text-[#757684]"
+                placeholder="What service do you need? (e.g. Plumbing, Tutor)" />
             </div>
-
-            {/* Right Interactive Preview Card Column */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative rounded-3xl border border-outline-variant/60 bg-surface p-6 shadow-xl space-y-5 overflow-hidden">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-
-                {/* Worker Card */}
-                <div className="flex items-center justify-between border-b border-outline-variant/40 pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-primary-container text-white flex items-center justify-center font-bold text-[18px]">
-                      N
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <h4 className="text-[16px] font-bold text-on-surface">Nitin Prakash</h4>
-                        <span className="px-2 py-0.5 rounded-full bg-[#e6f9ec] text-[#006d30] text-[10px] font-bold">
-                          ✓ Verified
-                        </span>
-                      </div>
-                      <p className="text-[12px] text-on-surface-variant">Senior Certified Electrician · 126 Jobs</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[16px] font-bold text-primary">₹250/hr</span>
-                    <p className="text-[11px] text-on-surface-variant">⭐ 4.8 Rating</p>
-                  </div>
-                </div>
-
-                {/* Live Match Radar Status */}
-                <div className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-2">
-                  <div className="flex items-center justify-between text-[12px] font-bold text-on-surface">
-                    <span className="flex items-center gap-1.5 text-secondary">
-                      <span className="w-2 h-2 rounded-full bg-secondary animate-ping" /> AI Matching Engine Active
-                    </span>
-                    <span className="text-primary font-mono">98% Compatibility</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-surface overflow-hidden flex">
-                    <div className="h-full bg-secondary w-[98%]" />
-                  </div>
-                </div>
-
-                {/* Social Security & Insurance Badge */}
-                <div className="p-3.5 rounded-xl bg-[#e6f9ec] border border-[#006d30]/20 flex items-center justify-between text-[12px]">
-                  <span className="font-bold text-[#006d30]">PMSBY Insurance Cover Active</span>
-                  <span className="text-[11px] text-[#006d30] font-semibold bg-white/70 px-2 py-0.5 rounded">₹2,00,000</span>
-                </div>
-
-                {/* Action button */}
-                <Link
-                  to="/signup"
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-white text-[14px] font-bold hover:bg-primary-container transition-all shadow-md"
-                >
-                  Book Verified Professional <ArrowRight size={16} />
-                </Link>
-              </div>
+            <div className="flex-1 flex items-center gap-2.5 bg-[#f8f9ff] rounded-xl px-4 py-3 border border-[#c4c5d5]/50 focus-within:border-[#00288e]/60 focus-within:bg-white transition-all duration-200">
+              <MapPin size={17} className="text-[#00288e] shrink-0" />
+              <input
+                className="w-full bg-transparent border-none outline-none text-[15px] text-[#0d1c2e] placeholder:text-[#757684]"
+                placeholder="Your Location" />
             </div>
+            <button className="flex items-center justify-center gap-2 bg-[#00288e] text-white text-[14px] font-bold px-8 py-3 rounded-xl hover:bg-[#173bab] hover:shadow-[0_4px_16px_rgba(0,40,142,0.35)] hover:scale-[1.03] transition-all duration-300 whitespace-nowrap">
+              <Search size={16} /> Search
+            </button>
+          </div>
 
+          {/* trust pills */}
+          <div className="flex flex-wrap justify-center gap-3">
+            {[
+              { Icon: BadgeCheck,  label: 'Verified by Cooperative', bg: 'bg-[#e6f9ec]', tc: 'text-[#006d30]' },
+              { Icon: ShieldCheck, label: 'Secure Payments',         bg: 'bg-[#e8edff]', tc: 'text-[#00288e]' },
+              { Icon: Zap,         label: 'Emergency Booking',       bg: 'bg-[#fff3e0]', tc: 'text-[#6b4200]' },
+            ].map(({ Icon, label, bg, tc }) => (
+              <span key={label} className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${bg} ${tc} text-[13px] font-semibold`}>
+                <Icon size={14} /> {label}
+              </span>
+            ))}
           </div>
         </section>
 
@@ -265,34 +182,16 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* 4 small cards — Shadcn / Linear SaaS Style */}
-            {SMALL_CATS.map(({ Icon, label, sub, count }) => (
-              <Link
-                key={label}
-                to="/signup"
-                className="group relative overflow-hidden rounded-2xl border border-outline-variant/60 bg-surface p-5 flex flex-col justify-between hover:shadow-[0_8px_30px_rgba(0,40,142,0.12)] hover:-translate-y-1 hover:border-primary/40 transition-all duration-300"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="w-11 h-11 rounded-xl bg-surface-container-low border border-outline-variant/40 text-primary flex items-center justify-center group-hover:bg-[#00288e] group-hover:text-white group-hover:border-[#00288e] transition-all duration-300 shadow-sm">
-                    <Icon size={22} strokeWidth={2} />
-                  </div>
-                  <ArrowUpRight size={18} className="text-outline-variant group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200" />
+            {/* 4 small cards */}
+            {SMALL_CATS.map(({ Icon, label, sub, bg, ic }) => (
+              <div key={label}
+                className="group relative overflow-hidden rounded-2xl border border-[#c4c5d5]/40 bg-white cursor-pointer flex flex-col items-center justify-center gap-2.5 p-5 aspect-square hover:shadow-[0_8px_28px_rgba(0,40,142,0.12)] hover:-translate-y-1 hover:border-[#00288e]/20 transition-all duration-300">
+                <div className={`w-16 h-16 rounded-2xl ${bg} flex items-center justify-center group-hover:scale-110 group-hover:shadow-[0_4px_16px_rgba(0,40,142,0.15)] transition-all duration-300`}>
+                  <Icon size={30} className={ic} strokeWidth={1.75} />
                 </div>
-
-                <div className="mt-6 text-left">
-                  <h4 className="text-[15px] font-bold text-on-surface group-hover:text-primary transition-colors leading-tight" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
-                    {label}
-                  </h4>
-                  <p className="text-[12px] text-on-surface-variant/80 mt-1 line-clamp-2 leading-relaxed">
-                    {sub}
-                  </p>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-[11px] font-bold text-primary">
-                  <span>{count}</span>
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity">Book Now →</span>
-                </div>
-              </Link>
+                <p className="text-[13px] font-bold text-[#0d1c2e] text-center leading-tight">{label}</p>
+                <p className="text-[11px] text-[#757684] text-center leading-tight">{sub}</p>
+              </div>
             ))}
           </div>
         </section>
@@ -359,8 +258,8 @@ export default function Landing() {
                 className="group relative overflow-hidden rounded-2xl border border-[#c4c5d5]/50 bg-white p-8 hover:shadow-[0_12px_40px_rgba(0,40,142,0.12)] hover:-translate-y-2 hover:border-[#00288e]/20 transition-all duration-300">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-[#00288e]/3 rounded-full blur-3xl -translate-y-10 translate-x-10 group-hover:bg-[#00288e]/8 transition-colors duration-400 pointer-events-none" />
                 <div className="relative z-10">
-                  <div className="w-12 h-12 rounded-xl bg-surface-container-low border border-outline-variant/40 text-primary flex items-center justify-center mb-6 group-hover:bg-[#00288e] group-hover:text-white group-hover:border-[#00288e] transition-all duration-300 shadow-sm">
-                    <Icon size={22} strokeWidth={2} />
+                  <div className="w-14 h-14 rounded-2xl bg-[#e8edff] flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-[#00288e] group-hover:shadow-[0_8px_24px_rgba(0,40,142,0.3)] transition-all duration-300">
+                    <Icon size={26} strokeWidth={1.75} className="text-[#00288e] group-hover:text-white transition-colors duration-300" />
                   </div>
                   <h3 className="text-[18px] font-bold text-[#0d1c2e] mb-3">{title}</h3>
                   <p className="text-[15px] text-[#444653] leading-relaxed">{desc}</p>
