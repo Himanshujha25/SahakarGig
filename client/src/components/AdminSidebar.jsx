@@ -116,7 +116,7 @@ export default function AdminSidebar() {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-bold text-on-surface truncate leading-none">{user?.name || "Admin"}</p>
-          <p className="text-[11px] text-on-surface-variant mt-0.5 truncate">{user?.email || "admin@coop.com"}</p>
+          <p className="text-[11px] text-on-surface-variant mt-0.5 truncate">{user?.email || "admin@coops.com"}</p>
         </div>
         <NotificationBell />
       </div>
