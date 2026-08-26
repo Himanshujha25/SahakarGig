@@ -1,7 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import api from "../../lib/api";
+import Icon from "../../components/Icon";
+
+function loadRazorpayScript() {
+  return new Promise((resolve) => {
+    if (document.getElementById("rzp-script")) return resolve(true);
+    const s = document.createElement("script");
+    s.id = "rzp-script";
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
 
 export default function Payment() {
   const { bookingId } = useParams();
@@ -10,80 +23,167 @@ export default function Payment() {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
-    api
-      .get(`/bookings/${bookingId}`)
-      .then((res) => {
-        if (active) setBooking(res.data);
-      })
-      .catch(() => {
-        if (active) setBooking(null);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+    api.get(`/bookings/${bookingId}`)
+      .then((r) => { if (active) setBooking(r.data); })
+      .catch(() => { if (active) setBooking(null); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [bookingId]);
 
-  const pay = async () => {
+  const pay = useCallback(async () => {
+    setError("");
     setPaying(true);
     try {
-      await api.post("/payments/capture", { bookingId });
+      const loaded = await loadRazorpayScript();
+      if (!loaded) throw new Error("Razorpay SDK failed to load. Check your internet connection.");
+
+      // Step 1 — create order on backend
+      const { data: order } = await api.post("/payments/create-order", { bookingId });
+
+      // Step 2 — open Razorpay checkout
+      await new Promise((resolve, reject) => {
+        const options = {
+          key: order.keyId,
+          amount: order.amount,
+          currency: order.currency,
+          name: "SahakarGig",
+          description: booking?.service || "Service Payment",
+          order_id: order.orderId,
+          theme: { color: "#00288e" },
+          prefill: {},
+          handler: async (response) => {
+            try {
+              // Step 3 — verify signature + release payment on backend
+              await api.post("/payments/verify", {
+                bookingId,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              resolve();
+            } catch (err) {
+              reject(new Error(err?.response?.data?.message || "Payment verification failed"));
+            }
+          },
+          modal: {
+            ondismiss: () => reject(new Error("cancelled")),
+          },
+        };
+        const rzp = new window.Razorpay(options);
+        rzp.on("payment.failed", (resp) => {
+          reject(new Error(resp.error?.description || "Payment failed"));
+        });
+        rzp.open();
+      });
+
       navigate(`/household/invoice/${bookingId}`);
-    } catch {
+    } catch (err) {
+      if (err.message !== "cancelled") setError(err.message || "Payment failed. Please try again.");
       setPaying(false);
     }
-  };
+  }, [bookingId, booking, navigate]);
 
-  if (loading) return <p className="font-body-md text-on-surface-variant">Loading…</p>;
-  if (!booking) return <p className="font-body-md text-on-surface-variant">Booking not found.</p>;
+  if (loading)
+    return (
+      <div className="mx-auto w-full max-w-2xl pt-lg">
+        <div className="animate-pulse rounded-xl border border-outline-variant bg-surface p-6">
+          <div className="mb-4 h-5 w-1/3 rounded bg-surface-variant" />
+          <div className="h-4 w-2/3 rounded bg-surface-variant" />
+        </div>
+      </div>
+    );
+  if (!booking) return <p className="pt-lg font-body-md text-on-surface-variant">Booking not found.</p>;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto w-full max-w-2xl pt-lg">
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-1 font-heading text-sm font-semibold text-primary"
+        className="mb-6 inline-flex items-center gap-1 font-heading text-sm font-semibold text-primary hover:text-primary-container"
       >
-        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+        <Icon name="arrow_back" className=" text-[18px]" />
         Back
       </button>
 
-      <h1 className="font-headline-lg text-headline-lg text-on-surface">{t("pay")}</h1>
+      <h1 className="mb-2 font-heading font-bold tracking-tight text-on-background text-2xl md:text-3xl">
+        {t("pay")}
+      </h1>
+      <p className="mb-6 font-body-md text-on-surface-variant">
+        Complete your secured payment via Razorpay to finalize this service.
+      </p>
 
-      <div className="card-lg flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-tint text-on-primary">
-            <span className="material-symbols-outlined">payments</span>
+      <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface">
+        {/* Header */}
+        <div className="flex items-center gap-4 border-b border-outline-variant bg-surface-container-low p-5 md:p-6">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface-tint text-on-primary">
+            <Icon name="payments" className="" />
           </div>
           <div>
-            <p className="font-headline font-semibold text-on-surface">Secure Payment</p>
-            <p className="font-body-md text-sm text-on-surface-variant">Escrow-backed · released on completion</p>
+            <p className="font-heading font-semibold text-on-surface">Secure Payment via Razorpay</p>
+            <p className="font-body-md text-sm text-on-surface-variant">
+              UPI · Cards · Net Banking · Wallets
+            </p>
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 border-y border-outline-variant py-4">
+        <div className="flex flex-col gap-4 p-5 md:p-6">
+          {/* Booking summary */}
           <div className="flex items-center justify-between">
-            <span className="font-body-md text-on-surface-variant">{booking.service}</span>
-            <span className="font-heading text-sm font-semibold text-on-surface">
-              {booking.providerId?.userId?.name}
+            <div>
+              <p className="font-body-md text-sm text-on-surface-variant">Service</p>
+              <p className="font-heading font-semibold text-on-surface">{booking.service}</p>
+            </div>
+            <div className="text-right">
+              <p className="font-body-md text-sm text-on-surface-variant">Provider</p>
+              <p className="font-heading font-semibold text-on-surface">
+                {booking.providerId?.userId?.name || "—"}
+              </p>
+            </div>
+          </div>
+
+          <div className="my-1 h-px bg-outline-variant" />
+
+          {/* Amount */}
+          <div className="flex items-center justify-between rounded-xl bg-secondary-container/50 px-4 py-3">
+            <span className="font-heading font-semibold text-on-secondary-container">Amount due</span>
+            <span className="font-heading text-2xl font-bold text-on-secondary-container">
+              ₹{booking.price}
             </span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="font-body-md text-on-surface-variant">Amount</span>
-            <span className="font-headline text-xl font-bold text-primary">₹{booking.price}</span>
+
+          {/* Error */}
+          {error && (
+            <div className="flex items-center gap-2 rounded-lg border border-error/30 bg-error-container px-4 py-3">
+              <Icon name="error" className="text-[18px] text-error shrink-0" />
+              <p className="font-body-md text-sm text-on-error-container">{error}</p>
+            </div>
+          )}
+
+          {/* Pay button */}
+          <button
+            onClick={pay}
+            disabled={paying || booking.paymentStatus === "paid"}
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary font-heading font-semibold text-on-primary transition-all hover:shadow-[0_4px_12px_rgba(0,40,142,0.18)] disabled:opacity-60"
+          >
+            <Icon name="lock" className=" text-[20px]" />
+            {booking.paymentStatus === "paid"
+              ? "Already Paid"
+              : paying
+              ? "Opening Razorpay…"
+              : `Pay ₹${booking.price} via Razorpay`}
+          </button>
+
+          {/* Trust note */}
+          <div className="flex items-center justify-center gap-2 text-center">
+            <Icon name="verified_user" className="text-[16px] text-secondary" />
+            <p className="font-body-md text-xs text-on-surface-variant">
+              256-bit SSL · PCI-DSS compliant · Powered by Razorpay
+            </p>
           </div>
         </div>
-
-        <button onClick={pay} className="btn-primary w-full" disabled={paying}>
-          {paying ? "Processing…" : `${t("pay")} ₹${booking.price}`}
-        </button>
-        <p className="text-center font-body-md text-xs text-on-surface-variant">
-          Secure mock payment — no real charge.
-        </p>
       </div>
     </div>
   );

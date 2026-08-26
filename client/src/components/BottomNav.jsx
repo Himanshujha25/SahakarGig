@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import Icon from './Icon';
 
 const items = [
   { key: 'home', label: 'Home', icon: 'home', to: '/household' },
@@ -24,12 +25,7 @@ export default function BottomNav({ active = 'home' }) {
                 : 'text-on-surface-variant hover:text-on-surface'
             }`}
           >
-            <span
-              className="material-symbols-outlined mb-1"
-              style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
-            >
-              {it.icon}
-            </span>
+            <Icon name={it.icon} className="mb-1" />
             {t(it.label.toLowerCase())}
           </NavLink>
         );

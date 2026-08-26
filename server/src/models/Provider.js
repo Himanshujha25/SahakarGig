@@ -10,8 +10,13 @@ const providerSchema = new mongoose.Schema(
     availabilitySlots: [{ day: String, from: String, to: String }],
     documents: [String],
     geoLocation: { lat: Number, lng: Number },
+    trustScore: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
+
+providerSchema.index({ cooperativeId: 1, verified: 1 });
+providerSchema.index({ cooperativeId: 1, trustScore: -1 });
+providerSchema.index({ userId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Provider', providerSchema);

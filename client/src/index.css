@@ -121,15 +121,52 @@
   --radius-2xl: 1rem;
   --radius-full: 9999px;
 
-  /* ---- Spacing scale (Stitch exact) ---- */
-  --spacing-unit: 4px;
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
+  /* ---- Spacing scale (Stitch custom named tokens) ---- */
   --spacing-gutter: 24px;
-  --spacing-xl: 40px;
   --spacing-margin-mobile: 16px;
+}
+
+@utility gap-xs { gap: 4px; }
+@utility gap-sm { gap: 8px; }
+@utility gap-md { gap: 16px; }
+@utility gap-lg { gap: 24px; }
+@utility gap-xl { gap: 40px; }
+
+@utility p-xs { padding: 4px; }
+@utility p-sm { padding: 8px; }
+@utility p-md { padding: 16px; }
+@utility p-lg { padding: 24px; }
+@utility p-xl { padding: 40px; }
+
+@utility px-gutter { padding-inline: 24px; }
+@utility py-md { padding-block: 16px; }
+@utility py-lg { padding-block: 24px; }
+@utility py-xl { padding-block: 40px; }
+
+@utility pt-md { padding-top: 16px; }
+@utility pt-lg { padding-top: 24px; }
+@utility pt-xl { padding-top: 40px; }
+
+@utility pb-md { padding-bottom: 16px; }
+@utility pb-lg { padding-bottom: 24px; }
+@utility pb-xl { padding-bottom: 40px; }
+
+@utility mb-sm { margin-bottom: 8px; }
+@utility mb-md { margin-bottom: 16px; }
+@utility mb-lg { margin-bottom: 24px; }
+@utility mb-xl { margin-bottom: 40px; }
+
+@layer utilities {
+  .space-y-md > :not([hidden]) ~ :not([hidden]) {
+    --tw-space-y-reverse: 0;
+    margin-top: calc(16px * (1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(16px * var(--tw-space-y-reverse));
+  }
+  .space-y-lg > :not([hidden]) ~ :not([hidden]) {
+    --tw-space-y-reverse: 0;
+    margin-top: calc(24px * (1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(24px * var(--tw-space-y-reverse));
+  }
 }
 
 /* max-w-container-max = 1280px (Stitch container width) */
@@ -314,25 +351,6 @@
     padding: 0.5rem;
     backdrop-filter: blur(8px);
   }
-}
-
-/* ============================================================
-   Material Symbols Outlined (icon font) — required for all
-   `material-symbols-outlined` glyphs across the app
-   ============================================================ */
-.material-symbols-outlined {
-  font-family: "Material Symbols Outlined";
-  font-weight: normal;
-  font-style: normal;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  font-feature-settings: "liga";
-  -webkit-font-smoothing: antialiased;
 }
 
 /* Trust ring + etched badge helpers */

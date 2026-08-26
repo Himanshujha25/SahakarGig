@@ -3,13 +3,12 @@ const Review = require('../models/Review');
 const Booking = require('../models/Booking');
 const Provider = require('../models/Provider');
 
+const SECRET = () => process.env.JWT_SECRET || 'sahakargig_dev_secret';
+
 function signToken(user) {
-  return jwt.sign({ userId: user._id.toString(), role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: '7d',
-  });
+  return jwt.sign({ userId: user._id.toString(), role: user.role }, SECRET(), { expiresIn: '7d' });
 }
 
-// Distance in km between two {lat,lng} points
 function haversine(a, b) {
   if (!a || !b || a.lat == null || b.lat == null) return Infinity;
   const R = 6371;
@@ -22,7 +21,6 @@ function haversine(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-// Trust Score = (avgRating/5 * 0.5) + (completionRate * 0.3) + (verified * 0.2)
 async function computeTrustScore(providerId) {
   const provider = await Provider.findById(providerId);
   const bookings = await Booking.find({ providerId });
@@ -32,8 +30,10 @@ async function computeTrustScore(providerId) {
     : 0;
   const completed = bookings.filter((b) => b.status === 'completed').length;
   const completionRate = bookings.length ? completed / bookings.length : 0;
-  const verified = provider && provider.verified ? 1 : 0;
-  return Number(((avgRating / 5) * 0.5 + completionRate * 0.3 + verified * 0.2).toFixed(2));
+  const verified = provider?.verified ? 1 : 0;
+  const score = Number(((avgRating / 5) * 0.5 + completionRate * 0.3 + verified * 0.2).toFixed(2));
+  await Provider.findByIdAndUpdate(providerId, { trustScore: score });
+  return score;
 }
 
 function invoiceNumber() {

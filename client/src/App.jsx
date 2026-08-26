@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import RoleRoute from './components/RoleRoute';
 
+import Landing from './pages/Landing';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import CoopSignup from './pages/auth/CoopSignup';
@@ -18,6 +19,7 @@ import Tracking from './pages/Household/Tracking';
 import Payment from './pages/Household/Payment';
 import Invoice from './pages/Household/Invoice';
 import HouseholdProfile from './pages/Household/Profile';
+import FindServices from './pages/Household/FindServices';
 
 import JobQueue from './pages/Provider/JobQueue';
 import JobDetail from './pages/Provider/JobDetail';
@@ -30,27 +32,38 @@ import Verifications from './pages/Admin/Verifications';
 import Disputes from './pages/Admin/Disputes';
 import Commission from './pages/Admin/Commission';
 import Providers from './pages/Admin/Providers';
+import AdminSettings from './pages/Admin/Settings';
+
+import FederationLayout from './layouts/FederationLayout';
+import FederationDashboard from './pages/Federation/Dashboard';
+import FederationCooperatives from './pages/Federation/Cooperatives';
+import FederationSettings from './pages/Federation/Settings';
+import FederationSignup from './pages/auth/FederationSignup';
 
 function Redirect() {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/landing" replace />;
   if (user.role === 'Household') return <Navigate to="/household" replace />;
   if (user.role === 'Provider') return <Navigate to="/provider" replace />;
   if (user.role === 'Cooperative Admin') return <Navigate to="/admin" replace />;
-  return <Navigate to="/login" replace />;
+  if (user.role === 'Federation Admin') return <Navigate to="/federation" replace />;
+  return <Navigate to="/landing" replace />;
 }
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/landing" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/coop-signup" element={<CoopSignup />} />
-      <Route path="/" element={<Redirect />} />
+      <Route path="/federation-signup" element={<FederationSignup />} />
+      <Route path="/" element={<Landing />} />
 
       <Route element={<RoleRoute role="Household" />}>
         <Route path="/household" element={<HouseholdLayout />}>
           <Route index element={<Home />} />
+          <Route path="find" element={<FindServices />} />
           <Route path="bookings" element={<Bookings />} />
           <Route path="provider/:id" element={<ProviderProfile />} />
           <Route path="book/:providerId" element={<BookingRequest />} />
@@ -78,6 +91,15 @@ export default function App() {
           <Route path="disputes" element={<Disputes />} />
           <Route path="commission" element={<Commission />} />
           <Route path="providers" element={<Providers />} />
+          <Route path="settings" element={<AdminSettings />} />
+        </Route>
+      </Route>
+
+      <Route element={<RoleRoute role="Federation Admin" />}>
+        <Route path="/federation" element={<FederationLayout />}>
+          <Route index element={<FederationDashboard />} />
+          <Route path="cooperatives" element={<FederationCooperatives />} />
+          <Route path="settings" element={<FederationSettings />} />
         </Route>
       </Route>
 

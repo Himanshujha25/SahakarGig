@@ -1,40 +1,64 @@
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
+import { LogOut, User, Mail, Shield } from "lucide-react";
 
 export default function Profile() {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
   const { user, logout } = useAuth();
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  const navigate = useNavigate();
+  const initials = user?.name ? user.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "HH";
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="font-headline-lg text-headline-lg text-on-surface">{t("profile")}</h1>
+    <div className="w-full px-6 pt-8 pb-10 space-y-6 max-w-2xl">
 
-      <div className="card flex items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-container font-heading text-2xl font-bold text-on-primary-container">
-          {(user?.name || "?").charAt(0)}
+      {/* Header */}
+      <div>
+        <h1 className="text-[26px] font-bold tracking-tight text-on-surface"
+          style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+          Profile
+        </h1>
+        <p className="text-[14px] text-on-surface-variant mt-0.5">Your household account details.</p>
+      </div>
+
+      {/* Avatar card */}
+      <div className="rounded-2xl border border-outline-variant/60 bg-surface p-6 flex items-center gap-5">
+        <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-white text-[22px] font-bold shrink-0">
+          {initials}
         </div>
-        <div>
-          <p className="font-headline-md text-headline-md text-on-surface">{user?.name}</p>
-          <p className="font-body-md text-sm text-on-surface-variant">{user?.email}</p>
-          <p className="font-body-md text-sm capitalize text-on-surface-variant">{user?.role}</p>
+        <div className="min-w-0">
+          <p className="text-[18px] font-bold text-on-surface truncate">{user?.name || "Household"}</p>
+          <p className="text-[13px] text-on-surface-variant truncate">{user?.email}</p>
+          <span className="mt-1.5 inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#e8edff] text-[#00288e]">
+            Household
+          </span>
         </div>
       </div>
 
-      <div className="stat-tile">
-        <span className="font-heading text-sm font-semibold text-on-surface-variant">{t("name")}</span>
-        <span className="font-heading text-lg font-bold text-on-surface">{user?.id || ""}</span>
+      {/* Info rows */}
+      <div className="rounded-2xl border border-outline-variant/60 bg-surface overflow-hidden">
+        {[
+          { Icon: User,   label: "Full Name",  value: user?.name  || "—" },
+          { Icon: Mail,   label: "Email",      value: user?.email || "—" },
+          { Icon: Shield, label: "Role",       value: "Household" },
+        ].map(({ Icon, label, value }, i, arr) => (
+          <div key={label}
+            className={`flex items-center gap-4 px-6 py-4 ${i < arr.length - 1 ? "border-b border-outline-variant/40" : ""}`}>
+            <div className="w-8 h-8 rounded-xl bg-[#e8edff] flex items-center justify-center shrink-0">
+              <Icon size={15} className="text-[#00288e]" strokeWidth={2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.06em]">{label}</p>
+              <p className="text-[14px] font-semibold text-on-surface truncate">{value}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <button onClick={handleLogout} className="btn-danger w-full">
-        <span className="material-symbols-outlined mr-1 text-[18px]">logout</span>
-        {t("logout")}
+      {/* Sign out */}
+      <button
+        onClick={() => { logout(); navigate("/login"); }}
+        className="h-10 inline-flex items-center gap-2 px-5 rounded-xl border border-error/30 text-error text-[13px] font-semibold hover:bg-error hover:text-white transition-all duration-200">
+        <LogOut size={15} strokeWidth={2} />
+        Sign Out
       </button>
     </div>
   );
