@@ -35,7 +35,32 @@ app.use('/api/ai', require('./src/routes/ai'));
 app.use('/api/welfare', require('./src/routes/welfare'));
 app.use('/api/notifications', require('./src/routes/notifications'));
 
-app.get('/health', (_req, res) => res.json({ ok: true }));
+const healthHandler = (_req, res) => res.json({
+  ok: true,
+  status: 'healthy',
+  service: 'SahakarGig API',
+  timestamp: new Date().toISOString(),
+  uptimeSeconds: Math.floor(process.uptime()),
+});
+
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
+
+// Keep-Alive Ping for Render Free Tier (Pings /health every 7 minutes to prevent sleeping)
+const PING_INTERVAL_MS = 7 * 60 * 1000; // 7 minutes
+setInterval(() => {
+  const targetUrl = process.env.RENDER_EXTERNAL_URL || 'https://sahakargig.onrender.com';
+  try {
+    const httpModule = targetUrl.startsWith('https') ? require('https') : require('http');
+    httpModule.get(`${targetUrl}/health`, (res) => {
+      console.log(`[Keep-Alive Ping] (${new Date().toLocaleTimeString()}) ${targetUrl}/health -> ${res.statusCode}`);
+    }).on('error', (err) => {
+      console.warn(`[Keep-Alive Ping Warning] ${err.message}`);
+    });
+  } catch (err) {
+    console.warn(`[Keep-Alive Ping Error] ${err.message}`);
+  }
+}, PING_INTERVAL_MS);
 
 const PORT = process.env.PORT || 5000;
 connectDB(process.env.MONGODB_URI)
