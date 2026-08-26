@@ -34,7 +34,7 @@ export default function Login() {
     }
   }
 
-  const fillDemo = (email) => { setIdentifier(email); setPassword("password123"); setErr(""); };
+  const fillDemo = (email) => { setIdentifier(email); setPassword("123456789"); setErr(""); };
 
   return (
     <div className="min-h-screen w-full bg-white flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
@@ -94,7 +94,12 @@ export default function Login() {
             {/* Demo pills */}
             <div className="mb-5 flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-bold tracking-widest text-outline uppercase">Demo:</span>
-              {[["admin1@coop.com", "Admin"], ["prov1@mail.com", "Provider"], ["house1@mail.com", "Household"]].map(([email, label]) => (
+              {[
+                ["nitinprakash268@gmail.com", "Coop Admin"],
+                ["nitin268@gmail.com", "Household"],
+                ["nitin@gmail.com", "Gig Worker"],
+                ["coder268@gmail.com", "Federation"],
+              ].map(([email, label]) => (
                 <button
                   key={label}
                   type="button"

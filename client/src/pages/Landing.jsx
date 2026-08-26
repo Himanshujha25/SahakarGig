@@ -55,11 +55,23 @@ export default function Landing() {
 
           {/* Nav — center */}
           <nav className="hidden md:flex items-center gap-1">
-            {[['#services', 'Services'], ['#how', 'How it Works'], ['#about', 'Why Us']].map(([href, label]) => (
-              <a key={label} href={href}
-                className="px-4 py-2 rounded-lg text-[14px] font-medium text-[#444653] hover:text-[#00288e] hover:bg-[#f0f4ff] transition-all duration-200">
-                {label}
-              </a>
+            {[
+              ['#services', 'Services'],
+              ['#how', 'How it Works'],
+              ['#about', 'Why Us'],
+              ['/architecture', 'System Architecture'],
+            ].map(([href, label]) => (
+              href.startsWith('/') ? (
+                <Link key={label} to={href}
+                  className="px-4 py-2 rounded-lg text-[14px] font-medium text-[#444653] hover:text-[#00288e] hover:bg-[#f0f4ff] transition-all duration-200">
+                  {label}
+                </Link>
+              ) : (
+                <a key={label} href={href}
+                  className="px-4 py-2 rounded-lg text-[14px] font-medium text-[#444653] hover:text-[#00288e] hover:bg-[#f0f4ff] transition-all duration-200">
+                  {label}
+                </a>
+              )
             ))}
           </nav>
 
