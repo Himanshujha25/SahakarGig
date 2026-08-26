@@ -1,14 +1,16 @@
+import Icon from "./Icon";
+
 export default function Field({ label, icon, type = "text", value, onChange, placeholder, name, autoComplete }) {
   return (
     <label className="block w-full">
       {label && (
-        <span className="mb-1 block font-heading text-sm font-semibold text-on-surface-variant">{label}</span>
+        <span className="block text-xs font-bold text-on-surface uppercase tracking-wider mb-1.5">{label}</span>
       )}
       <div className="relative w-full">
         {icon && (
-          <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-outline">
-            {icon}
-          </span>
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-outline">
+            <Icon name={icon} className="text-[20px]" />
+          </div>
         )}
         <input
           name={name}
@@ -17,8 +19,8 @@ export default function Field({ label, icon, type = "text", value, onChange, pla
           onChange={onChange}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-md text-body-md text-on-surface outline-none transition-colors focus:border-2 focus:border-primary"
-          style={{ height: 48, paddingLeft: icon ? 44 : 16 }}
+          className="w-full py-3 bg-surface border border-outline-variant rounded-xl text-on-surface font-body-md text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+          style={{ paddingLeft: icon ? 44 : 16, paddingRight: 16 }}
         />
       </div>
     </label>

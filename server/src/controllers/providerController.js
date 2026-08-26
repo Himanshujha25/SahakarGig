@@ -1,31 +1,39 @@
+const path = require('path');
 const Provider = require('../models/Provider');
 const Cooperative = require('../models/Cooperative');
-const User = require('../models/User');
 const Review = require('../models/Review');
 const Booking = require('../models/Booking');
 const { haversine, computeTrustScore } = require('../utils/helpers');
 
 async function listProviders(req, res) {
   const { category, lat, lng, radius, cooperativeId } = req.query;
-  let providers = await Provider.find(cooperativeId ? { cooperativeId } : {})
-    .populate('userId', 'name')
-    .populate('cooperativeId', 'name');
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, parseInt(req.query.limit) || 20);
 
-  if (category) {
-    const cat = category.toLowerCase();
-    providers = providers.filter((p) => p.skills.map((s) => s.toLowerCase()).includes(cat));
-  }
+  const filter = {};
+  if (cooperativeId) filter.cooperativeId = cooperativeId;
+  if (category) filter.skills = { $regex: new RegExp(`^${category}$`, 'i') };
+
+  let providers = await Provider.find(filter)
+    .populate('userId', 'name')
+    .populate('cooperativeId', 'name')
+    .lean();
+
+  // geo filter (Haversine — must stay in-app, no 2dsphere index)
   if (lat && lng) {
     const r = parseFloat(radius) || 10;
     providers = providers.filter((p) => haversine({ lat: +lat, lng: +lng }, p.geoLocation) <= r);
   }
 
-  const out = [];
-  for (const p of providers) {
-    const score = await computeTrustScore(p._id);
-    out.push({ ...p.toObject(), trustScore: score });
-  }
-  res.json(out);
+  const total = providers.length;
+  const paginated = providers.slice((page - 1) * limit, page * limit);
+
+  res.json({
+    providers: paginated.map((p) => ({ ...p, trustScore: p.trustScore ?? 0 })),
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  });
 }
 
 async function listCooperatives(req, res) {
@@ -65,13 +73,16 @@ async function updateProfile(req, res) {
 }
 
 async function uploadDoc(req, res) {
-  if (!req.file) return res.status(400).json({ message: 'No file' });
+  if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+  // Store the URL path that can be served statically
+  const fileUrl = `/uploads/${req.file.filename}`;
   const p = await Provider.findOneAndUpdate(
     { _id: req.params.id, userId: req.user.userId },
-    { $push: { documents: req.file.originalname } },
+    { $push: { documents: fileUrl } },
     { new: true }
   );
-  res.json(p);
+  if (!p) return res.status(404).json({ message: 'Provider not found' });
+  res.json({ ...p.toObject(), uploadedUrl: fileUrl });
 }
 
 module.exports = { listProviders, listCooperatives, getProvider, me, updateProfile, uploadDoc };

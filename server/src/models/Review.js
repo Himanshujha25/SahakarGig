@@ -10,4 +10,7 @@ const reviewSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// One review per booking per user — prevents trust score spam
+reviewSchema.index({ bookingId: 1, createdBy: 1 }, { unique: true });
+
 module.exports = mongoose.model('Review', reviewSchema);

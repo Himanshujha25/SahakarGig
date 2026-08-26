@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Cooperative = require('../models/Cooperative');
 const Provider = require('../models/Provider');
+const Federation = require('../models/Federation');
 const { signToken } = require('../utils/helpers');
 
 async function signup(req, res) {
@@ -10,7 +11,7 @@ async function signup(req, res) {
     cooperativeId, cooperative,
   } = req.body;
 
-  if (!['Household', 'Provider', 'Cooperative Admin'].includes(role)) {
+  if (!['Household', 'Provider', 'Cooperative Admin', 'Federation Admin'].includes(role)) {
     return res.status(400).json({ message: 'Invalid role' });
   }
   if (await User.findOne({ email })) {
@@ -19,6 +20,25 @@ async function signup(req, res) {
 
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await User.create({ name, phone, email, passwordHash, role, address, geoLocation });
+
+  if (role === 'Federation Admin') {
+    const { federation } = req.body;
+    const fed = await Federation.create({
+      name: federation?.name || `${name}'s Federation`,
+      registrationId: federation?.registrationId || `FED-${Date.now()}`,
+      region: federation?.region || '',
+      adminId: user._id,
+      commissionRate: federation?.commissionRate || 2,
+    });
+    // link existing cooperatives in the same region (case-insensitive)
+    await Cooperative.updateMany(
+      { region: { $regex: new RegExp(`^${fed.region.trim()}$`, 'i') } },
+      { federationId: fed._id }
+    );
+    await Federation.findByIdAndUpdate(fed._id, {
+      cooperativeIds: (await Cooperative.find({ federationId: fed._id })).map((c) => c._id),
+    });
+  }
 
   if (role === 'Cooperative Admin') {
     await Cooperative.create({
