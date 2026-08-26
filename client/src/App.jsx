@@ -40,6 +40,8 @@ import FederationCooperatives from './pages/Federation/Cooperatives';
 import FederationSettings from './pages/Federation/Settings';
 import FederationSignup from './pages/auth/FederationSignup';
 
+import PwaInstallBanner from './components/PwaInstallBanner';
+
 function Redirect() {
   const { user } = useAuth();
   if (!user) return <Navigate to="/landing" replace />;
@@ -52,58 +54,61 @@ function Redirect() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/landing" element={<Landing />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/coop-signup" element={<CoopSignup />} />
-      <Route path="/federation-signup" element={<FederationSignup />} />
-      <Route path="/" element={<Landing />} />
+    <>
+      <PwaInstallBanner />
+      <Routes>
+        <Route path="/landing" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/coop-signup" element={<CoopSignup />} />
+        <Route path="/federation-signup" element={<FederationSignup />} />
+        <Route path="/" element={<Landing />} />
 
-      <Route element={<RoleRoute role="Household" />}>
-        <Route path="/household" element={<HouseholdLayout />}>
-          <Route index element={<Home />} />
-          <Route path="find" element={<FindServices />} />
-          <Route path="bookings" element={<Bookings />} />
-          <Route path="provider/:id" element={<ProviderProfile />} />
-          <Route path="book/:providerId" element={<BookingRequest />} />
-          <Route path="booking/:id" element={<Tracking />} />
-          <Route path="pay/:bookingId" element={<Payment />} />
-          <Route path="invoice/:bookingId" element={<Invoice />} />
-          <Route path="profile" element={<HouseholdProfile />} />
+        <Route element={<RoleRoute role="Household" />}>
+          <Route path="/household" element={<HouseholdLayout />}>
+            <Route index element={<Home />} />
+            <Route path="find" element={<FindServices />} />
+            <Route path="bookings" element={<Bookings />} />
+            <Route path="provider/:id" element={<ProviderProfile />} />
+            <Route path="book/:providerId" element={<BookingRequest />} />
+            <Route path="booking/:id" element={<Tracking />} />
+            <Route path="pay/:bookingId" element={<Payment />} />
+            <Route path="invoice/:bookingId" element={<Invoice />} />
+            <Route path="profile" element={<HouseholdProfile />} />
+          </Route>
         </Route>
-      </Route>
 
-      <Route element={<RoleRoute role="Provider" />}>
-        <Route path="/provider" element={<ProviderLayout />}>
-          <Route index element={<JobQueue />} />
-          <Route path="job/:id" element={<JobDetail />} />
-          <Route path="earnings" element={<ProviderEarnings />} />
-          <Route path="welfare" element={<ProviderWelfare />} />
-          <Route path="profile" element={<ProviderOwnProfile />} />
+        <Route element={<RoleRoute role="Provider" />}>
+          <Route path="/provider" element={<ProviderLayout />}>
+            <Route index element={<JobQueue />} />
+            <Route path="job/:id" element={<JobDetail />} />
+            <Route path="earnings" element={<ProviderEarnings />} />
+            <Route path="welfare" element={<ProviderWelfare />} />
+            <Route path="profile" element={<ProviderOwnProfile />} />
+          </Route>
         </Route>
-      </Route>
 
-      <Route element={<RoleRoute role="Cooperative Admin" />}>
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="verifications" element={<Verifications />} />
-          <Route path="disputes" element={<Disputes />} />
-          <Route path="commission" element={<Commission />} />
-          <Route path="providers" element={<Providers />} />
-          <Route path="settings" element={<AdminSettings />} />
+        <Route element={<RoleRoute role="Cooperative Admin" />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="verifications" element={<Verifications />} />
+            <Route path="disputes" element={<Disputes />} />
+            <Route path="commission" element={<Commission />} />
+            <Route path="providers" element={<Providers />} />
+            <Route path="settings" element={<AdminSettings />} />
+          </Route>
         </Route>
-      </Route>
 
-      <Route element={<RoleRoute role="Federation Admin" />}>
-        <Route path="/federation" element={<FederationLayout />}>
-          <Route index element={<FederationDashboard />} />
-          <Route path="cooperatives" element={<FederationCooperatives />} />
-          <Route path="settings" element={<FederationSettings />} />
+        <Route element={<RoleRoute role="Federation Admin" />}>
+          <Route path="/federation" element={<FederationLayout />}>
+            <Route index element={<FederationDashboard />} />
+            <Route path="cooperatives" element={<FederationCooperatives />} />
+            <Route path="settings" element={<FederationSettings />} />
+          </Route>
         </Route>
-      </Route>
 
-      <Route path="*" element={<Redirect />} />
-    </Routes>
+        <Route path="*" element={<Redirect />} />
+      </Routes>
+    </>
   );
 }

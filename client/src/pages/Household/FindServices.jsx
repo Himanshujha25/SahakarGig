@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import api from "../../lib/api";
 import VerifiedBadge from "../../components/VerifiedBadge";
-import { Search, SlidersHorizontal, Star, MapPin } from "lucide-react";
+import { Search, SlidersHorizontal, Star, MapPin, Mic, MicOff } from "lucide-react";
 
 const SKILLS = ["All", "Cleaning", "Plumbing", "Electrical", "Tutoring", "Caregiving", "Carpentry", "Painting"];
 
@@ -11,6 +11,31 @@ export default function FindServices() {
   const [loading, setLoading]     = useState(true);
   const [query, setQuery]         = useState("");
   const [skill, setSkill]         = useState("All");
+  const [isListening, setIsListening] = useState(false);
+
+  const startVoiceSearch = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice search is not supported on this browser. Try Chrome or Edge.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "hi-IN"; // Hindi / Indian English vernacular support
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setQuery(transcript);
+    };
+
+    recognition.start();
+  };
 
   useEffect(() => {
     async function load() {
@@ -73,9 +98,21 @@ export default function FindServices() {
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search by name or skill…"
-            className="h-10 w-full rounded-xl border border-outline-variant bg-surface pl-9 pr-4 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+            placeholder={isListening ? "Listening... Speak now..." : "Search by name or skill..."}
+            className={`h-10 w-full rounded-xl border bg-surface pl-9 pr-10 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary ${
+              isListening ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-outline-variant"
+            }`}
           />
+          <button
+            type="button"
+            onClick={startVoiceSearch}
+            title="Voice Search (Hindi / English)"
+            className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all ${
+              isListening ? "text-error animate-pulse bg-error-container" : "text-primary hover:bg-[#e8edff]"
+            }`}
+          >
+            {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+          </button>
         </div>
         <div className="flex gap-1 p-1 rounded-xl bg-surface-container-low border border-outline-variant/40 flex-wrap">
           {SKILLS.map(s => (

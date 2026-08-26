@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/api";
 import { ShieldCheck, Save, CheckCircle2, QrCode } from "lucide-react";
+import WelfareBadge from "../../components/WelfareBadge";
 
 const inputCls = "h-11 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-on-surface-variant/50";
 
@@ -116,6 +117,12 @@ export default function Welfare() {
 
           {/* Right panel */}
           <div className="lg:col-span-2 space-y-4">
+
+            {/* Digital e-Shram Card */}
+            <WelfareBadge
+              eshramId={form.eShramId}
+              welfareScore={welfareScore}
+            />
 
             {/* Welfare score */}
             <div className="rounded-2xl border border-outline-variant/60 bg-surface p-5 space-y-4">

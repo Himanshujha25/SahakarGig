@@ -38,7 +38,8 @@ export default function BookingRequest() {
         isEmergency,
         price: provider?.hourlyRate || 0,
       });
-      navigate(`/household/booking/${data._id}`);
+      // Redirect to Razorpay Checkout for instant secure payment
+      navigate(`/household/pay/${data._id}`);
     } catch {
       setSubmitting(false);
     }

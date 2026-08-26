@@ -81,7 +81,7 @@ export default function Home() {
             Welcome back, {firstName} 👋
           </h1>
           <p className="text-[14px] text-on-surface-variant mt-0.5">
-            Find verified cooperative service providers near you.
+            Book verified service providers endorsed by your local cooperative.
           </p>
         </div>
         <div className="flex items-center gap-2">

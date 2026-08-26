@@ -135,8 +135,25 @@ export default function Bookings() {
                           {s.label}
                         </span>
                       </td>
-                      <td className="px-6 py-3.5 text-right text-[14px] font-bold text-on-surface">
-                        ₹{b.price ?? 0}
+                      <td className="px-6 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="text-[14px] font-bold text-on-surface">₹{b.price ?? 0}</span>
+                          {b.paymentStatus === 'paid' ? (
+                            <span className="px-2 py-0.5 rounded-full bg-[#e6f9ec] text-[#006d30] text-[10px] font-bold">
+                              Paid ✓
+                            </span>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/household/pay/${b._id}`);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-[#173bab] transition-all shadow-sm"
+                            >
+                              Pay Razorpay
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
