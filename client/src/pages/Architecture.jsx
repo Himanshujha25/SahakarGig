@@ -91,8 +91,8 @@ export default function Architecture() {
   const [activeTab, setActiveTab] = useState('topology');
 
   return (
-    <div className="min-h-screen bg-[#f8f9ff] text-[#0d1c2e] font-sans p-4 sm:p-6 lg:p-8 flex justify-center">
-      <div className="w-full max-w-7xl space-y-8">
+    <div className="min-h-screen bg-[#f8f9ff] text-[#0d1c2e] font-sans pt-8 pb-20 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Top Header & Breadcrumb */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/60 pb-5">
@@ -194,50 +194,61 @@ export default function Architecture() {
           {/* RIGHT PANEL: Interactive Engineering Workspace */}
           <div className="lg:col-span-8 space-y-6">
             
-            {/* Tabs */}
-            <div className="flex flex-wrap items-center gap-2 border-b border-outline-variant/60 pb-3">
+            {/* Tabs Navigation Bar — 5 Tabs */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-3 border-b border-outline-variant/60 scrollbar-none whitespace-nowrap">
               <button
                 onClick={() => setActiveTab('topology')}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all shrink-0 ${
                   activeTab === 'topology'
                     ? 'bg-[#00288e] text-white shadow-md'
                     : 'bg-surface text-on-surface-variant hover:bg-surface-container-low'
                 }`}
               >
-                <Network size={16} /> Microservices Stack
+                <Network size={15} /> Microservices Stack
               </button>
 
               <button
                 onClick={() => setActiveTab('techstack')}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all shrink-0 ${
                   activeTab === 'techstack'
                     ? 'bg-[#00288e] text-white shadow-md'
                     : 'bg-surface text-on-surface-variant hover:bg-surface-container-low'
                 }`}
               >
-                <Code2 size={16} /> Production Tech Stack
+                <Code2 size={15} /> Production Tech Stack
               </button>
 
               <button
                 onClick={() => setActiveTab('dispatch')}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all shrink-0 ${
                   activeTab === 'dispatch'
                     ? 'bg-[#00288e] text-white shadow-md'
                     : 'bg-surface text-on-surface-variant hover:bg-surface-container-low'
                 }`}
               >
-                <Radio size={16} /> Worker Assignment &amp; AI Dispatch
+                <Radio size={15} /> Worker Assignment &amp; AI Dispatch
               </button>
 
               <button
                 onClick={() => setActiveTab('institutional')}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all shrink-0 ${
                   activeTab === 'institutional'
                     ? 'bg-[#00288e] text-white shadow-md'
                     : 'bg-surface text-on-surface-variant hover:bg-surface-container-low'
                 }`}
               >
-                <Handshake size={16} /> NLCF Grounding
+                <Handshake size={15} /> NLCF Grounding
+              </button>
+
+              <button
+                onClick={() => setActiveTab('fairwage')}
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all shrink-0 ${
+                  activeTab === 'fairwage'
+                    ? 'bg-[#00288e] text-white shadow-md'
+                    : 'bg-surface text-on-surface-variant hover:bg-surface-container-low'
+                }`}
+              >
+                <PieChart size={15} /> Fair Wage Engine
               </button>
             </div>
 
