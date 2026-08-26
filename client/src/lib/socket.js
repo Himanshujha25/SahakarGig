@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
+import { SOCKET_URL } from './config';
 
-const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
+const socket = io(SOCKET_URL, {
   autoConnect: false,
   auth: (cb) => {
     // Send JWT token so server can verify identity on connect

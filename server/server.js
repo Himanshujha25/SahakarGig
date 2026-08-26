@@ -9,13 +9,14 @@ const path = require('path');
 const { Server } = require('socket.io');
 const { initSocket } = require('./src/socket');
 const connectDB = require('./src/config/db');
-
+const dns = require("dns");
 const app = express();
 
-const ALLOWED_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+const ALLOWED_ORIGIN = process.env.CLIENT_ORIGIN || (process.env.NODE_ENV === 'production' ? true : 'http://localhost:5173');
 app.use(cors({ origin: ALLOWED_ORIGIN, credentials: true }));
 app.use(express.json());
 
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 // Serve uploaded provider documents as static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
