@@ -359,3 +359,40 @@
 .badge-etched {
   box-shadow: inset 0 0 0 1px var(--color-secondary-container);
 }
+
+/* ── Geospatial Broadcast Radar (PRD §2.1) ── */
+@keyframes sg-radar-sweep {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes sg-radar-ping {
+  0%   { transform: scale(0.35); opacity: 0.9; }
+  100% { transform: scale(1.05); opacity: 0; }
+}
+.sg-radar-sweep { animation: sg-radar-sweep 2.4s linear infinite; }
+.sg-radar-ping   { animation: sg-radar-ping 2.4s ease-out infinite; }
+
+/* ── Premium dropdown scrollbar ──
+   Dark, thick, modern. Dedicated to the dispatch category dropdown. */
+.sg-dropdown-list {
+  scrollbar-width: thin;                 /* Firefox */
+  scrollbar-color: var(--color-primary-fixed-dim) var(--color-surface-container-low);
+}
+.sg-dropdown-list::-webkit-scrollbar {
+  width: 10px;                           /* thicker grip */
+}
+.sg-dropdown-list::-webkit-scrollbar-track {
+  background: var(--color-surface-container-low);
+  border-radius: 9999px;
+}
+.sg-dropdown-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--color-primary), var(--color-primary-fixed-dim));
+  border-radius: 9999px;
+  border: 2px solid var(--color-surface-container-low); /* inset for a floating look */
+}
+.sg-dropdown-list::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--color-primary), var(--color-primary-fixed-dim));
+}
+.sg-dropdown-list::-webkit-scrollbar-corner {
+  background: transparent;
+}

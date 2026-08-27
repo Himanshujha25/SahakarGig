@@ -1,10 +1,13 @@
+import { useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
-import { Home, CalendarDays, User, LogOut, Handshake, Search } from 'lucide-react';
+import socket from '../lib/socket';
+import { Home, CalendarDays, User, LogOut, Handshake, Search, Radar } from 'lucide-react';
 
 const NAV = [
   { label: 'Home',          Icon: Home,         to: '/household',       end: true  },
+  { label: 'Dispatch',      Icon: Radar,        to: '/household/dispatch', end: false },
   { label: 'Find Services', Icon: Search,        to: '/household/find',  end: false },
   { label: 'My Bookings',   Icon: CalendarDays,  to: '/household/bookings', end: false },
   { label: 'Profile',       Icon: User,          to: '/household/profile',  end: false },
@@ -19,6 +22,11 @@ export default function HouseholdLayout() {
   const initials = user?.name
     ? user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     : 'HH';
+
+  useEffect(() => {
+    socket.connect();
+    return () => { socket.disconnect(); };
+  }, []);
 
   function signOut() { logout(); navigate('/login'); }
 

@@ -490,6 +490,10 @@ export default function Architecture() {
                       Unlike commercial aggregators that charge up to 30% platform commissions, SahakarGig enforces a transparent cooperative distribution formula.
                     </p>
                   </div>
+                  <p className="text-[12px] text-on-surface-variant leading-relaxed">
+                    Customer speaks in Hindi/Regional language ("Mere ghar mein pipe leak ho raha hai"). AI classifies intent: <strong>Plumbing (Priority: High)</strong>.
+                  </p>
+                </div>
 
                   <div className="p-5 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-4">
                     <div className="text-[13px] font-bold text-on-surface flex items-center justify-between">
@@ -519,6 +523,9 @@ export default function Architecture() {
                       </div>
                     </div>
                   </div>
+                  <p className="text-[12px] text-on-surface-variant leading-relaxed">
+                    Instant 1-tap dispatch for Gas Leaks, Electrical Failures, and Lockouts with real-time socket tracking.
+                  </p>
                 </div>
               </div>
             )}
@@ -531,3 +538,4 @@ export default function Architecture() {
     </div>
   );
 }
+

@@ -54,7 +54,7 @@ export default function PwaInstallBanner() {
       <div className="flex items-center gap-1 shrink-0">
         <button
           onClick={handleInstall}
-          className="px-3 py-1.5 rounded-xl bg-primary text-white text-[12px] font-bold hover:bg-[#173bab] flex items-center gap-1 transition-all shadow-sm"
+          className="px-3 py-1.5 rounded-xl border border-primary/25 bg-[#e8edff] text-[#00288e] text-[12px] font-bold hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_3px_10px_rgba(0,40,142,0.18)] flex items-center gap-1 active:scale-[0.98] transition-all duration-200"
         >
           <Download size={13} /> Install
         </button>

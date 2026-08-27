@@ -27,11 +27,13 @@ export default function Tracking() {
 
   useEffect(() => {
     load();
-    socket.connect();
-    socket.on('booking:updated', (b) => { if (b._id === id) setBooking(b); });
+    socket.on('booking:updated', (b) => { if (b._id === id || b._id?.toString() === id) setBooking(b); });
+    socket.on('booking:chat', ({ bookingId, message }) => {
+      if (bookingId?.toString() === id) setBooking(prev => prev ? { ...prev, chat: [...(prev.chat || []), message] } : prev);
+    });
     return () => {
       socket.off('booking:updated');
-      socket.disconnect();
+      socket.off('booking:chat');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -146,7 +148,7 @@ export default function Tracking() {
       </div>
 
       {booking.status === "completed" && booking.paymentStatus !== "paid" && (
-        <button onClick={() => navigate(`/household/pay/${id}`)} className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary font-heading font-semibold text-on-primary transition-all hover:shadow-[0_4px_12px_rgba(0,40,142,0.18)]">
+        <button onClick={() => navigate(`/household/pay/${id}`)} className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-primary/30 bg-[#e8edff] font-heading font-semibold text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200">
           <Icon name="payments" className=" text-[20px]" />
           {t("pay")}
         </button>

@@ -3,16 +3,20 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/api";
 import Icon from "../../components/Icon";
-import { ArrowLeft } from "lucide-react";
+import AuthShell from "../../components/AuthShell";
+import OtpModal from "../../components/OtpModal";
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const HERO_IMAGE =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuBoqNwMxz89ThfO04GrechILX6d7P7jQC29TiL-bJp1Z_rv7BUIVUv3vfudaddaI88MO_bJ6EyCpehmz15WPybx_G_pbOiBHlbE0-q8f4JBKgdXUQpeRQVuJnopnwjQ32XMwTWgY_Zg3kx3Xic2v2GVRdypB3_TeHTi1J66Wpwrk6qPCYE9o5gSSylqb51PWwMQkkwKYsbO_JbC9mfSdWuoXk0IzPSz7ZECOXMbw_-oQbqrbuOfnQ";
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuBoqNwMxz89ThfO04GrechILX6d7P7jQC29TiL-bJp1Z_rv7BUIVUv3vfudaddaI88MO_bJ6EyCpehmz15WPybx_G_pbOiBHhbE0-q8f4JBKgdXUQpeRQVuJnopnwjQ32XMwTWgY_Zg3kx3Xic2v2GVRdypB3_TeHTi1J66Wpwrk6qPCYE9o5gSSylqb51PWwMQkkwKYsbO_JbC9mfSdWuoXk0IzPSz7ZECOXMbw_-oQbqrbuOfnQ";
 
 const ROLES = [
-  { value: "Household",        label: "Household",        icon: "home" },
-  { value: "Provider",         label: "Service Provider", icon: "handyman" },
-  { value: "Cooperative Admin",label: "Cooperative",      icon: "domain" },
+  { value: "Household",         label: "Household",       icon: "home" },
+  { value: "Provider",          label: "Service Provider", icon: "handyman" },
+  { value: "Cooperative Admin", label: "Cooperative",      icon: "domain" },
 ];
+
+const inputCls = "block w-full px-3 py-2 border border-outline-variant rounded-lg bg-white text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none";
 
 export default function Signup() {
   const { signup } = useAuth();
@@ -22,6 +26,8 @@ export default function Signup() {
   const [coops, setCoops] = useState([]);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [otpOpen, setOtpOpen] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState(null);
 
   useEffect(() => {
     if (form.role === "Provider") {
@@ -31,258 +37,228 @@ export default function Signup() {
 
   function set(k, v) { setForm((f) => ({ ...f, [k]: v })); }
 
-  async function submit(e) {
+  // Step 1: validate + open OTP verification for the entered email
+  function submit(e) {
     e.preventDefault();
     setErr("");
-    setLoading(true);
+    if (!EMAIL_RE.test(form.email.trim())) {
+      return setErr("Please enter a valid email address.");
+    }
+    if (form.password && form.password.length < 8) {
+      return setErr("Password must be at least 8 characters long.");
+    }
+    if (form.role === "Provider" && !form.cooperativeId) {
+      return setErr("Please select a cooperative.");
+    }
     const payload = { name: form.name, email: form.email, phone: form.phone, password: form.password, role: form.role };
     if (form.role === "Provider") payload.cooperativeId = form.cooperativeId;
+    setPendingPayload(payload);
+    setOtpOpen(true);
+  }
+
+  // Step 2: OTP verified — create the account with the code attached
+  async function handleOtpVerified(code) {
+    setLoading(true);
     try {
-      const u = await signup(payload);
+      const u = await signup({ ...pendingPayload, otp: code });
+      setOtpOpen(false);
       if (u.role === "Household") navigate("/household");
       else if (u.role === "Provider") navigate("/provider");
       else navigate("/admin");
-    } catch (e) {
-      setErr(e.response?.data?.message || "Signup failed. Please try again.");
-    } finally {
-      setLoading(false);
+    } catch (e2) {
+      throw e2; // OTP/verification errors surface inside the modal
+    } finally { setLoading(false); }
+  }
+
+  // Non-OTP failures (e.g. duplicate email) show inline instead
+  async function verifyWrapper(code) {
+    try { await handleOtpVerified(code); }
+    catch (e) {
+      const m = e.response?.data?.message || "";
+      if (/OTP|Incorrect|expired|attempt|code|verified/i.test(m)) throw e;
+      setOtpOpen(false);
+      setErr(m || "Registration failed. Please try again.");
     }
   }
 
   return (
-    <div className="min-h-screen w-full bg-white flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <AuthShell
+      title="Join the Cooperative Economy."
+      subtitle="Connect, work, and grow within a trusted community ecosystem built for everyone."
+      back="/"
+      backLabel="Back to Home"
+    >
+      <div className="mb-4">
+        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">Create Account</h2>
+        <p className="font-body-md text-xs sm:text-sm text-on-surface-variant mt-1">Select your role to get started.</p>
+      </div>
 
-      <div className="flex w-full max-w-[1200px] min-h-[600px] my-auto flex-col lg:flex-row rounded-2xl">
+      {/* Role Cards */}
+      <div className="grid grid-cols-3 gap-2.5 mb-4">
+        {ROLES.map((r) => (
+          <button
+            key={r.value}
+            type="button"
+            onClick={() => set("role", r.value)}
+            className={`flex flex-col items-center text-center py-3 px-2 rounded-xl border transition-all duration-200 cursor-pointer active:scale-[0.97] ${
+              form.role === r.value
+                ? "border-primary bg-surface-container-low shadow-xs"
+                : "border-outline-variant bg-white hover:border-primary/50"
+            }`}
+          >
+            <Icon
+              name={r.icon}
+              className={`text-[24px] mb-1.5 transition-colors ${form.role === r.value ? "text-primary" : "text-outline"}`}
+              strokeWidth={1.5}
+            />
+            <span className="text-[12px] font-semibold text-on-surface leading-tight">{r.label}</span>
+          </button>
+        ))}
+      </div>
 
-        {/* Left: Image card — identical to Login */}
-        <div className="hidden lg:flex w-[420px] shrink-0 relative flex-col justify-between p-8 overflow-hidden group rounded-2xl shadow-lg ring-1 ring-black/5">
-          <div
-            className="absolute inset-0 bg-cover bg-center z-0 transition-transform duration-[20s] ease-linear group-hover:scale-105"
-            style={{ backgroundImage: `url('${HERO_IMAGE}')` }}
-          />
-          <div className="absolute inset-0 bg-primary/75 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/95 via-primary/30 to-transparent" />
-
-          <div className="relative z-10 flex items-center gap-2">
-            <Icon name="handshake" className="text-[24px] text-white" strokeWidth={1.5} />
-            <span className="font-bold text-[20px] text-white tracking-tight">SahakarGig</span>
-          </div>
-
-          <div className="relative z-10 max-w-xs">
-            <h1 className="font-bold text-white mb-3 text-[22px] leading-[30px] tracking-tight">
-              Join the Cooperative Economy.
-            </h1>
-            <p className="text-[14px] leading-[22px] text-white/85">
-              Connect, work, and grow within a trusted community ecosystem built for everyone.
-            </p>
-          </div>
-        </div>
-
-        {/* Right: Form pane — same padding/structure as Login */}
-        <div className="flex-1 relative flex flex-col justify-center px-14 py-8 bg-white overflow-y-auto">
-
-          {/* Back button — fixed top-left of pane */}
-          <div className="absolute top-6 left-8 right-8 flex items-center justify-between">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#444653] hover:text-[#00288e] transition-colors duration-200 group"
-            >
-              <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
-              Back to Home
-            </Link>
-            <div className="lg:hidden flex items-center gap-2">
-              <Icon name="handshake" className="text-[24px] text-primary" strokeWidth={1.5} />
-              <span className="font-bold text-[20px] text-primary tracking-tight">SahakarGig</span>
+      {form.role ? (
+        <>
+          {err && (
+            <div className="mb-3.5 rounded-lg bg-error-container border border-error/20 px-3.5 py-2.5 flex items-center gap-2.5 text-on-error-container">
+              <Icon name="error" className="text-[17px] text-error shrink-0" />
+              <span className="text-[12.5px] font-medium">{err}</span>
             </div>
-          </div>
+          )}
 
-          <div className="max-w-md w-full mx-auto">
-
-            {/* Heading */}
-            <div className="mb-6">
-              <h2 className="text-[28px] leading-[36px] font-bold text-on-surface tracking-tight mb-2">Create Account</h2>
-              <p className="text-[14px] text-on-surface-variant">Select your role to get started.</p>
+          <form onSubmit={submit} className="space-y-3">
+            {/* Full Name */}
+            <div>
+              <label htmlFor="fullName" className="block text-[12.5px] font-semibold text-on-surface mb-1">
+                Full Name / Organization Name
+              </label>
+              <input
+                id="fullName"
+                type="text"
+                required
+                value={form.name}
+                onChange={(e) => set("name", e.target.value)}
+                placeholder="Enter your name"
+                className={inputCls}
+              />
             </div>
 
-            {/* Role Cards */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {ROLES.map((r) => (
+            {/* Email + Phone */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label htmlFor="email" className="block text-[12.5px] font-semibold text-on-surface mb-1">Email</label>
+                <input
+                  id="email" type="email" required value={form.email}
+                  onChange={(e) => set("email", e.target.value)}
+                  placeholder="name@mail.com"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label htmlFor="phone" className="block text-[12.5px] font-semibold text-on-surface mb-1">Phone</label>
+                <input
+                  id="phone" type="tel" value={form.phone}
+                  onChange={(e) => set("phone", e.target.value)}
+                  placeholder="+91 9XXXXXXXXX"
+                  className={inputCls}
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label htmlFor="password" className="block text-[12.5px] font-semibold text-on-surface mb-1">Password</label>
+              <div className="relative">
+                <input
+                  id="password" type={showPassword ? "text" : "password"} required minLength={8}
+                  value={form.password} onChange={(e) => set("password", e.target.value)}
+                  placeholder="At least 8 characters"
+                  className={inputCls + " pr-9"}
+                />
                 <button
-                  key={r.value}
-                  type="button"
-                  onClick={() => set("role", r.value)}
-                  className={`flex flex-col items-center text-center py-4 px-2 rounded-lg border transition-all duration-200 cursor-pointer active:scale-[0.97] ${
-                    form.role === r.value
-                      ? "border-primary bg-surface-container-low shadow-sm"
-                      : "border-outline-variant bg-white hover:border-primary/50"
-                  }`}
+                  type="button" tabIndex={-1} onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors cursor-pointer"
                 >
-                  <Icon
-                    name={r.icon}
-                    className={`text-[28px] mb-2 transition-colors ${form.role === r.value ? "text-primary" : "text-outline"}`}
-                    strokeWidth={1.5}
-                  />
-                  <span className="text-[13px] font-semibold text-on-surface leading-tight">{r.label}</span>
+                  <Icon name={showPassword ? "visibility_off" : "visibility"} className="text-[17px]" />
                 </button>
-              ))}
+              </div>
             </div>
 
-            {/* Form fields — only shown after role selected */}
-            {form.role ? (
-              <>
-                {err && (
-                  <div className="mb-4 rounded-lg bg-error-container border border-error/20 px-4 py-3 flex items-center gap-3 text-on-error-container">
-                    <Icon name="error" className="text-[18px] text-error shrink-0" />
-                    <span className="text-[13px] font-medium">{err}</span>
-                  </div>
-                )}
-
-                <form onSubmit={submit} className="space-y-4">
-
-                  {/* Full Name */}
-                  <div>
-                    <label htmlFor="fullName" className="block text-[13px] font-semibold text-on-surface mb-1.5">
-                      Full Name / Organization Name
-                    </label>
-                    <input
-                      id="fullName"
-                      type="text"
-                      required
-                      value={form.name}
-                      onChange={(e) => set("name", e.target.value)}
-                      placeholder="Enter your name"
-                      className="block w-full px-3 py-2.5 border border-outline-variant rounded-lg bg-white text-on-surface text-[14px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none"
-                    />
-                  </div>
-
-                  {/* Email + Phone */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label htmlFor="email" className="block text-[13px] font-semibold text-on-surface mb-1.5">Email</label>
-                      <input
-                        id="email"
-                        type="email"
-                        required
-                        value={form.email}
-                        onChange={(e) => set("email", e.target.value)}
-                        placeholder="name@mail.com"
-                        className="block w-full px-3 py-2.5 border border-outline-variant rounded-lg bg-white text-on-surface text-[14px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="phone" className="block text-[13px] font-semibold text-on-surface mb-1.5">Phone</label>
-                      <input
-                        id="phone"
-                        type="tel"
-                        required
-                        value={form.phone}
-                        onChange={(e) => set("phone", e.target.value)}
-                        placeholder="+91 XXXXX"
-                        className="block w-full px-3 py-2.5 border border-outline-variant rounded-lg bg-white text-on-surface text-[14px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password */}
-                  <div>
-                    <label htmlFor="password" className="block text-[13px] font-semibold text-on-surface mb-1.5">Password</label>
-                    <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Icon name="lock" className="text-[18px] text-outline group-focus-within:text-primary transition-colors" />
-                      </div>
-                      <input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        required
-                        value={form.password}
-                        onChange={(e) => set("password", e.target.value)}
-                        placeholder="••••••••"
-                        className="block w-full pl-10 pr-10 py-2.5 border border-outline-variant rounded-lg bg-white text-on-surface text-[14px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-on-surface transition-colors focus:outline-none cursor-pointer"
-                      >
-                        <Icon name={showPassword ? "visibility" : "visibility_off"} className="text-[18px]" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Cooperative dropdown */}
-                  {form.role === "Provider" && (
-                    <div>
-                      <label htmlFor="coop" className="block text-[13px] font-semibold text-on-surface mb-1.5">Select Cooperative</label>
-                      <select
-                        id="coop"
-                        value={form.cooperativeId}
-                        onChange={(e) => set("cooperativeId", e.target.value)}
-                        className="block w-full px-3 py-2.5 border border-outline-variant rounded-lg bg-white text-on-surface text-[14px] focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
-                      >
-                        <option value="">-- Select Cooperative --</option>
-                        {coops.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Cooperative Admin note */}
-                  {form.role === "Cooperative Admin" && (
-                    <p className="rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 text-[13px] text-on-surface-variant">
-                      Registering a cooperative? Use the{" "}
-                      <Link to="/coop-signup" className="font-semibold text-primary hover:underline">dedicated form</Link>.
-                    </p>
-                  )}
-
-                  {/* Terms */}
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      required
-                      className="w-4 h-4 mt-0.5 text-primary border-outline-variant rounded accent-primary cursor-pointer"
-                    />
-                    <span className="text-[13px] text-on-surface-variant leading-snug">
-                      I agree to the{" "}
-                      <a href="#" className="text-primary hover:underline">Terms &amp; Conditions</a>{" "}
-                      and{" "}
-                      <a href="#" className="text-primary hover:underline">Privacy Policy</a>.
-                    </span>
-                  </label>
-
-                  {/* Submit */}
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full flex justify-center items-center gap-2 py-3 rounded-lg text-[14px] font-semibold text-on-primary bg-primary hover:bg-primary-container active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
-                  >
-                    {loading && <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                    {loading ? "Creating..." : "Create Account"}
-                    {!loading && <Icon name="arrow_forward" className="text-[18px]" />}
-                  </button>
-                </form>
-              </>
-            ) : (
-              <div className="text-center text-[14px] text-on-surface-variant italic opacity-60 py-6">
-                Please select a role above to continue registration.
+            {/* Cooperative dropdown (Provider only) */}
+            {form.role === "Provider" && (
+              <div>
+                <label htmlFor="coop" className="block text-[12.5px] font-semibold text-on-surface mb-1">Select Cooperative</label>
+                <select
+                  id="coop" value={form.cooperativeId}
+                  onChange={(e) => set("cooperativeId", e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">-- Select Cooperative --</option>
+                  {coops.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                </select>
               </div>
             )}
 
-            <p className="mt-6 text-center text-[13px] text-on-surface-variant">
-              Already have an account?{" "}
-              <Link to="/login" className="font-semibold text-primary hover:text-primary-container transition-colors">
-                Sign in
-              </Link>
-            </p>
+            {/* Cooperative Admin note */}
+            {form.role === "Cooperative Admin" && (
+              <p className="rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-[12.5px] text-on-surface-variant">
+                Registering a cooperative society? Use the{" "}
+                <Link to="/coop-signup" className="font-semibold text-primary hover:underline">dedicated form</Link>.
+              </p>
+            )}
 
-            <div className="mt-4 flex justify-center gap-6 text-[11px] text-outline">
-              <a href="#" className="hover:text-on-surface-variant transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-on-surface-variant transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-on-surface-variant transition-colors">Help Center</a>
-            </div>
+            {/* Terms */}
+            <label className="flex items-start gap-2 cursor-pointer pt-0.5">
+              <input
+                type="checkbox"
+                required
+                className="w-3.5 h-3.5 mt-0.5 text-primary border-outline-variant rounded accent-primary cursor-pointer"
+              />
+              <span className="text-[12px] text-on-surface-variant leading-snug">
+                I agree to the{" "}
+                <a href="#" className="text-primary hover:underline">Terms &amp; Conditions</a>{" "}
+                and{" "}
+                <a href="#" className="text-primary hover:underline">Privacy Policy</a>.
+              </span>
+            </label>
 
-          </div>
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-[13.5px] font-semibold border border-primary/30 bg-[#e8edff] text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
+            >
+              {loading && <span className="h-4 w-4 border-2 border-[#00288e]/30 border-t-[#00288e] rounded-full animate-spin" />}
+              {loading ? "Verifying & Creating..." : "Create Account"}
+              {!loading && <Icon name="arrow_forward" className="text-[17px]" />}
+            </button>
+          </form>
+        </>
+      ) : (
+        <div className="text-center text-[13px] text-on-surface-variant italic opacity-60 py-4">
+          Please select a role above to continue registration.
         </div>
+      )}
 
-      </div>
-    </div>
+      <p className="mt-4 text-center font-body-md text-xs text-on-surface-variant">
+        Already have an account?{" "}
+        <Link to="/login" className="font-semibold text-primary hover:text-primary-container transition-colors">
+          Sign in
+        </Link>
+      </p>
+
+      {/* Email OTP verification modal — account is created only after the email is confirmed */}
+      <OtpModal
+        open={otpOpen}
+        onClose={() => setOtpOpen(false)}
+        title="Verify your email"
+        subtitle={`We've sent a 6-digit code to ${form.email}. Enter it below to finish creating your account.`}
+        email={form.email.trim()}
+        purpose="signup"
+        ctaLabel="Verify & Create Account"
+        onVerify={verifyWrapper}
+      />
+    </AuthShell>
   );
 }
+

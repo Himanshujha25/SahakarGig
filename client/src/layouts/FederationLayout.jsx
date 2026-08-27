@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
-import NotificationToasts from '../components/NotificationToasts';
+import NotificationBell from '../components/NotificationBell';
+import socket from '../lib/socket';
 
 const NAV = [
   { to: '/federation', icon: 'dashboard', label: 'Dashboard', end: true },
@@ -14,6 +15,11 @@ export default function FederationLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    socket.connect();
+    return () => { socket.disconnect(); };
+  }, []);
 
   function signOut() { logout(); navigate('/login'); }
 
@@ -58,14 +64,15 @@ export default function FederationLayout() {
           <Icon name="logout" className="text-[20px]" />
           Sign Out
         </button>
-        <div className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-container">
+          <div className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-container">
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
             {user?.name?.[0]?.toUpperCase()}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-on-surface truncate">{user?.name}</p>
             <p className="text-[10px] text-on-surface-variant truncate">Federation Admin</p>
           </div>
+          <NotificationBell />
         </div>
       </div>
     </aside>
@@ -132,7 +139,7 @@ export default function FederationLayout() {
         ))}
       </nav>
 
-      <NotificationToasts />
+      <NotificationBell />
     </div>
   );
 }

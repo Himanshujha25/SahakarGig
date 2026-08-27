@@ -1,8 +1,23 @@
 import { useEffect, useState } from 'react';
 import api from '../../lib/api';
 import Icon from '../../components/Icon';
+import { useAuth } from '../../context/AuthContext';
+import { EmailStatusCard, ChangePasswordSection } from '../../components/AccountSecurity';
+
+function Section({ title, subtitle, children }) {
+  return (
+    <div className="rounded-xl border border-outline-variant bg-surface p-5 space-y-4">
+      <div>
+        <h2 className="font-heading text-base font-semibold text-on-surface">{title}</h2>
+        {subtitle && <p className="text-xs text-on-surface-variant mt-0.5">{subtitle}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export default function FederationSettings() {
+  const { user } = useAuth();
   const [rate, setRate] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -61,6 +76,18 @@ export default function FederationSettings() {
           </button>
         </form>
       </div>
+
+      {/* Account security — email verification + OTP-protected password change */}
+      <Section title="Email Verification" subtitle="Verify your email to secure your federation account.">
+        <EmailStatusCard />
+      </Section>
+
+      <Section
+        title="Change Password"
+        subtitle="Use a strong password with at least 8 characters. A one-time code will be emailed to confirm the change."
+      >
+        <ChangePasswordSection />
+      </Section>
     </div>
   );
 }
