@@ -1,15 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "../components/NotificationBell";
 import LangToggle from "../components/LangToggle";
 import AdminSidebar from "../components/AdminSidebar";
 import Icon from "../components/Icon";
+import socket from "../lib/socket";
 
 export default function AdminLayout() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    socket.connect();
+    return () => { socket.disconnect(); };
+  }, []);
 
   return (
     <div className="bg-background text-on-background font-body-md min-h-screen flex text-body-md overflow-hidden">

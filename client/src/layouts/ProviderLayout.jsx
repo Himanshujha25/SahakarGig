@@ -1,10 +1,13 @@
+import { useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
-import { Briefcase, IndianRupee, ShieldCheck, User, LogOut, Handshake } from 'lucide-react';
+import socket from '../lib/socket';
+import { Briefcase, IndianRupee, ShieldCheck, User, LogOut, Handshake, Radio } from 'lucide-react';
 
 const NAV = [
   { label: 'Job Queue',  Icon: Briefcase,    to: '/provider',          end: true  },
+  { label: 'Dispatch',   Icon: Radio,        to: '/provider/dispatch', end: false },
   { label: 'Earnings',   Icon: IndianRupee,  to: '/provider/earnings', end: false },
   { label: 'Welfare',    Icon: ShieldCheck,  to: '/provider/welfare',  end: false },
   { label: 'Profile',    Icon: User,         to: '/provider/profile',  end: false },
@@ -19,6 +22,11 @@ export default function ProviderLayout() {
   const initials = user?.name
     ? user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     : 'PV';
+
+  useEffect(() => {
+    socket.connect();
+    return () => { socket.disconnect(); };
+  }, []);
 
   function signOut() { logout(); navigate('/login'); }
 

@@ -2,6 +2,7 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Payment = require('../models/Payment');
 const Booking = require('../models/Booking');
+const Provider = require('../models/Provider');
 const Cooperative = require('../models/Cooperative');
 const Invoice = require('../models/Invoice');
 const Welfare = require('../models/Welfare');
@@ -133,7 +134,11 @@ async function verifyAndCapture(req, res) {
   await welfare.save();
 
   await notify(b.householdId.toString(), 'payment_released', `Payment of ₹${amount} released`, b._id);
-  await notify(b.providerId.toString(), 'payment_released', `You received ₹${payout}`, b._id);
+  // Resolve Provider._id -> User._id so the provider actually receives the notification
+  const providerDoc = b.providerId ? await Provider.findById(b.providerId).select('userId') : null;
+  if (providerDoc?.userId) {
+    await notify(providerDoc.userId.toString(), 'payment_released', `You received ₹${payout}`, b._id);
+  }
   emitTo(b.householdId.toString(), 'booking:updated', b);
 
   res.json({ payment, invoice: inv });

@@ -105,7 +105,7 @@ export default function Disputes() {
                   <Undo2 size={15} strokeWidth={2.5} /> Refund
                 </button>
                 <button
-                  className="h-11 flex items-center justify-center gap-2 rounded-xl bg-primary text-white text-[13px] font-bold hover:bg-[#173bab] hover:shadow-[0_4px_16px_rgba(0,40,142,0.25)] transition-all duration-200 disabled:opacity-60"
+                  className="h-11 flex items-center justify-center gap-2 rounded-xl border border-primary/25 bg-[#e8edff] text-[#00288e] text-[13px] font-bold hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
                   disabled={busy === d._id}
                   onClick={() => resolve(d._id, "provider")}
                 >

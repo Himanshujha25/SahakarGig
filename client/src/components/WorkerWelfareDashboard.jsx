@@ -1,6 +1,35 @@
-import { ShieldCheck, IndianRupee, Briefcase, Star, Clock, AlertTriangle, CheckCircle2, Award, HeartPulse } from 'lucide-react';
+import { ShieldCheck, IndianRupee, Briefcase, Clock, AlertTriangle, CheckCircle2, HeartPulse, Info } from 'lucide-react';
 
-export default function WorkerWelfareDashboard({ monthlyEarnings = 28400, jobsCompleted = 47, rating = 4.8, workingHours = 164, emergencyFund = 1200 }) {
+export default function WorkerWelfareDashboard({ data, loading }) {
+  if (loading) {
+    return (
+      <div className="w-full space-y-4 animate-pulse">
+        <div className="h-14 rounded-2xl bg-surface-container" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[0,1,2,3].map(i => <div key={i} className="h-24 rounded-2xl bg-surface-container" />)}
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {[0,1,2].map(i => <div key={i} className="h-12 rounded-xl bg-surface-container" />)}
+        </div>
+      </div>
+    );
+  }
+
+  const {
+    insuranceOptIn = false,
+    insuranceProvider = '',
+    monthlyEarnings = 0,
+    jobsCompleted = 0,
+    avgRating = 0,
+    daysWorked = 0,
+    totalEarnings = 0,
+    alerts = [],
+    verified = false,
+  } = data || {};
+
+  // working hours estimate: daysWorked * 8
+  const estHours = daysWorked * 8;
+
   return (
     <div className="w-full space-y-5">
       {/* Header */}
@@ -18,20 +47,29 @@ export default function WorkerWelfareDashboard({ monthlyEarnings = 28400, jobsCo
             </p>
           </div>
         </div>
-        <span className="px-3 py-1 rounded-full bg-[#e6f9ec] text-[#006d30] text-[12px] font-bold border border-[#006d30]/20 flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-[#006d30] animate-pulse" /> Active Protection
+        <span className={`px-3 py-1 rounded-full text-[12px] font-bold border flex items-center gap-1.5 ${
+          insuranceOptIn
+            ? 'bg-[#e6f9ec] text-[#006d30] border-[#006d30]/20'
+            : 'bg-[#fff3e0] text-[#6b4200] border-[#6b4200]/20'
+        }`}>
+          <span className={`w-2 h-2 rounded-full ${insuranceOptIn ? 'bg-[#006d30] animate-pulse' : 'bg-[#6b4200]'}`} />
+          {insuranceOptIn ? 'Active Protection' : 'No Insurance'}
         </span>
       </div>
 
-      {/* Metric Cards Grid */}
+      {/* Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="p-4 rounded-2xl bg-surface border border-outline-variant/60 shadow-sm">
           <div className="flex items-center justify-between text-on-surface-variant text-[12px] font-medium mb-1">
             <span>Insurance</span>
-            <ShieldCheck size={16} className="text-[#006d30]" />
+            <ShieldCheck size={16} className={insuranceOptIn ? 'text-[#006d30]' : 'text-on-surface-variant'} />
           </div>
-          <p className="text-[16px] font-bold text-[#006d30]">Active</p>
-          <p className="text-[11px] text-on-surface-variant/70 mt-0.5">PMSBY ₹2 Lakh Cover</p>
+          <p className={`text-[16px] font-bold ${insuranceOptIn ? 'text-[#006d30]' : 'text-error'}`}>
+            {insuranceOptIn ? 'Active' : 'Not Active'}
+          </p>
+          <p className="text-[11px] text-on-surface-variant/70 mt-0.5">
+            {insuranceOptIn ? (insuranceProvider || 'PMSBY ₹2 Lakh Cover') : 'Opt in to activate'}
+          </p>
         </div>
 
         <div className="p-4 rounded-2xl bg-surface border border-outline-variant/60 shadow-sm">
@@ -39,7 +77,9 @@ export default function WorkerWelfareDashboard({ monthlyEarnings = 28400, jobsCo
             <span>Monthly Earnings</span>
             <IndianRupee size={16} className="text-primary" />
           </div>
-          <p className="text-[16px] font-bold text-primary">₹{monthlyEarnings.toLocaleString()}</p>
+          <p className="text-[16px] font-bold text-primary">
+            {monthlyEarnings > 0 ? `₹${monthlyEarnings.toLocaleString('en-IN')}` : '₹0'}
+          </p>
           <p className="text-[11px] text-on-surface-variant/70 mt-0.5">Direct Coop Payout</p>
         </div>
 
@@ -49,64 +89,75 @@ export default function WorkerWelfareDashboard({ monthlyEarnings = 28400, jobsCo
             <Briefcase size={16} className="text-primary" />
           </div>
           <p className="text-[16px] font-bold text-on-surface">{jobsCompleted}</p>
-          <p className="text-[11px] text-on-surface-variant/70 mt-0.5">⭐ {rating} Avg Rating</p>
+          <p className="text-[11px] text-on-surface-variant/70 mt-0.5">
+            {avgRating > 0 ? `⭐ ${avgRating} Avg Rating` : 'No ratings yet'}
+          </p>
         </div>
 
         <div className="p-4 rounded-2xl bg-surface border border-outline-variant/60 shadow-sm">
           <div className="flex items-center justify-between text-on-surface-variant text-[12px] font-medium mb-1">
-            <span>Working Hours</span>
+            <span>Days Worked</span>
             <Clock size={16} className="text-on-surface-variant" />
           </div>
-          <p className="text-[16px] font-bold text-on-surface">{workingHours} hrs</p>
-          <p className="text-[11px] text-on-surface-variant/70 mt-0.5">This Month</p>
+          <p className="text-[16px] font-bold text-on-surface">{daysWorked}</p>
+          <p className="text-[11px] text-on-surface-variant/70 mt-0.5">~{estHours} hrs total</p>
         </div>
       </div>
 
-      {/* Secondary Metric Bar */}
+      {/* Secondary Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/40 flex items-center justify-between">
-          <span className="text-[12px] text-on-surface-variant font-medium">Emergency Relief Fund</span>
-          <span className="text-[14px] font-bold text-primary">₹{emergencyFund.toLocaleString()}</span>
+          <span className="text-[12px] text-on-surface-variant font-medium">Total Earnings</span>
+          <span className="text-[14px] font-bold text-primary">
+            {totalEarnings > 0 ? `₹${totalEarnings.toLocaleString('en-IN')}` : '₹0'}
+          </span>
         </div>
         <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/40 flex items-center justify-between">
-          <span className="text-[12px] text-on-surface-variant font-medium">Insurance Claims</span>
-          <span className="text-[14px] font-bold text-[#006d30]">None (0 Active)</span>
+          <span className="text-[12px] text-on-surface-variant font-medium">Verification Status</span>
+          <span className={`text-[13px] font-bold ${verified ? 'text-[#006d30]' : 'text-error'}`}>
+            {verified ? 'Verified ✓' : 'Pending'}
+          </span>
         </div>
         <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/40 flex items-center justify-between">
-          <span className="text-[12px] text-on-surface-variant font-medium">NLCF Skill Certification</span>
-          <span className="text-[13px] font-bold text-on-surface">Valid until 2027</span>
+          <span className="text-[12px] text-on-surface-variant font-medium">Avg Rating</span>
+          <span className="text-[13px] font-bold text-on-surface">
+            {avgRating > 0 ? `${avgRating} ★` : '—'}
+          </span>
         </div>
       </div>
 
-      {/* Smart Welfare Alerts */}
-      <div className="space-y-2 pt-1">
-        <h3 className="text-[13px] font-bold text-on-surface uppercase tracking-wider">Automated Welfare Alerts</h3>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between p-3 rounded-xl bg-[#fff3e0] border border-[#6b4200]/20 text-[13px] font-semibold text-[#6b4200]">
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={16} className="shrink-0" />
-              <span>Worker approaching excessive weekly workload (42 hrs logged this week)</span>
-            </div>
-            <span className="text-[11px] bg-white/60 px-2 py-0.5 rounded-md">Health Advisory</span>
-          </div>
-
-          <div className="flex items-center justify-between p-3 rounded-xl bg-[#fff3e0] border border-[#6b4200]/20 text-[13px] font-semibold text-[#6b4200]">
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={16} className="shrink-0" />
-              <span>Safety Certification renewal due in 30 days</span>
-            </div>
-            <span className="text-[11px] bg-white/60 px-2 py-0.5 rounded-md">Action Required</span>
-          </div>
-
-          <div className="flex items-center justify-between p-3 rounded-xl bg-[#e6f9ec] border border-[#006d30]/20 text-[13px] font-semibold text-[#006d30]">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="shrink-0" />
-              <span>Monthly Welfare Contribution deposited into Provident Account (₹1,420)</span>
-            </div>
-            <span className="text-[11px] bg-white/60 px-2 py-0.5 rounded-md">Verified</span>
+      {/* Real Alerts */}
+      {alerts.length > 0 && (
+        <div className="space-y-2 pt-1">
+          <h3 className="text-[13px] font-bold text-on-surface uppercase tracking-wider">Welfare Alerts</h3>
+          <div className="space-y-2">
+            {alerts.map((a, i) => {
+              const isWarn = a.type === 'warning';
+              const isSuccess = a.type === 'success';
+              return (
+                <div key={i} className={`flex items-center justify-between p-3 rounded-xl text-[13px] font-semibold border ${
+                  isSuccess
+                    ? 'bg-[#e6f9ec] border-[#006d30]/20 text-[#006d30]'
+                    : isWarn
+                    ? 'bg-[#fff3e0] border-[#6b4200]/20 text-[#6b4200]'
+                    : 'bg-[#e8edff] border-[#00288e]/20 text-[#00288e]'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    {isSuccess
+                      ? <CheckCircle2 size={16} className="shrink-0" />
+                      : isWarn
+                      ? <AlertTriangle size={16} className="shrink-0" />
+                      : <Info size={16} className="shrink-0" />
+                    }
+                    <span>{a.message}</span>
+                  </div>
+                  <span className="text-[11px] bg-white/60 px-2 py-0.5 rounded-md shrink-0 ml-2">{a.tag}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

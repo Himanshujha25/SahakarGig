@@ -1,7 +1,10 @@
 const Booking = require('../models/Booking');
 const Provider = require('../models/Provider');
 const Cooperative = require('../models/Cooperative');
-const { emitTo } = require('../socket');
+const Welfare = require('../models/Welfare');
+const Review = require('../models/Review');
+const { emitTo, broadcastAll } = require('../socket');
+const { haversine } = require('../utils/helpers');
 const notify = require('../utils/notify');
 
 async function createBooking(req, res) {
@@ -35,8 +38,9 @@ async function createBooking(req, res) {
 
 async function getBooking(req, res) {
   const b = await Booking.findById(req.params.id)
-    .populate('householdId', 'name')
-    .populate({ path: 'providerId', populate: { path: 'userId', select: 'name' } });
+    .populate('householdId', 'name phone')
+    .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } })
+    .populate('cooperativeId', 'name');
   if (!b) return res.status(404).json({ message: 'Not found' });
 
   // Ownership check — only the household, the provider, or an admin can read
@@ -76,14 +80,17 @@ async function providerBookings(req, res) {
 }
 
 async function acceptBooking(req, res) {
-  const b = await Booking.findById(req.params.id);
+  const b = await Booking.findById(req.params.id)
+    .populate('householdId', 'name phone')
+    .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } });
   if (!b) return res.status(404).json({ message: 'Not found' });
   const provider = await Provider.findOne({ userId: req.user.userId, _id: b.providerId });
   if (!provider) return res.status(403).json({ message: 'Not your booking' });
   b.status = 'accepted';
   await b.save();
-  await notify(b.householdId.toString(), 'booking_accepted', 'Your booking was accepted', b._id);
-  emitTo(b.householdId.toString(), 'booking:updated', b);
+  await notify(b.householdId._id.toString(), 'booking_accepted', 'Your booking was accepted', b._id);
+  emitTo(b.householdId._id.toString(), 'booking:updated', b);
+  emitTo(req.user.userId, 'booking:updated', b);
   res.json(b);
 }
 
@@ -91,65 +98,251 @@ async function updateStatus(req, res) {
   const { status } = req.body;
   const allowed = ['in-progress', 'completed'];
   if (!allowed.includes(status)) return res.status(400).json({ message: `Status must be one of: ${allowed.join(', ')}` });
-  const b = await Booking.findById(req.params.id);
+  const b = await Booking.findById(req.params.id)
+    .populate('householdId', 'name phone')
+    .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } });
   if (!b) return res.status(404).json({ message: 'Not found' });
   const provider = await Provider.findOne({ userId: req.user.userId, _id: b.providerId });
   if (!provider) return res.status(403).json({ message: 'Forbidden' });
   b.status = status;
   await b.save();
-  await notify(b.householdId.toString(), 'booking_status', `Booking status: ${status}`, b._id);
-  emitTo(b.householdId.toString(), 'booking:updated', b);
+  await notify(b.householdId._id.toString(), 'booking_status', `Booking status: ${status}`, b._id);
+  emitTo(b.householdId._id.toString(), 'booking:updated', b);
+  emitTo(req.user.userId, 'booking:updated', b);
   res.json(b);
 }
 
 async function cancelBooking(req, res) {
-  const b = await Booking.findById(req.params.id);
+  const b = await Booking.findById(req.params.id)
+    .populate('householdId', 'name phone')
+    .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } });
   if (!b) return res.status(404).json({ message: 'Not found' });
   const userId = req.user.userId;
   const role = req.user.role;
-  const isHousehold = b.householdId.toString() === userId;
+  const isHousehold = b.householdId._id.toString() === userId;
   const provider = await Provider.findOne({ userId, _id: b.providerId });
   if (!isHousehold && !provider && role !== 'Cooperative Admin')
     return res.status(403).json({ message: 'Forbidden' });
   b.status = 'cancelled';
   await b.save();
-  await notify(b.householdId.toString(), 'booking_cancelled', 'Booking cancelled', b._id);
-  emitTo(b.householdId.toString(), 'booking:updated', b);
+  await notify(b.householdId._id.toString(), 'booking_cancelled', 'Booking cancelled', b._id);
+  emitTo(b.householdId._id.toString(), 'booking:updated', b);
+  if (b.providerId?.userId?._id) emitTo(b.providerId.userId._id.toString(), 'booking:updated', b);
   res.json(b);
 }
 
 async function disputeBooking(req, res) {
   const { reason } = req.body;
   if (!reason?.trim()) return res.status(400).json({ message: 'Dispute reason is required' });
-  const b = await Booking.findById(req.params.id);
+  const b = await Booking.findById(req.params.id)
+    .populate('householdId', 'name phone')
+    .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } });
   if (!b) return res.status(404).json({ message: 'Not found' });
-  if (b.householdId.toString() !== req.user.userId)
+  if (b.householdId._id.toString() !== req.user.userId)
     return res.status(403).json({ message: 'Only the household can raise a dispute' });
   b.status = 'disputed';
   b.issue = reason;
   await b.save();
   const coop = await Cooperative.findById(b.cooperativeId);
   if (coop?.adminId) await notify(coop.adminId.toString(), 'dispute', 'A booking was disputed', b._id);
-  const prov = await Provider.findById(b.providerId).populate('userId');
-  if (prov?.userId?._id) await notify(prov.userId._id.toString(), 'dispute', 'Booking disputed', b._id);
-  emitTo(b.householdId.toString(), 'booking:updated', b);
+  if (b.providerId?.userId?._id) {
+    await notify(b.providerId.userId._id.toString(), 'dispute', 'Booking disputed', b._id);
+    emitTo(b.providerId.userId._id.toString(), 'booking:updated', b);
+  }
+  emitTo(b.householdId._id.toString(), 'booking:updated', b);
   res.json(b);
 }
 
 async function addChat(req, res) {
   const { message } = req.body;
   if (!message?.trim()) return res.status(400).json({ message: 'Message cannot be empty' });
-  const b = await Booking.findById(req.params.id);
+  const b = await Booking.findById(req.params.id)
+    .populate('householdId', 'name phone')
+    .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } });
   if (!b) return res.status(404).json({ message: 'Not found' });
-  b.chat.push({ sender: req.user.userId, message });
+  const entry = { sender: req.user.userId, message, at: new Date() };
+  b.chat.push(entry);
   await b.save();
-  emitTo(b.householdId.toString(), 'booking:updated', b);
-  const prov = await Provider.findById(b.providerId).populate('userId');
-  if (prov?.userId?._id) emitTo(prov.userId._id.toString(), 'booking:updated', b);
+  const chatPayload = { bookingId: b._id, message: entry };
+  emitTo(b.householdId._id.toString(), 'booking:chat', chatPayload);
+  if (b.providerId?.userId?._id) emitTo(b.providerId.userId._id.toString(), 'booking:chat', chatPayload);
   res.json(b);
+}
+
+// ─────────────────────────────────────────────────────────────
+// AI Geospatial Broadcast & First-Acceptance Dispatch
+// ─────────────────────────────────────────────────────────────
+
+// Household submits only Category + Locality (₹0 upfront). System
+// broadcasts to all nearby verified providers with a matching skill.
+async function createBroadcastBooking(req, res) {
+  const { category, service, locationText, lat, lng, isEmergency, price, scheduledTime } = req.body;
+  if (!category?.trim()) return res.status(400).json({ message: 'category is required' });
+
+  const coordinates = {
+    lat: Number(lat) || 28.6139,
+    lng: Number(lng) || 77.2090,
+  };
+  const radiusKm = Math.max(1, Number(req.body.radiusKm) || 25);
+
+  const booking = await Booking.create({
+    householdId: req.user.userId,
+    providerId: null,
+    cooperativeId: null,
+    dispatchMode: 'broadcast',
+    broadcastStatus: 'broadcasting',
+    targetCategory: category.trim(),
+    locationText: locationText?.trim() || category.trim(),
+    coordinates,
+    service: service?.trim() || category.trim(),
+    scheduledTime,
+    isEmergency: !!isEmergency,
+    priority: isEmergency ? 1 : 0,
+    price: (price && Number(price) > 0) ? Number(price) : 250,
+    status: 'requested',
+  });
+
+  // Find nearby verified providers holding the matching skill tag
+  const providers = await Provider.find({
+    verified: true,
+    skills: { $in: [new RegExp(`^${category.trim()}$`, 'i')] },
+  }).populate('userId', 'name');
+
+  let notified = 0;
+  for (const p of providers) {
+    if (p.userId?._id && p.geoLocation && haversine(coordinates, p.geoLocation) <= radiusKm) {
+      emitTo(p.userId._id.toString(), 'booking:broadcast_new', {
+        _id: booking._id,
+        bookingId: booking._id,
+        service: booking.service,
+        targetCategory: booking.targetCategory,
+        locationText: booking.locationText,
+        coordinates: booking.coordinates,
+        price: booking.price,
+        isEmergency: booking.isEmergency,
+        createdAt: booking.createdAt,
+        householdId: { name: 'Household' },
+      });
+      notified++;
+    }
+  }
+
+  res.status(201).json({ booking, nearbyProviders: notified });
+}
+
+// Live broadcast feed for a provider — only jobs matching their skills,
+// within range, and still awaiting first-acceptance.
+async function availableBroadcastBookings(req, res) {
+  const provider = await Provider.findOne({ userId: req.user.userId });
+  if (!provider) return res.status(403).json({ message: 'Not a provider' });
+
+  const { lat, lng, radius } = req.query;
+  const radiusKm = parseFloat(radius) || 25;
+
+  const bookings = await Booking.find({
+    dispatchMode: 'broadcast',
+    broadcastStatus: 'broadcasting',
+    providerId: null,
+    status: 'requested',
+  })
+    .populate('householdId', 'name')
+    .sort('-createdAt');
+
+  const skills = (provider.skills || []).map((s) => s.toLowerCase());
+  const within = (coords) => {
+    if (lat && lng) return haversine({ lat: +lat, lng: +lng }, coords) <= radiusKm;
+    if (provider.geoLocation) return haversine(provider.geoLocation, coords) <= radiusKm;
+    return true;
+  };
+
+  const filtered = bookings.filter((b) => {
+    const cat = (b.targetCategory || b.service || '').toLowerCase();
+    const matchesSkill = skills.includes(cat) || skills.includes((b.service || '').toLowerCase());
+    return matchesSkill && within(b.coordinates || {});
+  });
+
+  res.json(filtered);
+}
+
+// ATOMIC first-acceptance race lock (PRD §3.2).
+// Guarantees zero double-assignments under concurrent taps.
+async function acceptBroadcastRequest(req, res) {
+  const { bookingId } = req.params;
+  const provider = await Provider.findOne({ userId: req.user.userId })
+    .populate('cooperativeId', 'name');
+  if (!provider) return res.status(403).json({ message: 'Only verified providers can accept jobs' });
+  if (!provider.verified)
+    return res.status(400).json({ message: 'Your provider account is not verified yet' });
+
+  const updatedBooking = await Booking.findOneAndUpdate(
+    {
+      _id: bookingId,
+      dispatchMode: 'broadcast',
+      broadcastStatus: 'broadcasting',
+      providerId: null,
+      status: 'requested',
+    },
+    {
+      $set: {
+        providerId: provider._id,
+        cooperativeId: provider.cooperativeId,
+        status: 'accepted',
+        broadcastStatus: 'assigned',
+        claimedAt: new Date(),
+      },
+    },
+    { new: true }
+  )
+    .populate('householdId', 'name phone')
+    .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } })
+    .populate('cooperativeId', 'name');
+
+  if (!updatedBooking) {
+    return res.status(409).json({ message: 'Job has already been claimed by another provider.' });
+  }
+
+  // Enrich the unlocked disclosure payload for the household
+  const welfare = await Welfare.findOne({ providerId: provider._id }).lean();
+  const providerBookings = await Booking.find({ providerId: provider._id }).select('_id status');
+  const completedCount = providerBookings.filter((x) => x.status === 'completed').length;
+  const ids = providerBookings.map((x) => x._id);
+  const reviews = ids.length ? await Review.find({ bookingId: { $in: ids } }).sort('-createdAt') : [];
+  const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+
+  const providerDetails = {
+    _id: provider._id,
+    name: provider.userId?.name || 'Provider',
+    phone: provider.userId?.phone || '',
+    cooperativeName: provider.cooperativeId?.name || '',
+    skills: provider.skills || [],
+    verified: provider.verified,
+    eShramId: welfare?.eShramId || null,
+    insuranceOptIn: welfare?.insuranceOptIn || false,
+    insuranceProvider: welfare?.insuranceProvider || 'PMSBY (Pradhan Mantri Suraksha Bima Yojana)',
+    rating: Number(avgRating.toFixed(1)),
+    jobsCompleted: completedCount,
+    reviews: reviews.slice(0, 3).map((r) => ({ rating: r.rating, comment: r.comment })),
+  };
+
+  await notify(
+    updatedBooking.householdId._id.toString(),
+    'booking_accepted',
+    `${providerDetails.name} accepted your ${updatedBooking.service} request`,
+    updatedBooking._id
+  );
+
+  // Real-time WebSocket Dispatch (§3.3)
+  emitTo(updatedBooking.householdId._id.toString(), 'booking:assigned', {
+    booking: updatedBooking,
+    providerDetails,
+  });
+  broadcastAll('booking:claimed', { bookingId }); // notify all other workers to remove card
+
+  res.json({ booking: updatedBooking, providerDetails });
 }
 
 module.exports = {
   createBooking, getBooking, householdBookings, providerBookings,
   acceptBooking, updateStatus, cancelBooking, disputeBooking, addChat,
+  createBroadcastBooking, availableBroadcastBookings, acceptBroadcastRequest,
 };

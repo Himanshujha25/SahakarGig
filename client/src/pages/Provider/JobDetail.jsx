@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import api from "../../lib/api";
+import socket from "../../lib/socket";
 import Icon from "../../components/Icon";
 
 const statusPillClass = {
@@ -35,6 +36,20 @@ export default function JobDetail() {
 
   useEffect(() => {
     load();
+    socket.on('booking:updated', (b) => {
+      const incoming = b?.booking || b;
+      if (incoming?._id?.toString() === id || incoming?._id === id) {
+        setBooking(incoming);
+        setMessages(incoming.chat || []);
+      }
+    });
+    socket.on('booking:chat', ({ bookingId, message }) => {
+      if (bookingId?.toString() === id) setMessages(prev => [...prev, message]);
+    });
+    return () => {
+      socket.off('booking:updated');
+      socket.off('booking:chat');
+    };
   }, [load]);
 
   async function accept() {
@@ -157,7 +172,7 @@ export default function JobDetail() {
           {b.status === "requested" && (
             <>
               <button
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 font-heading font-semibold text-on-primary transition-all hover:shadow-[0_4px_12px_rgba(0,40,142,0.18)] disabled:opacity-60"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-primary/30 bg-[#e8edff] px-6 font-heading font-semibold text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
                 disabled={busy}
                 onClick={accept}
               >
@@ -186,7 +201,7 @@ export default function JobDetail() {
           )}
           {b.status === 'in-progress' && (
             <button
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 font-heading font-semibold text-on-primary transition-all hover:shadow-[0_4px_12px_rgba(0,40,142,0.18)] disabled:opacity-60"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-primary/30 bg-[#e8edff] px-6 font-heading font-semibold text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
               disabled={busy}
               onClick={complete}
             >
@@ -231,7 +246,7 @@ export default function JobDetail() {
             onKeyDown={(e) => e.key === "Enter" && sendChat()}
           />
           <button
-            className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary font-heading text-on-primary transition-all hover:shadow-[0_4px_12px_rgba(0,40,142,0.18)]"
+            className="inline-flex h-12 w-12 items-center justify-center rounded-lg border border-primary/30 bg-[#e8edff] font-heading text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_12px_rgba(0,40,142,0.18)] active:scale-[0.95] transition-all duration-200"
             onClick={sendChat}
           >
             <Icon name="send" className="" />
