@@ -10,6 +10,7 @@ router.get('/me', auth, asyncHandler(c.me));
 router.get('/:id/slots', asyncHandler(c.getSlots));
 router.get('/:id', asyncHandler(c.getProvider));
 router.patch('/:id', auth, asyncHandler(c.updateProfile));
+router.post('/:id/avatar', auth, upload.single('avatar'), asyncHandler(c.uploadAvatar));
 router.post('/:id/docs', auth, upload.single('doc'), asyncHandler(c.uploadDoc));
 
 module.exports = router;

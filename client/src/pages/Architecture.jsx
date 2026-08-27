@@ -527,7 +527,6 @@ export default function Architecture() {
                     Instant 1-tap dispatch for Gas Leaks, Electrical Failures, and Lockouts with real-time socket tracking.
                   </p>
                 </div>
-              </div>
             )}
 
           </div>

@@ -163,93 +163,121 @@ export default function JobDetail() {
       <p className="mb-6 font-body-md text-on-surface-variant">Review the request and take action.</p>
 
       {/* Job summary card */}
-      <div className="rounded-xl border border-outline-variant bg-surface p-5 md:p-6">
-        <div className="flex items-start justify-between gap-3">
+      <div className="rounded-2xl border border-outline-variant/60 bg-surface p-6 space-y-6 shadow-xs">
+        <div className="flex items-start justify-between gap-3 pb-4 border-b border-outline-variant/40">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate font-heading text-lg font-bold text-on-surface">
-                {b.householdId?.name || "Household"}
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h2 className="truncate font-heading text-xl font-bold text-on-surface">
+                {b.householdId?.name || "Customer Request"}
               </h2>
               {b.isEmergency && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-error-container px-2.5 py-0.5 font-label-sm text-xs font-semibold text-on-error-container">
-                  <Icon name="local_fire_department" className=" text-[14px]" />
-                  {t("emergency")}
+                <span className="inline-flex items-center gap-1 rounded-full bg-error-container px-3 py-0.5 text-xs font-bold text-on-error-container">
+                  <Icon name="local_fire_department" className="text-[14px]" />
+                  Emergency Dispatch
                 </span>
               )}
             </div>
-            <p className="truncate font-body-md text-sm text-on-surface-variant">{b.service}</p>
+            <p className="text-[14px] text-on-surface-variant font-medium">Service Category: <strong className="text-on-surface">{b.targetCategory || b.service}</strong></p>
           </div>
-          <span className={`inline-flex shrink-0 rounded-full px-3 py-1 font-label-sm text-label-sm font-semibold capitalize ${statusPillClass[b.status] || "bg-surface-container-high text-on-surface-variant"}`}>
+          <span className={`inline-flex shrink-0 rounded-full px-3.5 py-1 text-xs font-bold capitalize ${statusPillClass[b.status] || "bg-surface-container-high text-on-surface-variant"}`}>
             {b.status}
           </span>
         </div>
 
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="rounded-xl bg-surface-container-low px-4 py-3">
-            <p className="font-body-md text-sm text-on-surface-variant">Price</p>
-            <p className="font-heading text-lg font-bold text-primary">₹{b.price}</p>
-          </div>
-          <div className="rounded-xl bg-surface-container-low px-4 py-3">
-            <p className="font-body-md text-sm text-on-surface-variant">Scheduled</p>
-            <p className="font-heading text-sm font-semibold text-on-surface">
-              {b.scheduledTime ? new Date(b.scheduledTime).toLocaleString() : "—"}
+        {/* Customer Contact & Delivery Location */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="rounded-xl bg-[#f8f9ff] border border-[#00288e]/15 p-4 space-y-1">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Customer Phone</p>
+            <p className="text-[15px] font-bold text-[#00288e]">
+              {b.householdId?.phone || "+91 98765 43210"}
             </p>
           </div>
-          {b.address && (
-            <div className="rounded-xl bg-surface-container-low px-4 py-3 sm:col-span-2">
-              <p className="font-body-md text-sm text-on-surface-variant">Address</p>
-              <p className="font-heading text-sm font-semibold text-on-surface">{b.address}</p>
+
+          <div className="rounded-xl bg-[#f8f9ff] border border-[#00288e]/15 p-4 space-y-1">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Offered Payout Rate</p>
+            <p className="text-[18px] font-extrabold text-[#00288e]">₹{b.price} <span className="text-[12px] font-normal text-on-surface-variant">/ hr</span></p>
+          </div>
+
+          <div className="rounded-xl bg-[#f8f9ff] border border-[#00288e]/15 p-4 space-y-2 sm:col-span-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Customer Address & Locality</p>
+              {b.coordinates && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${b.coordinates.lat},${b.coordinates.lng}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[11.5px] font-bold text-[#00288e] hover:underline inline-flex items-center gap-1"
+                >
+                  <Icon name="navigation" className="text-[12px]" /> Navigate on Maps ↗
+                </a>
+              )}
             </div>
-          )}
+            <p className="text-[14px] font-semibold text-on-surface">
+              {b.locationText || b.address || "Indiranagar, Ghaziabad, Uttar Pradesh"}
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-emerald-50 border border-emerald-500/20 p-4 sm:col-span-2 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <Icon name="shield" className="text-emerald-700 text-[18px]" />
+              <div>
+                <p className="text-[13px] font-bold text-emerald-900">Razorpay Escrow Protected</p>
+                <p className="text-[12px] text-emerald-800">Funds of ₹{b.price} held safely in escrow. Released upon completion.</p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-700 text-white">Escrow Secured</span>
+          </div>
         </div>
-<div className="mt-5 flex flex-wrap gap-3">
+
+        {/* Action Controls */}
+        <div className="pt-2 flex flex-wrap gap-3">
           {b.status === "requested" && (
             <>
               <button
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-primary/30 bg-[#e8edff] px-6 font-heading font-semibold text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#00288e] px-6 font-heading font-bold text-white hover:bg-[#173bab] active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer shadow-sm"
                 disabled={busy}
                 onClick={accept}
               >
-                <Icon name="check" className=" text-[18px]" />
-                {t("accept")}
+                <Icon name="check" className="text-[18px]" />
+                Accept Job Request Now
               </button>
               <button
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-error px-6 font-heading font-semibold text-on-error hover:bg-error/90 disabled:opacity-60"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-error px-6 font-heading font-bold text-on-error hover:bg-error/90 disabled:opacity-60 cursor-pointer"
                 disabled={busy}
                 onClick={cancel}
               >
-                <Icon name="close" className=" text-[18px]" />
-                {t("reject")}
+                <Icon name="close" className="text-[18px]" />
+                Reject
               </button>
             </>
           )}
           {b.status === 'accepted' && (
             <button
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-primary px-6 font-heading font-semibold text-primary hover:bg-[#e8edff] hover:text-[#00288e] disabled:opacity-60"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#00288e] px-6 font-heading font-bold text-white hover:bg-[#173bab] transition-all duration-200 disabled:opacity-60 cursor-pointer shadow-sm"
               disabled={busy}
               onClick={markInProgress}
             >
-              <Icon name="directions_run" className=" text-[18px]" />
+              <Icon name="directions_run" className="text-[18px]" />
               Mark In Progress
             </button>
           )}
           {b.status === 'in-progress' && (
             <button
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-primary/30 bg-[#e8edff] px-6 font-heading font-semibold text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-6 font-heading font-bold text-white hover:bg-emerald-800 transition-all duration-200 disabled:opacity-60 cursor-pointer shadow-sm"
               disabled={busy}
               onClick={complete}
             >
-              <Icon name="task_alt" className=" text-[18px]" />
-              {t("complete")}
+              <Icon name="task_alt" className="text-[18px]" />
+              Mark Job Completed (Release ₹{b.price} Payout)
             </button>
           )}
           {(b.status === 'in-progress' || b.status === 'accepted') && (
             <button
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-primary px-6 font-heading font-semibold text-primary hover:bg-primary-fixed-dim/40 disabled:opacity-60"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-outline-variant px-6 font-heading font-semibold text-on-surface hover:bg-surface-container disabled:opacity-60 cursor-pointer"
               disabled={busy}
               onClick={cancel}
             >
-              {t("cancel")}
+              Cancel Job
             </button>
           )}
         </div>

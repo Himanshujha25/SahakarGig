@@ -99,4 +99,16 @@ async function uploadDoc(req, res) {
   res.json({ ...p.toObject(), uploadedUrl: fileUrl });
 }
 
-module.exports = { listProviders, listCooperatives, getProvider, getSlots, me, updateProfile, uploadDoc };
+async function uploadAvatar(req, res) {
+  if (!req.file) return res.status(400).json({ message: 'No image uploaded' });
+  const avatarUrl = `/uploads/${req.file.filename}`;
+  const p = await Provider.findOneAndUpdate(
+    { _id: req.params.id, userId: req.user.userId },
+    { avatar: avatarUrl },
+    { new: true }
+  );
+  if (!p) return res.status(404).json({ message: 'Provider not found' });
+  res.json({ ...p.toObject(), avatar: avatarUrl });
+}
+
+module.exports = { listProviders, listCooperatives, getProvider, me, updateProfile, uploadDoc, uploadAvatar };

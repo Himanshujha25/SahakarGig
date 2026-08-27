@@ -45,6 +45,7 @@ import FederationSignup from './pages/auth/FederationSignup';
 import Architecture from './pages/Architecture';
 
 import PwaInstallBanner from './components/PwaInstallBanner';
+import AIChatbot from './components/AIChatbot';
 
 function Redirect() {
   const { user } = useAuth();
@@ -60,6 +61,7 @@ export default function App() {
   return (
     <>
       <PwaInstallBanner />
+      <AIChatbot />
       <Routes>
         <Route path="/landing" element={<Landing />} />
         <Route path="/login" element={<Login />} />
