@@ -14,5 +14,6 @@ const providerOnly = asyncHandler(async (req, res, next) => {
 router.get('/:providerId', auth, asyncHandler(c.getWelfare));
 router.get('/:providerId/qr', auth, asyncHandler(c.getWelfareQR));
 router.put('/:providerId', auth, providerOnly, asyncHandler(c.upsertWelfare));
+router.post('/:providerId/verify-eshram', auth, providerOnly, asyncHandler(c.verifyEShram));
 
 module.exports = router;

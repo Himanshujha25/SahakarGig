@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../lib/api";
+import socket from "../../lib/socket";
 import { Briefcase, CheckCircle2, Clock, Zap, Check, X, ArrowRight } from "lucide-react";
 
 const STATUS_STYLE = {
@@ -28,8 +29,25 @@ export default function JobQueue() {
 
   useEffect(() => {
     load();
-    const id = setInterval(load, 30000);
-    return () => clearInterval(id);
+
+    const upsert = (incoming) => {
+      if (!incoming?._id) return;
+      setBookings(prev => {
+        const exists = prev.some(b => b._id === incoming._id);
+        if (exists) return prev.map(b => b._id === incoming._id ? { ...b, ...incoming } : b);
+        return [incoming, ...prev];
+      });
+    };
+
+    socket.on('booking:new', upsert);
+    socket.on('booking:updated', (b) => upsert(b?.booking || b));
+    socket.on('booking:assigned', (p) => upsert(p?.booking));
+
+    return () => {
+      socket.off('booking:new');
+      socket.off('booking:updated');
+      socket.off('booking:assigned');
+    };
   }, []);
 
   async function accept(id) {
@@ -170,7 +188,7 @@ export default function JobQueue() {
                     <button
                       disabled={busy === b._id}
                       onClick={() => accept(b._id)}
-                      className="h-10 flex items-center justify-center gap-2 rounded-xl bg-primary text-white text-[13px] font-bold hover:bg-[#173bab] hover:shadow-[0_4px_16px_rgba(0,40,142,0.25)] transition-all duration-200 disabled:opacity-60">
+                      className="h-10 flex items-center justify-center gap-2 rounded-xl border border-primary/25 bg-[#e8edff] text-[#00288e] text-[13px] font-bold hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-60">
                       <Check size={15} strokeWidth={2.5} /> Accept
                     </button>
                     <button

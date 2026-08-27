@@ -18,7 +18,7 @@ export default function NotificationBell() {
   useEffect(() => {
     fetchAll();
     function onNotif(n) {
-      setItems(prev => [{ ...n, read: false, _id: Date.now() + Math.random() }, ...prev]);
+      setItems(prev => [{ ...n, read: false }, ...prev]);
     }
     socket.on('notification', onNotif);
     return () => socket.off('notification', onNotif);

@@ -6,6 +6,7 @@ import Landing from './pages/Landing';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import CoopSignup from './pages/auth/CoopSignup';
+import ForgotPassword from './pages/auth/ForgotPassword';
 
 import HouseholdLayout from './layouts/HouseholdLayout';
 import ProviderLayout from './layouts/ProviderLayout';
@@ -20,9 +21,11 @@ import Payment from './pages/Household/Payment';
 import Invoice from './pages/Household/Invoice';
 import HouseholdProfile from './pages/Household/Profile';
 import FindServices from './pages/Household/FindServices';
+import Dispatch from './pages/Household/Dispatch';
 
 import JobQueue from './pages/Provider/JobQueue';
 import JobDetail from './pages/Provider/JobDetail';
+import DispatchFeed from './pages/Provider/DispatchFeed';
 import ProviderEarnings from './pages/Provider/Earnings';
 import ProviderWelfare from './pages/Provider/Welfare';
 import ProviderOwnProfile from './pages/Provider/Profile';
@@ -63,6 +66,7 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/coop-signup" element={<CoopSignup />} />
         <Route path="/federation-signup" element={<FederationSignup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/architecture" element={<Architecture />} />
         <Route path="/" element={<Landing />} />
 
@@ -70,6 +74,8 @@ export default function App() {
           <Route path="/household" element={<HouseholdLayout />}>
             <Route index element={<Home />} />
             <Route path="find" element={<FindServices />} />
+            <Route path="dispatch" element={<Dispatch />} />
+            <Route path="dispatch/:id" element={<Dispatch />} />
             <Route path="bookings" element={<Bookings />} />
             <Route path="provider/:id" element={<ProviderProfile />} />
             <Route path="book/:providerId" element={<BookingRequest />} />
@@ -83,6 +89,7 @@ export default function App() {
         <Route element={<RoleRoute role="Provider" />}>
           <Route path="/provider" element={<ProviderLayout />}>
             <Route index element={<JobQueue />} />
+            <Route path="dispatch" element={<DispatchFeed />} />
             <Route path="job/:id" element={<JobDetail />} />
             <Route path="earnings" element={<ProviderEarnings />} />
             <Route path="welfare" element={<ProviderWelfare />} />

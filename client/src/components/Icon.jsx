@@ -13,6 +13,9 @@ import {
   IdCard,
   Eye,
   EyeOff,
+  MailCheck,
+  RefreshCw,
+  ShieldAlert,
 } from "lucide-react";
 
 const MAP = {
@@ -89,6 +92,9 @@ const MAP = {
   visibility: Eye,
   visibility_off: EyeOff,
   workspace_premium: Award,
+  mark_email_read: MailCheck,
+  refresh: RefreshCw,
+  gpp_maybe: ShieldAlert,
 };
 
 export default function Icon({ name, className = "", strokeWidth = 2, ...rest }) {

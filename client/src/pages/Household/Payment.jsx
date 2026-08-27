@@ -203,7 +203,7 @@ export default function Payment() {
                 <button
                   onClick={pay}
                   disabled={paying || booking.paymentStatus === "paid"}
-                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary font-heading font-semibold text-on-primary transition-all hover:shadow-[0_4px_12px_rgba(0,40,142,0.18)] disabled:opacity-60"
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-[#e8edff] font-heading font-semibold text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.99] disabled:opacity-60 transition-all duration-200"
                 >
                   <Icon name="lock" className=" text-[20px]" />
                   {booking.paymentStatus === "paid"

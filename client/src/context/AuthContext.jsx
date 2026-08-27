@@ -32,6 +32,35 @@ export function AuthProvider({ children }) {
     return data.user;
   }
 
+  // Patch own profile (name/phone/email+OTP code) and sync local session
+  async function updateProfile(payload) {
+    const { data } = await api.patch('/auth/me', payload);
+    const u = data.user;
+    const merged = { ...(user || {}), id: u.id, name: u.name, role: u.role, email: u.email, emailVerified: u.emailVerified };
+    localStorage.setItem('sg_user', JSON.stringify(merged));
+    setUser(merged);
+    return u;
+  }
+
+  // Re-fetch fresh profile from server into local session
+  async function refreshUser() {
+    try {
+      const { data } = await api.get('/auth/me');
+      const u = {
+        id: data.id || data._id,
+        name: data.name,
+        role: data.role,
+        email: data.email,
+        emailVerified: !!data.emailVerified,
+      };
+      localStorage.setItem('sg_user', JSON.stringify(u));
+      setUser(u);
+      return u;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function logout() {
     localStorage.clear();
     setUser(null);
@@ -39,7 +68,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthCtx.Provider value={{ user, login, signup, logout }}>
+    <AuthCtx.Provider value={{ user, login, signup, logout, updateProfile, refreshUser }}>
       {children}
     </AuthCtx.Provider>
   );

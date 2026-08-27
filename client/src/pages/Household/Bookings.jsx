@@ -1,15 +1,28 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../lib/api";
-import { CalendarDays, Plus, CheckCircle2, Zap } from "lucide-react";
+import socket from "../../lib/socket";
+import { Plus, CheckCircle2, Zap } from "lucide-react";
 
 const STATUS_STYLE = {
-  pending:   { bg: "bg-[#fff3e0] text-[#6b4200]",  dot: "bg-[#6b4200]",  label: "Pending"   },
-  accepted:  { bg: "bg-[#e8edff] text-[#00288e]",  dot: "bg-[#00288e]",  label: "Accepted"  },
-  completed: { bg: "bg-[#e6f9ec] text-[#006d30]",  dot: "bg-[#006d30]",  label: "Completed" },
-  disputed:  { bg: "bg-[#fce8e8] text-[#ba1a1a]",  dot: "bg-[#ba1a1a]",  label: "Disputed"  },
-  cancelled: { bg: "bg-surface-container text-on-surface-variant", dot: "bg-outline", label: "Cancelled" },
+  requested:    { bg: "bg-[#fff3e0] text-[#6b4200]",    dot: "bg-[#6b4200]",    label: "Pending"     },
+  pending:      { bg: "bg-[#fff3e0] text-[#6b4200]",    dot: "bg-[#6b4200]",    label: "Pending"     },
+  accepted:     { bg: "bg-[#e8edff] text-[#00288e]",    dot: "bg-[#00288e]",    label: "Accepted"    },
+  "in-progress": { bg: "bg-[#e0f2fe] text-[#026aa2]",   dot: "bg-[#026aa2]",    label: "In Progress" },
+  completed:    { bg: "bg-[#e6f9ec] text-[#006d30]",    dot: "bg-[#006d30]",    label: "Completed"   },
+  disputed:     { bg: "bg-[#fce8e8] text-[#ba1a1a]",    dot: "bg-[#ba1a1a]",    label: "Disputed"    },
+  cancelled:    { bg: "bg-surface-container text-on-surface-variant", dot: "bg-outline", label: "Cancelled" },
 };
+
+const TABS = [
+  { key: "all",         label: "All",         statuses: null },
+  { key: "pending",     label: "Pending",     statuses: ["requested", "pending"] },
+  { key: "accepted",    label: "Accepted",    statuses: ["accepted"] },
+  { key: "in-progress", label: "In Progress", statuses: ["in-progress"] },
+  { key: "completed",   label: "Completed",   statuses: ["completed"] },
+  { key: "disputed",    label: "Disputed",    statuses: ["disputed"] },
+  { key: "cancelled",   label: "Cancelled",   statuses: ["cancelled"] },
+];
 
 export default function Bookings() {
   const navigate = useNavigate();
@@ -17,23 +30,46 @@ export default function Bookings() {
   const [loading, setLoading]   = useState(true);
   const [filter, setFilter]     = useState("all");
 
+  const upsert = (incoming) => {
+    if (!incoming?._id) return;
+    setBookings((prev) => {
+      const exists = prev.some((b) => b._id === incoming._id);
+      if (exists) return prev.map((b) => (b._id === incoming._id ? { ...b, ...incoming } : b));
+      return [incoming, ...prev];
+    });
+  };
+
   useEffect(() => {
     async function load() {
       try {
         const { data } = await api.get("/bookings/household/mine");
         setBookings(data || []);
-      } catch {} finally { setLoading(false); }
+      } catch { } finally { setLoading(false); }
     }
     load();
     const id = setInterval(load, 30000);
-    return () => clearInterval(id);
+
+    socket.on("booking:new", upsert);
+    socket.on("booking:updated", (b) => upsert(b?.booking || b));
+    socket.on("booking:assigned", (payload) => upsert(payload?.booking));
+
+    return () => {
+      clearInterval(id);
+      socket.off("booking:new");
+      socket.off("booking:updated");
+      socket.off("booking:assigned");
+    };
   }, []);
 
-  const FILTERS = ["all", "pending", "accepted", "completed", "disputed"];
-  const filtered = filter === "all" ? bookings : bookings.filter(b => b.status === filter);
+  const activeTab = TABS.find((t) => t.key === filter) || TABS[0];
+  const filtered = activeTab.statuses === null
+    ? bookings
+    : bookings.filter((b) => activeTab.statuses.includes(b.status));
 
-  const counts = FILTERS.reduce((acc, f) => {
-    acc[f] = f === "all" ? bookings.length : bookings.filter(b => b.status === f).length;
+  const counts = TABS.reduce((acc, t) => {
+    acc[t.key] = t.statuses === null
+      ? bookings.length
+      : bookings.filter((b) => t.statuses.includes(b.status)).length;
     return acc;
   }, {});
 
@@ -59,18 +95,18 @@ export default function Bookings() {
 
       {/* Filter tabs */}
       <div className="flex gap-1 p-1 rounded-xl bg-surface-container-low border border-outline-variant/40 w-fit flex-wrap">
-        {FILTERS.map(f => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-semibold transition-all duration-200 capitalize ${
-              filter === f
+        {TABS.map((t) => (
+          <button key={t.key} onClick={() => setFilter(t.key)}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-semibold transition-all duration-200 ${
+              filter === t.key
                 ? "bg-surface text-primary shadow-sm border border-outline-variant/40"
                 : "text-on-surface-variant hover:text-on-surface"
             }`}>
-            {f}
-            {counts[f] > 0 && (
+            {t.label}
+            {counts[t.key] > 0 && (
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                filter === f ? "bg-[#e8edff] text-[#00288e]" : "bg-surface-container text-on-surface-variant"
-              }`}>{counts[f]}</span>
+                filter === t.key ? "bg-[#e8edff] text-[#00288e]" : "bg-surface-container text-on-surface-variant"
+              }`}>{counts[t.key]}</span>
             )}
           </button>
         ))}
@@ -94,7 +130,7 @@ export default function Bookings() {
           <CheckCircle2 size={44} className="text-outline-variant" strokeWidth={1.5} />
           <p className="text-[15px] font-semibold text-on-surface">No bookings found</p>
           <p className="text-[14px] text-on-surface-variant">
-            {filter === "all" ? "Find a verified provider to get started." : `No ${filter} bookings.`}
+            {filter === "all" ? "Find a verified provider to get started." : `No ${activeTab.label.toLowerCase()} bookings.`}
           </p>
         </div>
       ) : (
@@ -111,7 +147,7 @@ export default function Bookings() {
               </thead>
               <tbody className="divide-y divide-outline-variant/30">
                 {filtered.map(b => {
-                  const s = STATUS_STYLE[b.status] || STATUS_STYLE.pending;
+                  const s = STATUS_STYLE[b.status] || STATUS_STYLE.requested;
                   return (
                     <tr key={b._id}
                       onClick={() => navigate(`/household/booking/${b._id}`)}
@@ -127,7 +163,7 @@ export default function Bookings() {
                         </div>
                       </td>
                       <td className="px-6 py-3.5 text-[13px] text-on-surface-variant">
-                        {b.providerId?.userId?.name || "Provider"}
+                        {b.providerId?.userId?.name || (b.dispatchMode === 'broadcast' && b.broadcastStatus === 'broadcasting' ? "Searching for provider..." : "Provider")}
                       </td>
                       <td className="px-6 py-3.5">
                         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${s.bg}`}>
@@ -148,7 +184,7 @@ export default function Bookings() {
                                 e.stopPropagation();
                                 navigate(`/household/pay/${b._id}`);
                               }}
-                              className="px-2.5 py-1 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-[#173bab] transition-all shadow-sm"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#e8edff] text-[#00288e] text-[11px] font-bold border border-primary/25 hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_3px_10px_rgba(0,40,142,0.18)] transition-all duration-200"
                             >
                               Pay Razorpay
                             </button>

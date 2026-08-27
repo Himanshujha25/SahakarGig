@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema(
     },
     address: { type: String },
     geoLocation: { lat: Number, lng: Number },
+    emailVerified: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

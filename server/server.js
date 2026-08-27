@@ -51,6 +51,27 @@ app.use('/api/ai', require('./src/routes/ai'));
 app.use('/api/welfare', require('./src/routes/welfare'));
 app.use('/api/notifications', require('./src/routes/notifications'));
 
+app.get('/api/stats', async (_req, res) => {
+  try {
+    const Provider = require('./src/models/Provider');
+    const Booking = require('./src/models/Booking');
+    const Cooperative = require('./src/models/Cooperative');
+    const Review = require('./src/models/Review');
+    const [providers, bookings, cooperatives, ratingAgg] = await Promise.all([
+      Provider.countDocuments({ verified: true }),
+      Booking.countDocuments({ status: 'completed' }),
+      Cooperative.countDocuments(),
+      Review.aggregate([{ $group: { _id: null, avg: { $avg: '$rating' } } }]),
+    ]);
+    res.json({
+      providers,
+      bookings,
+      cooperatives,
+      avgRating: ratingAgg[0]?.avg ? Number(ratingAgg[0].avg.toFixed(1)) : 0,
+    });
+  } catch { res.status(500).json({ message: 'stats unavailable' }); }
+});
+
 const healthHandler = (_req, res) => res.json({
   ok: true,
   status: 'healthy',

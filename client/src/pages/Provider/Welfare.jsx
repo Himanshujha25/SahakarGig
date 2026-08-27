@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/api";
-import { ShieldCheck, Save, CheckCircle2, QrCode } from "lucide-react";
+import { ShieldCheck, Save, CheckCircle2, QrCode, BadgeCheck, Loader2 } from "lucide-react";
 import WelfareBadge from "../../components/WelfareBadge";
 import WorkerWelfareDashboard from "../../components/WorkerWelfareDashboard";
 
@@ -8,33 +8,54 @@ const inputCls = "h-11 w-full rounded-xl border border-outline-variant bg-surfac
 
 export default function Welfare() {
   const [providerId, setProviderId] = useState(null);
-  const [form, setForm]   = useState({ eShramId: "", insuranceOptIn: false, insuranceProvider: "" });
-  const [schemes, setSchemes]       = useState([]);
-  const [welfareScore, setWelfareScore] = useState(0);
-  const [loading, setLoading]       = useState(true);
-  const [saving, setSaving]         = useState(false);
-  const [saved, setSaved]           = useState(false);
-  const [qr, setQr]                 = useState(null);
-  const [qrLoading, setQrLoading]   = useState(false);
+  const [welfareData, setWelfareData] = useState(null);
+  const [form, setForm] = useState({ eShramId: "", insuranceOptIn: false, insuranceProvider: "" });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [qr, setQr] = useState(null);
+  const [qrLoading, setQrLoading] = useState(false);
+
+  async function fetchWelfare(pid) {
+    const { data: w } = await api.get(`/welfare/${pid}`);
+    setWelfareData(w);
+    setForm({
+      eShramId: w.eShramId || "",
+      insuranceOptIn: !!w.insuranceOptIn,
+      insuranceProvider: w.insuranceProvider || "",
+    });
+  }
 
   useEffect(() => {
     (async () => {
       try {
         const { data: me } = await api.get("/providers/me");
         setProviderId(me._id);
-        const { data: w } = await api.get(`/welfare/${me._id}`);
-        setForm({ eShramId: w.eShramId || "", insuranceOptIn: !!w.insuranceOptIn, insuranceProvider: w.insuranceProvider || "" });
-        setSchemes(w.schemesEligible || []);
-        setWelfareScore(w.welfareScore || 0);
+        await fetchWelfare(me._id);
       } catch {} finally { setLoading(false); }
     })();
   }, []);
+
+  async function verifyEShram() {
+    if (!providerId || !form.eShramId) return;
+    setVerifying(true);
+    setVerifyError('');
+    try {
+      await api.post(`/welfare/${providerId}/verify-eshram`, { eShramId: form.eShramId });
+      await fetchWelfare(providerId);
+    } catch (err) {
+      setVerifyError(err?.response?.data?.message || 'Invalid ID format.');
+    } finally { setVerifying(false); }
+  }
 
   async function save() {
     if (!providerId) return;
     setSaving(true);
     try {
       await api.put(`/welfare/${providerId}`, form);
+      await fetchWelfare(providerId); // re-fetch to get updated alerts + score
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } finally { setSaving(false); }
@@ -70,8 +91,8 @@ export default function Welfare() {
         )}
       </div>
 
-      {/* Worker Welfare Dashboard */}
-      <WorkerWelfareDashboard />
+      {/* Worker Welfare Dashboard — real data */}
+      <WorkerWelfareDashboard data={welfareData} loading={loading} />
 
       {loading ? (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
@@ -87,9 +108,27 @@ export default function Welfare() {
 
             <div className="space-y-1.5">
               <label className="text-[12px] font-bold text-on-surface-variant uppercase tracking-[0.06em]">e-Shram ID</label>
-              <input className={inputCls} value={form.eShramId}
-                onChange={e => setForm(f => ({ ...f, eShramId: e.target.value }))}
-                placeholder="e.g. ES12345678" />
+              <div className="flex gap-2">
+                <input className={inputCls} value={form.eShramId}
+                  onChange={e => { setForm(f => ({ ...f, eShramId: e.target.value })); setVerifyError(''); }}
+                  placeholder="e.g. UAN-851926293643 or ES12345678" />
+                {form.eShramId && welfareData?.eShramVerificationStatus !== 'govt_verified' && (
+                  <button onClick={verifyEShram} disabled={verifying}
+                    className="shrink-0 h-11 px-4 rounded-xl border border-primary/25 bg-[#e8edff] text-[#00288e] text-[12px] font-bold hover:border-primary hover:bg-[#d7e3ff] disabled:opacity-50 transition-all inline-flex items-center gap-1.5">
+                    {verifying ? <Loader2 size={13} className="animate-spin" /> : <BadgeCheck size={13} />}
+                    {verifying ? 'Saving…' : 'Save ID'}
+                  </button>
+                )}
+                {welfareData?.eShramVerificationStatus === 'govt_verified' && (
+                  <span className="shrink-0 h-11 px-3 rounded-xl bg-[#e6f9ec] border border-[#006d30]/20 text-[#006d30] text-[12px] font-bold inline-flex items-center gap-1.5">
+                    <CheckCircle2 size={13} /> Govt. Verified
+                  </span>
+                )}
+              </div>
+              {verifyError && <p className="text-[12px] text-error mt-1">{verifyError}</p>}
+              {welfareData?.eShramVerificationStatus === 'self_declared' && (
+                <p className="text-[11px] text-[#6b4200] mt-1">ID saved. Govt. verification pending — will auto-update when DigiLocker API is connected.</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -122,10 +161,14 @@ export default function Welfare() {
           {/* Right panel */}
           <div className="lg:col-span-2 space-y-4">
 
-            {/* Digital e-Shram Card */}
             <WelfareBadge
               eshramId={form.eShramId}
-              welfareScore={welfareScore}
+              welfareScore={welfareData?.welfareScore || 0}
+              insuranceOptIn={form.insuranceOptIn}
+              insuranceProvider={form.insuranceProvider}
+              verificationStatus={welfareData?.eShramVerificationStatus}
+              verifiedAt={welfareData?.eShramVerifiedAt}
+              verifiedName={welfareData?.eShramVerifiedName}
             />
 
             {/* Welfare score */}
@@ -138,23 +181,23 @@ export default function Welfare() {
               </div>
               <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-[#e8edff] border border-[#00288e]/10">
                 <span className="text-[13px] font-bold text-[#00288e]">Current Score</span>
-                <span className="text-[28px] font-bold text-[#00288e]">{welfareScore}</span>
+                <span className="text-[28px] font-bold text-[#00288e]">{welfareData?.welfareScore || 0}</span>
               </div>
               <div className="h-2 w-full rounded-full bg-surface-container-low overflow-hidden">
                 <div className="h-full rounded-full bg-[#00288e] transition-all duration-500"
-                  style={{ width: `${Math.max(welfareScore, 2)}%` }} />
+                  style={{ width: `${Math.max(welfareData?.welfareScore || 0, 2)}%` }} />
               </div>
-              <p className="text-[11px] text-on-surface-variant">{welfareScore}/100 — complete your profile to improve</p>
+              <p className="text-[11px] text-on-surface-variant">{welfareData?.welfareScore || 0}/100 — complete your profile to improve</p>
             </div>
 
             {/* Eligible schemes */}
             <div className="rounded-2xl border border-outline-variant/60 bg-surface p-5 space-y-3">
               <h3 className="text-[15px] font-bold text-on-surface">Eligible Schemes</h3>
-              {schemes.length === 0 ? (
+              {(welfareData?.schemesEligible || []).length === 0 ? (
                 <p className="text-[13px] text-on-surface-variant">No schemes matched yet. Complete your e-Shram registration.</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {schemes.map(s => (
+                  {welfareData.schemesEligible.map(s => (
                     <span key={s} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e6f9ec] text-[#006d30] text-[12px] font-semibold">
                       <CheckCircle2 size={11} strokeWidth={2.5} /> {s}
                     </span>
@@ -188,7 +231,7 @@ export default function Welfare() {
                   </div>
                   <p className="text-[12px] text-on-surface-variant">Generate your digital welfare card</p>
                   <button onClick={loadQR} disabled={qrLoading || !providerId}
-                    className="h-9 px-4 rounded-xl bg-primary text-[12px] font-semibold text-on-primary hover:shadow-[0_4px_12px_rgba(0,40,142,0.18)] disabled:opacity-50 transition-all">
+                    className="h-9 px-4 rounded-xl border border-primary/25 bg-[#e8edff] text-[12px] font-semibold text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_12px_rgba(0,40,142,0.18)] active:scale-[0.98] disabled:opacity-50 transition-all duration-200">
                     {qrLoading ? 'Generating…' : 'Generate QR Card'}
                   </button>
                 </>

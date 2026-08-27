@@ -16,12 +16,22 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>
 );
 
-// Register PWA Service Worker for offline support
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((reg) => console.log('[PWA] ServiceWorker registered with scope:', reg.scope))
-      .catch((err) => console.warn('[PWA] ServiceWorker registration failed:', err));
-  });
+// Register PWA Service Worker for offline support in production, unregister in dev
+if ('serviceWorker' in navigator) {
+  if (import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((reg) => console.log('[PWA] ServiceWorker registered with scope:', reg.scope))
+        .catch((err) => console.warn('[PWA] ServiceWorker registration failed:', err));
+    });
+  } else {
+    // Unregister any active service worker during development so it does not intercept Vite modules or HMR
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister();
+      }
+    });
+  }
 }
+

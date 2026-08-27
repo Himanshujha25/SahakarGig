@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/api";
-import { User, Lock, Bell, Building2, Save, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { User, Lock, Bell, Building2, Save, CheckCircle2 } from "lucide-react";
+import OtpModal from "../../components/OtpModal";
+import { EmailStatusCard, ChangePasswordSection } from "../../components/AccountSecurity";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const TABS = [
   { id: "profile",       label: "Profile",        Icon: User },
@@ -34,15 +38,18 @@ function Field({ label, children }) {
 const inputCls = "h-11 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-on-surface-variant/50";
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const [tab, setTab] = useState("profile");
   const [saved, setSaved] = useState(false);
-  const [showPw, setShowPw] = useState(false);
+  const [saveErr, setSaveErr] = useState("");
 
   const [profile, setProfile] = useState({ name: user?.name || "", email: user?.email || "", phone: "" });
-  const [passwords, setPasswords] = useState({ current: "", next: "", confirm: "" });
   const [notifs, setNotifs] = useState({ bookings: true, disputes: true, verifications: true, payments: false, weekly: true });
   const [coop, setCoop] = useState({ name: "", address: "", regNumber: "", contactEmail: "" });
+
+  // email-change OTP flow
+  const [emailOtpOpen, setEmailOtpOpen] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
 
   useEffect(() => {
     api.get("/admin/dashboard").then(({ data }) => {
@@ -52,14 +59,46 @@ export default function Settings() {
     }).catch(() => {});
   }, []);
 
-  function flash() { setSaved(true); setTimeout(() => setSaved(false), 2500); }
+  function flash(msg) { setSaved(true); setSaveErr(""); setTimeout(() => setSaved(false), 2500); }
 
-  function SaveBtn({ onClick }) {
+  // Save profile. If the email is being changed, first send a change_email OTP.
+  async function saveProfile(e) {
+    e.preventDefault();
+    setSaved(false); setSaveErr("");
+    if (!EMAIL_RE.test((profile.email || "").trim())) {
+      return setSaveErr("Please enter a valid email address.");
+    }
+    try {
+      if ((profile.email || "").trim().toLowerCase() !== (user?.email || "").toLowerCase()) {
+        await api.post("/auth/send-otp", { email: profile.email.trim(), purpose: "change_email" });
+        setEmailOtpOpen(true); // verify then persist inside the modal callback
+        return;
+      }
+      await updateProfile({ name: profile.name, phone: profile.phone });
+      flash();
+    } catch (e2) {
+      setSaveErr(e2.response?.data?.message || "Could not update profile.");
+    }
+  }
+
+  async function handleEmailOtp(code) {
+    try {
+      setEmailBusy(true);
+      const u = await updateProfile({ name: profile.name, phone: profile.phone, email: profile.email.trim(), code });
+      setEmailOtpOpen(false);
+      setProfile(p => ({ ...p, email: u.email }));
+      flash();
+    } catch (e2) {
+      throw e2; // OTP errors stay in modal
+    } finally { setEmailBusy(false); }
+  }
+
+  function SaveBtn({ onClick, type = "button", children }) {
     return (
-      <button onClick={onClick}
-        className="h-10 inline-flex items-center gap-2 px-5 rounded-xl bg-primary text-white text-[13px] font-bold hover:bg-[#173bab] hover:shadow-[0_4px_16px_rgba(0,40,142,0.2)] transition-all duration-200">
+      <button type={type} onClick={onClick}
+        className="h-10 inline-flex items-center gap-2 px-5 rounded-xl border border-primary/25 bg-[#e8edff] text-[#00288e] text-[13px] font-bold hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200">
         <Save size={14} strokeWidth={2.5} />
-        Save Changes
+        {children || "Save Changes"}
       </button>
     );
   }
@@ -112,7 +151,15 @@ export default function Settings() {
                 <span className="mt-1 inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#e8edff] text-[#00288e]">Cooperative Admin</span>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            {/* Email verification status + OTP flow */}
+            <EmailStatusCard />
+
+            {saveErr && (
+              <div className="rounded-lg px-4 py-3 border bg-error-container border-error/20 text-on-error-container text-[13px] font-medium">{saveErr}</div>
+            )}
+
+            <form onSubmit={saveProfile} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Full Name">
                 <input className={inputCls} value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} placeholder="Your full name" />
               </Field>
@@ -122,8 +169,11 @@ export default function Settings() {
               <Field label="Phone Number">
                 <input className={inputCls} type="tel" value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} placeholder="+91 98765 43210" />
               </Field>
-            </div>
-            <SaveBtn onClick={flash} />
+              <div className="sm:col-span-2">
+                <SaveBtn type="submit">Save Changes</SaveBtn>
+              </div>
+              <p className="sm:col-span-2 text-[12px] text-on-surface-variant">Changing your email requires verifying the new address with a one-time code.</p>
+            </form>
           </Section>
         </div>
       )}
@@ -131,31 +181,8 @@ export default function Settings() {
       {/* Security tab */}
       {tab === "security" && (
         <div className="space-y-5 max-w-2xl">
-          <Section title="Change Password" subtitle="Use a strong password with at least 8 characters.">
-            <div className="space-y-4">
-              <Field label="Current Password">
-                <div className="relative">
-                  <input className={inputCls + " pr-11"} type={showPw ? "text" : "password"} value={passwords.current}
-                    onChange={e => setPasswords(p => ({ ...p, current: e.target.value }))} placeholder="Enter current password" />
-                  <button type="button" onClick={() => setShowPw(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors">
-                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </Field>
-              <Field label="New Password">
-                <input className={inputCls} type="password" value={passwords.next}
-                  onChange={e => setPasswords(p => ({ ...p, next: e.target.value }))} placeholder="New password" />
-              </Field>
-              <Field label="Confirm New Password">
-                <input className={inputCls} type="password" value={passwords.confirm}
-                  onChange={e => setPasswords(p => ({ ...p, confirm: e.target.value }))} placeholder="Repeat new password" />
-              </Field>
-            </div>
-            {passwords.next && passwords.confirm && passwords.next !== passwords.confirm && (
-              <p className="text-[12px] text-error font-semibold">Passwords do not match.</p>
-            )}
-            <SaveBtn onClick={flash} />
+          <Section title="Change Password" subtitle="Use a strong password with at least 8 characters. A one-time code will be emailed to confirm the change.">
+            <ChangePasswordSection onSaved={flash} />
           </Section>
 
           <Section title="Active Sessions" subtitle="Devices currently signed in to your account.">
@@ -239,6 +266,18 @@ export default function Settings() {
           </Section>
         </div>
       )}
+
+      {/* OTP verification when changing email address */}
+      <OtpModal
+        open={emailOtpOpen}
+        onClose={() => setEmailOtpOpen(false)}
+        title="Confirm your new email"
+        subtitle={<>We've sent a 6-digit code to <span className="font-semibold text-on-surface">{profile.email}</span>. Enter it to finish updating your profile.</>}
+        email={profile.email.trim()}
+        purpose="change_email"
+        ctaLabel="Update Email"
+        onVerify={handleEmailOtp}
+      />
     </div>
   );
 }
