@@ -5,8 +5,9 @@ import api from "../../lib/api";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import {
   CalendarDays, Search, Star, IndianRupee, ArrowRight,
-  CheckCircle2, Clock, AlertTriangle, MapPin, Zap
+  CheckCircle2, Clock, AlertTriangle, MapPin, Zap, Mic
 } from "lucide-react";
+import AIVoiceSearchModal from "../../components/AIVoiceSearchModal";
 
 function formatMoney(v) {
   const n = Number(v) || 0;
@@ -30,6 +31,7 @@ export default function Home() {
   const [providers, setProviders] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [service, setService]     = useState("");
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -84,7 +86,15 @@ export default function Home() {
             Book verified service providers endorsed by your local cooperative.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <button
+            type="button"
+            onClick={() => setIsVoiceOpen(true)}
+            className="h-9 inline-flex items-center gap-1.5 px-3 rounded-xl bg-gradient-to-r from-[#00288e] to-[#6366f1] text-white text-[12px] font-bold shadow-sm hover:scale-105 transition-all"
+          >
+            <Mic size={13} className="animate-bounce" />
+            <span>Voice AI</span>
+          </button>
           <form onSubmit={goSearch} className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-outline-variant bg-surface hover:border-primary/40 transition-all duration-200">
             <Search size={13} className="text-outline shrink-0" strokeWidth={2} />
             <input
@@ -100,6 +110,7 @@ export default function Home() {
             My Bookings
           </Link>
         </div>
+        <AIVoiceSearchModal isOpen={isVoiceOpen} onClose={() => setIsVoiceOpen(false)} />
       </div>
 
       {/* ── Stat cards ── */}

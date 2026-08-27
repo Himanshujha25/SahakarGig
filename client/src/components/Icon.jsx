@@ -18,7 +18,15 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
+import { AIIcon, AIChipIcon } from './AIIcon';
+
 const MAP = {
+  ai: AIIcon,
+  auto_awesome: AIIcon,
+  smart_toy: AIIcon,
+  psychology: AIIcon,
+  brain: AIIcon,
+  chip: AIChipIcon,
   account_balance_wallet: Wallet,
   add: Plus,
   admin_panel_settings: ShieldCheck,

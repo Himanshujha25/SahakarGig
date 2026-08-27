@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import socket from "../../lib/socket";
 import VerifiedBadge from "../../components/VerifiedBadge";
+import { AIIcon, AIBadge } from "../../components/AIIcon";
 import {
   Radar, MapPin, Phone, Star, ShieldCheck, BadgeCheck, Lock,
   IndianRupee, ArrowRight, Zap, Handshake, CheckCircle2, Users, IdCard,
-  ChevronDown, Check,
+  ChevronDown, Check, Building2, Sparkles
 } from "lucide-react";
 
 const CATEGORIES = [
@@ -15,8 +16,6 @@ const CATEGORIES = [
 ];
 
 // Custom category dropdown — matches the dashboard TimeframePicker style
-// (button toggles a rounded-2xl shadowed panel, rotating chevron,
-//  outside-click close, and a highlighted selected option with a check).
 function CategoryDropdown({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -102,6 +101,7 @@ async function buildDisclosure(booking) {
 
 export default function Dispatch() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const bookingIdRef = useRef(null);
 
@@ -118,6 +118,33 @@ export default function Dispatch() {
   const [price, setPrice] = useState(250);
   const [isEmergency, setIsEmergency] = useState(false);
   const [coords, setCoords] = useState({ lat: 28.6139, lng: 77.2090 });
+
+  const [dynamicWorkerCount, setDynamicWorkerCount] = useState(8);
+
+  // Fetch real active verified worker count from MongoDB API
+  useEffect(() => {
+    api.get(`/providers${category ? `?category=${encodeURIComponent(category)}` : ""}`)
+      .then((r) => {
+        const list = Array.isArray(r.data) ? r.data : (r.data?.providers || []);
+        const total = r.data?.total || list.length;
+        if (total > 0) setDynamicWorkerCount(total);
+      })
+      .catch(() => {});
+  }, [category]);
+
+  // Read URL query search params for pre-filling category and emergency
+  useEffect(() => {
+    const qCat = searchParams.get("category");
+    const qEmg = searchParams.get("emergency");
+    if (qCat) {
+      const match = CATEGORIES.find((c) => c.toLowerCase() === qCat.toLowerCase());
+      if (match) setCategory(match);
+      else setCategory(qCat);
+    }
+    if (qEmg === "true") {
+      setIsEmergency(true);
+    }
+  }, [searchParams]);
 
   // Reverse-geocode coords → full street-level address (like Rapido / Google Maps)
   async function reverseGeocode(lat, lng) {
@@ -229,108 +256,184 @@ export default function Dispatch() {
   /* ── FORM ─────────────────────────────────────────────── */
   if (step === "form") {
     return (
-      <div className="w-full px-6 pt-8 pb-10 max-w-3xl space-y-6">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-on-surface" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e8edff] text-[#00288e] text-xs font-bold border border-[#00288e]/20">
+              <Building2 size={13} />
+              <span>Ministry of Cooperation</span>
+              <span className="w-1 h-1 rounded-full bg-[#00288e]/40" />
+              <span>Geospatial Radar Engine</span>
+            </span>
+          </div>
+          <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tight text-on-surface" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
             Geospatial Gig Dispatch
           </h1>
-          <p className="text-[14px] text-on-surface-variant mt-0.5">
-            Broadcast your request to every nearby verified cooperative worker. The first to accept gets the job.
+          <p className="text-[14px] sm:text-[15px] text-on-surface-variant mt-1">
+            Broadcast your request directly to nearby verified cooperative professionals. First ready worker to accept gets assigned.
           </p>
         </div>
 
-        {/* How it works */}
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[
-            { Icon: Radar, title: "1. Broadcast", sub: "₹0 upfront — no picking" },
-            { Icon: Zap, title: "2. First-Accept", sub: "Nearest ready worker wins" },
-            { Icon: Lock, title: "3. Escrow Pay", sub: "Pay only after assignment" },
-          ].map(({ Icon, title, sub }) => (
-            <div key={title} className="flex items-center gap-3 rounded-2xl border border-outline-variant/60 bg-surface p-4">
-              <div className="w-10 h-10 rounded-xl bg-[#e8edff] text-[#00288e] flex items-center justify-center shrink-0">
-                <Icon size={18} strokeWidth={2.5} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[13px] font-bold text-on-surface">{title}</p>
-                <p className="text-[11px] text-on-surface-variant">{sub}</p>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Dispatch Form (col-span-7) */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* How it works */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                { Icon: Radar, title: "1. Broadcast", sub: "₹0 upfront — instant alert" },
+                { Icon: Zap, title: "2. First-Accept", sub: "Nearest ready worker wins" },
+                { Icon: Lock, title: "3. Escrow Pay", sub: "Pay only after assignment" },
+              ].map(({ Icon, title, sub }) => (
+                <div key={title} className="flex items-center gap-3 rounded-2xl border border-outline-variant/60 bg-surface p-4 shadow-2xs">
+                  <div className="w-10 h-10 rounded-xl bg-[#e8edff] text-[#00288e] flex items-center justify-center shrink-0">
+                    <Icon size={18} strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-bold text-on-surface">{title}</p>
+                    <p className="text-[11px] text-on-surface-variant">{sub}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        <form onSubmit={broadcast} className="rounded-2xl border border-outline-variant/60 bg-surface p-5 md:p-6 space-y-5">
-          <label className="block">
-            <span className="mb-1.5 block text-[13px] font-semibold text-on-surface-variant">Service Category</span>
-            <CategoryDropdown value={category} onChange={setCategory} />
-          </label>
+            <form onSubmit={broadcast} className="rounded-2xl border border-outline-variant/70 bg-surface p-6 sm:p-7 space-y-5 shadow-xs">
+              <label className="block">
+                <span className="mb-1.5 block text-[13px] font-semibold text-on-surface-variant">Service Category</span>
+                <CategoryDropdown value={category} onChange={setCategory} />
+              </label>
 
-          <label className="block">
-            <span className="mb-1.5 block text-[13px] font-semibold text-on-surface-variant">Locality / Address</span>
-            <div className="relative">
-              <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-              <input
-                value={locationText}
-                onChange={(e) => setLocationText(e.target.value)}
-                placeholder={locLoading ? "Detecting your location…" : "e.g. Indiranagar, Delhi"}
-                className="h-12 w-full rounded-xl border border-outline-variant bg-surface-container-lowest pl-10 pr-28 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
-              />
-              <button
-                type="button"
-                disabled={locLoading}
-                onClick={async () => {
-                  if (!navigator.geolocation) return;
-                  setLocLoading(true);
-                  navigator.geolocation.getCurrentPosition(
-                    async (pos) => {
-                      const { latitude: lat, longitude: lng } = pos.coords;
-                      setCoords({ lat, lng });
-                      const text = await reverseGeocode(lat, lng);
-                      if (text) setLocationText(text);
-                      setLocLoading(false);
-                    },
-                    () => setLocLoading(false),
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                  );
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#e8edff] text-[#00288e] text-[11px] font-bold hover:bg-[#d7e3ff] disabled:opacity-50 transition-all"
-              >
-                <MapPin size={11} />
-                {locLoading ? "Detecting…" : "Use GPS"}
+              <label className="block">
+                <span className="mb-1.5 block text-[13px] font-semibold text-on-surface-variant">Locality / Address</span>
+                <div className="relative">
+                  <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                  <input
+                    value={locationText}
+                    onChange={(e) => setLocationText(e.target.value)}
+                    placeholder={locLoading ? "Detecting your location…" : "e.g. Indiranagar, Delhi"}
+                    className="h-12 w-full rounded-xl border border-outline-variant bg-surface-container-lowest pl-10 pr-28 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                  <button
+                    type="button"
+                    disabled={locLoading}
+                    onClick={async () => {
+                      if (!navigator.geolocation) return;
+                      setLocLoading(true);
+                      navigator.geolocation.getCurrentPosition(
+                        async (pos) => {
+                          const { latitude: lat, longitude: lng } = pos.coords;
+                          setCoords({ lat, lng });
+                          const text = await reverseGeocode(lat, lng);
+                          if (text) setLocationText(text);
+                          setLocLoading(false);
+                        },
+                        () => setLocLoading(false),
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                      );
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#e8edff] text-[#00288e] text-[11.5px] font-bold hover:bg-[#d7e3ff] disabled:opacity-50 transition-all cursor-pointer"
+                  >
+                    <MapPin size={12} />
+                    {locLoading ? "Detecting…" : "Use GPS"}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-[11.5px] text-on-surface-variant font-medium">
+                  Broadcasting within ~25 km radius · ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)})
+                </p>
+              </label>
+
+              <label className="block">
+                <span className="mb-1.5 block text-[13px] font-semibold text-on-surface-variant">Offered Rate (₹/hr)</span>
+                <div className="relative">
+                  <IndianRupee size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                  <input
+                    type="number" min={50} value={price}
+                    onChange={(e) => setPrice(Number(e.target.value))}
+                    className="h-12 w-full rounded-xl border border-outline-variant bg-surface-container-lowest pl-10 pr-4 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary font-semibold"
+                  />
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 rounded-xl bg-error-container/40 border border-error/20 px-4 py-3 cursor-pointer">
+                <input type="checkbox" checked={isEmergency} onChange={(e) => setIsEmergency(e.target.checked)} className="h-5 w-5 accent-[var(--color-error)]" />
+                <Zap size={16} className="text-error" />
+                <span className="text-[13px] font-bold text-on-error-container">Emergency Dispatch — Push priority alert to every ready worker</span>
+              </label>
+
+              {error && (
+                <div className="rounded-xl border border-error/30 bg-error-container px-4 py-3 text-[13px] font-semibold text-on-error-container">{error}</div>
+              )}
+
+              <button type="submit" disabled={submitting}
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#00288e] text-white font-heading font-bold text-[14.5px] hover:bg-[#173bab] active:scale-[0.99] disabled:opacity-60 transition-all cursor-pointer shadow-md">
+                <Radar size={18} />
+                {submitting ? "Broadcasting Request…" : "Broadcast Job Request (₹0 Upfront)"}
               </button>
+            </form>
+          </div>
+
+          {/* Right Column: Live Network Preview & Security Shield (col-span-5) */}
+          <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
+            {/* Live Geospatial Network Radar Card */}
+            <div className="rounded-2xl border border-[#00288e]/20 bg-gradient-to-br from-[#e8edff] via-white to-[#f0f4ff] p-6 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] font-extrabold uppercase tracking-wider text-[#00288e] flex items-center gap-2">
+                  <Radar size={16} className="text-[#00288e]" /> Live Geospatial Coverage
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#00288e] text-white">
+                  Active Coverage
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white border border-[#c4c5d5]/50 flex items-center gap-4 shadow-2xs">
+                <div className="w-12 h-12 rounded-xl bg-[#00288e] text-white flex items-center justify-center shrink-0 font-bold text-[18px]">
+                  {dynamicWorkerCount}+
+                </div>
+                <div>
+                  <h4 className="text-[14px] font-bold text-on-surface">Cooperative {category || "Worker"}s Ready</h4>
+                  <p className="text-[12px] text-on-surface-variant">Verified in {locationText || "your local area"}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2.5 pt-1">
+                {[
+                  { title: "e-Shram Govt. Verified", desc: "100% UAN & PMSBY insurance check" },
+                  { title: "Razorpay Escrow Safety", desc: "Zero advance payment until job assigned" },
+                  { title: "Institutional Oversight", desc: "Supervised by Primary Agricultural Credit Societies" },
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-2.5 text-[12.5px] text-[#444653]">
+                    <ShieldCheck size={16} className="text-[#00288e] shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-on-surface font-semibold">{item.title}:</strong> {item.desc}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <p className="mt-1 text-[11px] text-on-surface-variant">
-              Broadcasting within ~25 km · ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)})
-            </p>
-          </label>
 
-          <label className="block">
-            <span className="mb-1.5 block text-[13px] font-semibold text-on-surface-variant">Offered Rate (₹/hr)</span>
-            <div className="relative">
-              <IndianRupee size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-              <input
-                type="number" min={50} value={price}
-                onChange={(e) => setPrice(Number(e.target.value))}
-                className="h-12 w-full rounded-xl border border-outline-variant bg-surface-container-lowest pl-10 pr-4 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
-              />
+            {/* Quick Category Selection Grid */}
+            <div className="rounded-2xl border border-outline-variant/60 bg-surface p-5 space-y-3 shadow-2xs">
+              <h4 className="text-[13px] font-extrabold text-on-surface uppercase tracking-wider">
+                Popular Categories
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setCategory(cat)}
+                    className={`text-[12px] font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                      category === cat
+                        ? "bg-[#00288e] text-white border-[#00288e]"
+                        : "bg-surface-container-lowest text-[#00288e] border-outline-variant hover:border-[#00288e]/40 hover:bg-[#e8edff]"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
             </div>
-          </label>
-
-          <label className="flex items-center gap-3 rounded-xl bg-error-container/40 px-4 py-3 cursor-pointer">
-            <input type="checkbox" checked={isEmergency} onChange={(e) => setIsEmergency(e.target.checked)} className="h-5 w-5 accent-[var(--color-error)]" />
-            <Zap size={16} className="text-error" />
-            <span className="text-[13px] font-semibold text-on-error-container">Emergency — push to every worker now</span>
-          </label>
-
-          {error && (
-            <div className="rounded-xl border border-error/30 bg-error-container px-4 py-3 text-[13px] text-on-error-container">{error}</div>
-          )}
-
-          <button type="submit" disabled={submitting}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-[#e8edff] font-heading font-semibold text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_12px_rgba(0,40,142,0.15)] disabled:opacity-60 transition-all">
-            <Radar size={18} />
-            {submitting ? "Broadcasting…" : "Broadcast Job Request (₹0)"}
-          </button>
-        </form>
+          </div>
+        </div>
       </div>
     );
   }
@@ -339,7 +442,9 @@ export default function Dispatch() {
   if (step === "radar") {
     return (
       <div className="w-full px-6 pt-10 pb-10 flex flex-col items-center text-center">
-        <p className="text-[14px] font-semibold text-on-surface-variant mb-1">Geospatial Dispatch</p>
+        <div className="mb-2">
+          <AIBadge text="AI Live Scan & Broadcast Engine" />
+        </div>
         <h1 className="text-[22px] font-bold tracking-tight text-on-surface mb-2" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
           Searching nearby certified{" "}{(booking?.targetCategory || "workers")}…
         </h1>
@@ -364,8 +469,8 @@ export default function Dispatch() {
             </div>
           ))}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-14 h-14 rounded-full bg-[#e8edff] text-[#00288e] flex items-center justify-center shadow-[0_4px_16px_rgba(0,40,142,0.2)]">
-              <Radar size={26} strokeWidth={2.5} />
+            <div className="w-14 h-14 rounded-full bg-white text-[#00288e] flex items-center justify-center shadow-[0_4px_20px_rgba(0,40,142,0.3)] border border-primary/20">
+              <AIIcon size={28} glow />
             </div>
           </div>
         </div>

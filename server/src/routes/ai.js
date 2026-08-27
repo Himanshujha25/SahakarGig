@@ -5,5 +5,6 @@ const asyncHandler = require('../middleware/error');
 
 router.get('/demand', auth, asyncHandler(c.demandForecast));
 router.post('/nudge', auth, asyncHandler(c.nudgeProviders));
+router.post('/chat', asyncHandler(c.chatWithGroq));
 
 module.exports = router;

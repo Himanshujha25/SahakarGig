@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import socket from "../../lib/socket";
+import { AIIcon, AIBadge } from "../../components/AIIcon";
 import {
   Radar, MapPin, Zap, IndianRupee, Check, Users, AlertTriangle, Radio, BellRing,
 } from "lucide-react";
@@ -126,8 +127,11 @@ export default function DispatchFeed() {
     <div className="w-full px-6 pt-8 pb-10 space-y-6">
 
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <div className="flex items-center gap-2 mb-1">
+            <AIBadge text="AI Smart Broadcast Feed" />
+          </div>
           <h1 className="text-[26px] font-bold tracking-tight text-on-surface"
             style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
             Live Job Dispatch

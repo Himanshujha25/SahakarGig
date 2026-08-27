@@ -1,6 +1,30 @@
+import { useState, useEffect } from 'react';
 import { ShieldCheck, IndianRupee, Briefcase, Clock, AlertTriangle, CheckCircle2, HeartPulse, Info } from 'lucide-react';
 
 export default function WorkerWelfareDashboard({ data, loading }) {
+  const [showAlerts, setShowAlerts] = useState(true);
+  const [isLeaving, setIsLeaving] = useState(false);
+
+  useEffect(() => {
+    setShowAlerts(true);
+    setIsLeaving(false);
+
+    // Start smooth ease-out exit animation at 4.4s
+    const leaveTimer = setTimeout(() => {
+      setIsLeaving(true);
+    }, 4400);
+
+    // Unmount from DOM completely at 5.0s
+    const unmountTimer = setTimeout(() => {
+      setShowAlerts(false);
+    }, 5000);
+
+    return () => {
+      clearTimeout(leaveTimer);
+      clearTimeout(unmountTimer);
+    };
+  }, [data]);
+
   if (loading) {
     return (
       <div className="w-full space-y-4 animate-pulse">
@@ -126,9 +150,9 @@ export default function WorkerWelfareDashboard({ data, loading }) {
         </div>
       </div>
 
-      {/* Real Alerts */}
-      {alerts.length > 0 && (
-        <div className="space-y-2 pt-1">
+      {/* Real Alerts (Ease-in on enter, Ease-out on exit after 5 seconds) */}
+      {showAlerts && alerts.length > 0 && (
+        <div className={`space-y-2 pt-1 transition-all ${isLeaving ? 'animate-alert-out' : 'animate-alert-in'}`}>
           <h3 className="text-[13px] font-bold text-on-surface uppercase tracking-wider">Welfare Alerts</h3>
           <div className="space-y-2">
             {alerts.map((a, i) => {
