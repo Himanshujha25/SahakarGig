@@ -127,7 +127,10 @@ export default function Welfare() {
               </div>
               {verifyError && <p className="text-[12px] text-error mt-1">{verifyError}</p>}
               {welfareData?.eShramVerificationStatus === 'self_declared' && (
-                <p className="text-[11px] text-[#6b4200] mt-1">ID saved. Govt. verification pending — will auto-update when DigiLocker API is connected.</p>
+                <p className="text-[11px] text-[#6b4200] mt-1">✓ ID saved. Pending govt. verification — will auto-upgrade when real DigiLocker API is configured.</p>
+              )}
+              {welfareData?.eShramVerificationStatus === 'unregistered' && (
+                <p className="text-[11px] text-on-surface-variant mt-1">Enter your e-Shram ID to unlock government welfare schemes.</p>
               )}
             </div>
 

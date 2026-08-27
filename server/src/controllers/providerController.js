@@ -54,9 +54,23 @@ async function getProvider(req, res) {
   res.json({ ...p.toObject(), trustScore: score, reviews });
 }
 
+async function getSlots(req, res) {
+  const p = await Provider.findById(req.params.id);
+  if (!p) return res.status(404).json({ message: 'Not found' });
+  // Upcoming active bookings — used to mark taken slots as unavailable.
+  const bookings = await Booking.find({
+    providerId: p._id,
+    scheduledTime: { $ne: null },
+    status: { $nin: ['cancelled', 'disputed'] },
+  })
+    .select('scheduledTime status service')
+    .sort('scheduledTime');
+  res.json({ availabilitySlots: p.availabilitySlots || [], bookings });
+}
+
 async function me(req, res) {
   const p = await Provider.findOne({ userId: req.user.userId }).populate('cooperativeId', 'name');
-  if (!p) return res.status(404).json({ message: 'Provider not found' });
+  if (!p) return res.status(401).json({ message: 'Provider record not found — please log in again' });
   const score = await computeTrustScore(p._id);
   res.json({ ...p.toObject(), trustScore: score });
 }
@@ -85,4 +99,4 @@ async function uploadDoc(req, res) {
   res.json({ ...p.toObject(), uploadedUrl: fileUrl });
 }
 
-module.exports = { listProviders, listCooperatives, getProvider, me, updateProfile, uploadDoc };
+module.exports = { listProviders, listCooperatives, getProvider, getSlots, me, updateProfile, uploadDoc };

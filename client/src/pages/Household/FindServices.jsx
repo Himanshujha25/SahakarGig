@@ -4,7 +4,7 @@ import api from "../../lib/api";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import { Search, SlidersHorizontal, Star, MapPin, Mic, MicOff } from "lucide-react";
 
-const SKILLS = ["All", "Cleaning", "Plumbing", "Electrical", "Tutoring", "Caregiving", "Carpentry", "Painting"];
+const SKILLS = ["All", "Plumber", "Electrician", "Tutor", "Cook", "Cleaner", "Caregiver", "Driver", "Gardener"];
 
 export default function FindServices() {
   const [providers, setProviders] = useState([]);

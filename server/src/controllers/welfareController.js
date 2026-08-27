@@ -6,14 +6,19 @@ const Review = require('../models/Review');
 const QRCode = require('qrcode');
 const axios = require('axios');
 
-// Call real e-Shram govt API when configured
+// Adapter pattern: real govt API when configured, mock fallback for dev
 // Returns: { verified: bool, name: string, dob: string, state: string, error?: string }
 async function callEShramAPI(eShramId) {
-  // If no API configured, return null (will stay as self_declared)
-  if (!process.env.ESHRAM_API_URL || !process.env.ESHRAM_API_KEY) {
-    return null;
+  // If real API configured, use it
+  if (process.env.ESHRAM_API_ENABLED === 'true' && process.env.ESHRAM_API_URL && process.env.ESHRAM_API_KEY) {
+    return callRealEShramAPI(eShramId);
   }
+  // Otherwise use mock for development
+  return mockEShramVerification(eShramId);
+}
 
+// Real govt API call (DigiLocker/UMANG)
+async function callRealEShramAPI(eShramId) {
   try {
     const response = await axios.post(
       process.env.ESHRAM_API_URL,
@@ -37,9 +42,24 @@ async function callEShramAPI(eShramId) {
     }
     return { verified: false, error: response.data?.message || 'Verification failed' };
   } catch (err) {
-    console.error('[e-Shram API Error]', err.message);
+    console.error('[e-Shram Real API Error]', err.message);
     return { verified: false, error: err.message };
   }
+}
+
+// Mock verification for development (no real govt API)
+function mockEShramVerification(eShramId) {
+  // Simulate 80% success rate for demo
+  const isSuccess = Math.random() > 0.2;
+  if (!isSuccess) {
+    return { verified: false, error: 'Mock: ID not found in records' };
+  }
+  return {
+    verified: true,
+    name: 'Rajesh Kumar',
+    dob: '1990-05-15',
+    state: 'Maharashtra',
+  };
 }
 
 function calcWelfareScore(w) {

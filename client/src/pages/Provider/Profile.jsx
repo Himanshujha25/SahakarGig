@@ -5,6 +5,8 @@ import { Star, Save, Upload, CheckCircle2, Clock, Briefcase, IndianRupee, Shield
 
 const inputCls = "h-11 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-on-surface-variant/40";
 
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
 function Field({ label, children }) {
   return (
     <div className="space-y-1.5">
@@ -28,10 +30,64 @@ function StatPill({ icon: Icon, label, value, bg, ic }) {
   );
 }
 
+// Weekly availability editor — green toggle for free days, time range per day.
+function AvailabilityEditor({ slots, onChange }) {
+  const toggle = (i) =>
+    onChange(slots.map((s, idx) => (idx === i ? { ...s, enabled: !s.enabled } : s)));
+  const patch = (i, k, v) =>
+    onChange(slots.map((s, idx) => (idx === i ? { ...s, [k]: v } : s)));
+
+  return (
+    <div className="space-y-2">
+      {slots.map((s, i) => (
+        <div
+          key={s.day}
+          className={`flex items-center gap-3 rounded-xl border px-3 py-2 transition-all ${
+            s.enabled ? "border-[#006d30]/30 bg-[#e6f9ec]" : "border-outline-variant/50 bg-surface-container-lowest opacity-80"
+          }`}
+        >
+          <button
+            type="button"
+            onClick={() => toggle(i)}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${s.enabled ? "bg-[#006d30]" : "bg-outline-variant"}`}
+            title={s.enabled ? "Available" : "Not available"}
+          >
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${s.enabled ? "left-[22px]" : "left-0.5"}`} />
+          </button>
+          <span className={`w-14 text-[14px] font-bold ${s.enabled ? "text-[#006d30]" : "text-on-surface-variant"}`}>{s.day}</span>
+          {s.enabled ? (
+            <div className="flex items-center gap-2 flex-1">
+              <input
+                type="time"
+                value={s.from}
+                onChange={(e) => patch(i, "from", e.target.value)}
+                className="h-9 flex-1 rounded-lg border border-[#006d30]/20 bg-surface px-2 text-[13px] font-semibold text-on-surface outline-none focus:border-[#006d30]"
+              />
+              <span className="text-[12px] text-on-surface-variant">to</span>
+              <input
+                type="time"
+                value={s.to}
+                onChange={(e) => patch(i, "to", e.target.value)}
+                className="h-9 flex-1 rounded-lg border border-[#006d30]/20 bg-surface px-2 text-[13px] font-semibold text-on-surface outline-none focus:border-[#006d30]"
+              />
+            </div>
+          ) : (
+            <span className="flex-1 text-right text-[12px] text-on-surface-variant italic">Not available</span>
+          )}
+        </div>
+      ))}
+      <p className="text-[12px] text-on-surface-variant">
+        Toggle days green when you're free. Households can only book you inside these slots.
+      </p>
+    </div>
+  );
+}
+
 export default function ProviderProfile() {
   const fileRef = useRef(null);
   const [provider, setProvider]   = useState(null);
-  const [form, setForm]           = useState({ skills: "", hourlyRate: "", availabilityNote: "" });
+  const [form, setForm]           = useState({ skills: "", hourlyRate: "" });
+  const [slots, setSlots]         = useState(() => DAYS.map((day) => ({ day, enabled: false, from: "09:00", to: "17:00" })));
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -46,9 +102,13 @@ export default function ProviderProfile() {
         setForm({
           skills: (p.skills || []).join(", "),
           hourlyRate: p.hourlyRate ?? "",
-          availabilityNote: (p.availabilitySlots || [])
-            .map(s => `${s.day} ${s.from}-${s.to}`).join(", "),
         });
+        setSlots(DAYS.map((day) => {
+          const existing = (p.availabilitySlots || []).find((s) => s.day === day);
+          return existing
+            ? { day, enabled: true, from: existing.from || "09:00", to: existing.to || "17:00" }
+            : { day, enabled: false, from: "09:00", to: "17:00" };
+        }));
       } catch {} finally { setLoading(false); }
     })();
   }, []);
@@ -60,10 +120,7 @@ export default function ProviderProfile() {
       await api.patch(`/providers/${provider._id}`, {
         skills: form.skills.split(",").map(s => s.trim()).filter(Boolean),
         hourlyRate: Number(form.hourlyRate) || 0,
-        availabilitySlots: form.availabilityNote.split(",").map(seg => seg.trim()).filter(Boolean).map(seg => {
-          const m = seg.match(/(\w+)\s*(\d{1,2}:?\d{0,2})?-?(\d{1,2}:?\d{0,2})?/);
-          return m ? { day: m[1], from: m[2] || "", to: m[3] || "" } : { day: seg, from: "", to: "" };
-        }),
+        availabilitySlots: slots.filter(s => s.enabled).map(s => ({ day: s.day, from: s.from, to: s.to })),
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -199,10 +256,11 @@ export default function ProviderProfile() {
                     placeholder="250" />
                 </div>
               </Field>
-              <Field label="Availability">
-                <input className={inputCls} value={form.availabilityNote}
-                  onChange={e => setForm(f => ({ ...f, availabilityNote: e.target.value }))}
-                  placeholder="Mon 09:00-17:00, Tue 10:00-14:00" />
+            </div>
+
+            <div className="sm:col-span-2">
+              <Field label="Weekly Availability">
+                <AvailabilityEditor slots={slots} onChange={setSlots} />
               </Field>
             </div>
 

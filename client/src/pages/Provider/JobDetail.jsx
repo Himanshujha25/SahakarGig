@@ -52,6 +52,40 @@ export default function JobDetail() {
     };
   }, [load]);
 
+  // PRD §3.3: live GPS stream while the job is accepted/in-progress.
+  const isActive = booking && ['accepted', 'in-progress'].includes(booking.status);
+  useEffect(() => {
+    if (!isActive || !navigator.geolocation) return;
+    if (!socket.connected) socket.connect();
+    let watchId = null;
+    let lastPos = null;
+
+    const emitPos = () => {
+      if (lastPos && socket.connected) {
+        socket.emit('provider:location_update', {
+          bookingId: id,
+          lat: lastPos.coords.latitude,
+          lng: lastPos.coords.longitude,
+        });
+      }
+    };
+
+    try {
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => { lastPos = pos; emitPos(); },
+        () => {},
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+      );
+    } catch { /* geolocation unavailable */ }
+
+    // Periodic fallback in case watchPosition emits rarely.
+    const tick = setInterval(emitPos, 8000);
+    return () => {
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      clearInterval(tick);
+    };
+  }, [id, isActive]);
+
   async function accept() {
     setBusy(true);
     try {

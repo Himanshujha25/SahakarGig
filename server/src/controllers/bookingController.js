@@ -7,6 +7,22 @@ const { emitTo, broadcastAll } = require('../socket');
 const { haversine } = require('../utils/helpers');
 const notify = require('../utils/notify');
 
+// Weekday + local time (IST +05:30) of a stored instant, used to validate
+// against the provider's weekly availability slots (Mon–Sun, HH:MM).
+function slotParts(d) {
+  const shifted = new Date(d.getTime() + 5.5 * 3600 * 1000); // UTC -> IST
+  const pad = (n) => String(n).padStart(2, '0');
+  return {
+    day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][shifted.getUTCDay()],
+    time: `${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}`,
+  };
+}
+
+const inRange = (time, from, to) => {
+  const t = time.replace(':', '') * 1;
+  return t >= from.replace(':', '') * 1 && t < to.replace(':', '') * 1;
+};
+
 async function createBooking(req, res) {
   const { providerId, service, scheduledTime, isEmergency, price } = req.body;
   if (!providerId || !service) return res.status(400).json({ message: 'providerId and service are required' });
@@ -14,6 +30,34 @@ async function createBooking(req, res) {
   const provider = await Provider.findById(providerId).populate('userId');
   if (!provider) return res.status(404).json({ message: 'Provider not found' });
   if (!provider.verified) return res.status(400).json({ message: 'Provider is not verified' });
+
+  // Time-slot enforcement: household must pick a slot the worker is actually free for.
+  if (!scheduledTime) {
+    return res.status(400).json({ message: 'Please choose a time slot from the provider\'s availability.' });
+  }
+  const start = new Date(scheduledTime);
+  if (isNaN(start.getTime())) return res.status(400).json({ message: 'Please choose a valid time slot.' });
+  if (start.getTime() < Date.now()) return res.status(400).json({ message: 'Please pick a future time slot.' });
+
+  const { day: dayName, time } = slotParts(start);
+  const slot = (provider.availabilitySlots || []).find((s) => s.day === dayName);
+  if (!slot || !inRange(time, slot.from || '', slot.to || '')) {
+    return res.status(400).json({
+      message: `The provider is not available at ${time} on ${dayName}. Please pick from their open slots.`,
+    });
+  }
+
+  // Atomic conflict guard: no other active booking may overlap this hour.
+  const end = new Date(start.getTime() + 3600 * 1000);
+  const existing = await Booking.findOne({
+    providerId: provider._id,
+    scheduledTime: { $gte: start, $lt: end },
+    _id: { $ne: req.params.bookingId },
+    status: { $nin: ['cancelled', 'disputed'] },
+  });
+  if (existing) {
+    return res.status(409).json({ message: 'That time slot is already booked. Please choose another.' });
+  }
 
   const effectivePrice = (price && Number(price) > 0)
     ? Number(price)
@@ -24,7 +68,7 @@ async function createBooking(req, res) {
     providerId,
     cooperativeId: provider.cooperativeId,
     service,
-    scheduledTime,
+    scheduledTime: start,
     isEmergency: !!isEmergency,
     priority: isEmergency ? 1 : 0,
     price: effectivePrice,
@@ -68,7 +112,7 @@ async function householdBookings(req, res) {
 
 async function providerBookings(req, res) {
   const provider = await Provider.findOne({ userId: req.user.userId });
-  if (!provider) return res.status(403).json({ message: 'Not a provider' });
+  if (!provider) return res.status(401).json({ message: 'Provider record not found — please log in again' });
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, parseInt(req.query.limit) || 20);
   const b = await Booking.find({ providerId: provider._id })
@@ -210,7 +254,10 @@ async function createBroadcastBooking(req, res) {
 
   let notified = 0;
   for (const p of providers) {
-    if (p.userId?._id && p.geoLocation && haversine(coordinates, p.geoLocation) <= radiusKm) {
+    // Feed parity: providers without a saved geoLocation are treated as in-range
+    // (matching availableBroadcastBookings) so they still get the instant push.
+    const inRange = !p.geoLocation || haversine(coordinates, p.geoLocation) <= radiusKm;
+    if (p.userId?._id && inRange) {
       emitTo(p.userId._id.toString(), 'booking:broadcast_new', {
         _id: booking._id,
         bookingId: booking._id,
@@ -233,44 +280,49 @@ async function createBroadcastBooking(req, res) {
 // Live broadcast feed for a provider — only jobs matching their skills,
 // within range, and still awaiting first-acceptance.
 async function availableBroadcastBookings(req, res) {
-  const provider = await Provider.findOne({ userId: req.user.userId });
-  if (!provider) return res.status(403).json({ message: 'Not a provider' });
+  try {
+    const provider = await Provider.findOne({ userId: req.user.userId });
+    if (!provider) return res.status(401).json({ message: 'Provider record not found — please log in again' });
 
-  const { lat, lng, radius } = req.query;
-  const radiusKm = parseFloat(radius) || 25;
+    const { lat, lng, radius } = req.query;
+    const radiusKm = parseFloat(radius) || 25;
 
-  const bookings = await Booking.find({
-    dispatchMode: 'broadcast',
-    broadcastStatus: 'broadcasting',
-    providerId: null,
-    status: 'requested',
-  })
-    .populate('householdId', 'name')
-    .sort('-createdAt');
+    const bookings = await Booking.find({
+      dispatchMode: 'broadcast',
+      broadcastStatus: 'broadcasting',
+      providerId: null,
+      status: 'requested',
+    })
+      .populate('householdId', 'name')
+      .sort('-createdAt');
 
-  const skills = (provider.skills || []).map((s) => s.toLowerCase());
-  const within = (coords) => {
-    if (lat && lng) return haversine({ lat: +lat, lng: +lng }, coords) <= radiusKm;
-    if (provider.geoLocation) return haversine(provider.geoLocation, coords) <= radiusKm;
-    return true;
-  };
+    const skills = (provider.skills || []).map((s) => s.toLowerCase());
+    const within = (coords) => {
+      if (lat && lng) return haversine({ lat: +lat, lng: +lng }, coords) <= radiusKm;
+      if (provider.geoLocation) return haversine(provider.geoLocation, coords) <= radiusKm;
+      return true;
+    };
 
-  const filtered = bookings.filter((b) => {
-    const cat = (b.targetCategory || b.service || '').toLowerCase();
-    const matchesSkill = skills.includes(cat) || skills.includes((b.service || '').toLowerCase());
-    return matchesSkill && within(b.coordinates || {});
-  });
+    const filtered = bookings.filter((b) => {
+      const cat = (b.targetCategory || b.service || '').toLowerCase();
+      const matchesSkill = skills.includes(cat) || skills.includes((b.service || '').toLowerCase());
+      return matchesSkill && within(b.coordinates || {});
+    });
 
-  res.json(filtered);
+    res.json(filtered);
+  } catch (err) {
+    console.error('[availableBroadcastBookings error]', err.message);
+    res.status(500).json({ message: 'Error fetching available bookings' });
+  }
 }
 
 // ATOMIC first-acceptance race lock (PRD §3.2).
 // Guarantees zero double-assignments under concurrent taps.
 async function acceptBroadcastRequest(req, res) {
-  const { bookingId } = req.params;
+  const { id: bookingId } = req.params;
   const provider = await Provider.findOne({ userId: req.user.userId })
     .populate('cooperativeId', 'name');
-  if (!provider) return res.status(403).json({ message: 'Only verified providers can accept jobs' });
+  if (!provider) return res.status(401).json({ message: 'Provider record not found — please log in again' });
   if (!provider.verified)
     return res.status(400).json({ message: 'Your provider account is not verified yet' });
 
@@ -291,7 +343,7 @@ async function acceptBroadcastRequest(req, res) {
         claimedAt: new Date(),
       },
     },
-    { new: true }
+    { returnDocument: 'after' }
   )
     .populate('householdId', 'name phone')
     .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } })
@@ -336,7 +388,7 @@ async function acceptBroadcastRequest(req, res) {
     booking: updatedBooking,
     providerDetails,
   });
-  broadcastAll('booking:claimed', { bookingId }); // notify all other workers to remove card
+  broadcastAll('booking:claimed', { bookingId: updatedBooking._id }); // notify all other workers to remove card
 
   res.json({ booking: updatedBooking, providerDetails });
 }

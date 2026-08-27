@@ -16,6 +16,7 @@ export default function Tracking() {
   const [message, setMessage] = useState("");
   const [reason, setReason] = useState("");
   const [disputing, setDisputing] = useState(false);
+  const [livePos, setLivePos] = useState(null);
 
   const load = () => {
     api
@@ -26,14 +27,19 @@ export default function Tracking() {
   };
 
   useEffect(() => {
+    if (!socket.connected) socket.connect();
     load();
     socket.on('booking:updated', (b) => { if (b._id === id || b._id?.toString() === id) setBooking(b); });
     socket.on('booking:chat', ({ bookingId, message }) => {
       if (bookingId?.toString() === id) setBooking(prev => prev ? { ...prev, chat: [...(prev.chat || []), message] } : prev);
     });
+    socket.on('provider:location_update', ({ bookingId, lat, lng, at }) => {
+      if (bookingId?.toString() === id) setLivePos({ lat, lng, at: at || Date.now() });
+    });
     return () => {
       socket.off('booking:updated');
       socket.off('booking:chat');
+      socket.off('provider:location_update');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -118,6 +124,50 @@ export default function Tracking() {
           })}
         </div>
       </div>
+
+      {/* Live location */}
+      {["accepted", "in-progress"].includes(booking.status) && (
+        <div className="mt-4 rounded-xl border border-outline-variant bg-surface p-5 md:p-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-heading text-base font-semibold text-on-surface">Live Location</h2>
+            {livePos ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-error/10 px-2.5 py-1 font-heading text-xs font-bold text-error">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-error"></span>
+                LIVE
+              </span>
+            ) : (
+              <span className="font-heading text-xs text-on-surface-variant">waiting for GPS…</span>
+            )}
+          </div>
+          {livePos ? (
+            <div className="flex flex-col gap-3">
+              <iframe
+                title="Provider live location"
+                src={`https://www.openstreetmap.org/export/embed.html?bbox=${livePos.lng - 0.005}%2C${livePos.lat - 0.005}%2C${livePos.lng + 0.005}%2C${livePos.lat + 0.005}&layer=mapnik&marker=${livePos.lat}%2C${livePos.lng}`}
+                className="h-48 w-full rounded-lg border border-outline-variant"
+                loading="lazy"
+              />
+              <div className="flex items-center justify-between font-body-md text-sm text-on-surface-variant">
+                <span>
+                  {livePos.lat.toFixed(5)}, {livePos.lng.toFixed(5)}
+                </span>
+                <a
+                  href={`https://www.google.com/maps?q=${livePos.lat},${livePos.lng}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-heading font-semibold text-primary hover:underline"
+                >
+                  Open in Maps
+                </a>
+              </div>
+            </div>
+          ) : (
+            <p className="font-body-md text-sm text-on-surface-variant">
+              Location updates will appear here once the provider shares their GPS signal.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Chat */}
       <div className="mt-4 rounded-xl border border-outline-variant bg-surface p-5 md:p-6">

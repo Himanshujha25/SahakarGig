@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 import api from '../lib/api';
-import socket from '../lib/socket';
+import socket, { reconnectSocket } from '../lib/socket';
 
 const AuthCtx = createContext(null);
 
@@ -16,8 +16,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('sg_user', JSON.stringify(data.user));
     setUser(data.user);
     api.defaults.headers.common.Authorization = `Bearer ${data.token}`;
-    // Socket auth token is read from localStorage by socket.js auth callback
-    socket.connect();
+    reconnectSocket();
   }
 
   async function login(email, password) {
