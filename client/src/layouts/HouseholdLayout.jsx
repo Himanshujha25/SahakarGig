@@ -24,8 +24,7 @@ export default function HouseholdLayout() {
     : 'HH';
 
   useEffect(() => {
-    socket.connect();
-    return () => { socket.disconnect(); };
+    if (!socket.connected) socket.connect();
   }, []);
 
   function signOut() { logout(); navigate('/login'); }

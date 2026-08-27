@@ -14,6 +14,31 @@ const CATEGORIES = [
   "Caregiver", "Driver", "Gardener", "Carpenter", "Painter",
 ];
 
+const RADIUS_KM = 25;
+
+// Real geodesic helpers (same math the server uses)
+function haversineKm(a, b) {
+  const R = 6371;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const la = toRad(a.lat);
+  const lb = toRad(b.lat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la) * Math.cos(lb) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function bearingDeg(a, b) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const toDeg = (d) => (d * 180) / Math.PI;
+  const dLng = toRad(b.lng - a.lng);
+  const la = toRad(a.lat);
+  const lb = toRad(b.lat);
+  const y = Math.sin(dLng) * Math.cos(lb);
+  const x = Math.cos(la) * Math.sin(lb) - Math.sin(la) * Math.cos(lb) * Math.cos(dLng);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
 // Custom category dropdown — matches the dashboard TimeframePicker style
 // (button toggles a rounded-2xl shadowed panel, rotating chevron,
 //  outside-click close, and a highlighted selected option with a check).
@@ -109,13 +134,16 @@ export default function Dispatch() {
   const [booking, setBooking] = useState(null);
   const [providerDetails, setProviderDetails] = useState(null);
   const [nearby, setNearby] = useState(0);
+  const [pins, setPins] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [livePos, setLivePos] = useState(null);
 
   const [category, setCategory] = useState("");
   const [locationText, setLocationText] = useState("");
   const [locLoading, setLocLoading] = useState(false);
-  const [price, setPrice] = useState(250);
+  const [priceStr, setPriceStr] = useState("250");
+  const offerPrice = Number(priceStr) > 0 ? Number(priceStr) : 250;
   const [isEmergency, setIsEmergency] = useState(false);
   const [coords, setCoords] = useState({ lat: 28.6139, lng: 77.2090 });
 
@@ -160,7 +188,7 @@ export default function Dispatch() {
 
   // Live "worker accepted" push → unlock disclosure card
   useEffect(() => {
-    socket.connect();
+    if (!socket.connected) socket.connect();
     function onAssigned(payload) {
       const pid = payload?.booking?._id?.toString?.();
       if (pid && bookingIdRef.current && pid === bookingIdRef.current.toString()) {
@@ -169,8 +197,16 @@ export default function Dispatch() {
         setStep("assigned");
       }
     }
+    function onLocation({ bookingId, lat, lng, at }) {
+      const rid = bookingIdRef.current?.toString?.();
+      if (rid && bookingId?.toString() === rid) setLivePos({ lat, lng, at: at || Date.now() });
+    }
     socket.on("booking:assigned", onAssigned);
-    return () => { socket.off("booking:assigned", onAssigned); };
+    socket.on("provider:location_update", onLocation);
+    return () => {
+      socket.off("booking:assigned", onAssigned);
+      socket.off("provider:location_update", onLocation);
+    };
   }, []);
 
   // Reload path: arriving with a broadcast booking id already assigned
@@ -199,7 +235,7 @@ export default function Dispatch() {
     setError("");
     try {
       const { data } = await api.post("/bookings/broadcast", {
-        category, locationText, price,
+        category, locationText, price: offerPrice,
         lat: coords.lat, lng: coords.lng, isEmergency,
       });
       bookingIdRef.current = data.booking._id;
@@ -212,6 +248,41 @@ export default function Dispatch() {
       setSubmitting(false);
     }
   }
+
+  // Real radar pins: the actual verified workers in range, positioned by
+  // true distance + bearing from the household location (same match as the server).
+  async function loadPins() {
+    const origin = booking?.coordinates?.lat != null ? booking.coordinates : coords;
+    try {
+      const { data } = await api.get("/providers", {
+        params: {
+          category: booking?.targetCategory || category,
+          lat: origin.lat, lng: origin.lng,
+          radius: RADIUS_KM, limit: 100,
+        },
+      });
+      const list = (data.providers || [])
+        .filter((p) => p.verified && p.geoLocation?.lat != null && p.geoLocation?.lng != null)
+        .map((p) => ({
+          distanceKm: haversineKm(origin, p.geoLocation),
+          bearing: bearingDeg(origin, p.geoLocation),
+        }))
+        .filter((p) => p.distanceKm <= RADIUS_KM)
+        .sort((a, b) => a.distanceKm - b.distanceKm);
+      setPins(list);
+    } catch {
+      /* keep last known pins on network hiccup */
+    }
+  }
+
+  // Live refresh while the radar is on screen (workers / GPS move)
+  useEffect(() => {
+    if (step !== "radar" || !booking) return;
+    loadPins();
+    const t = setInterval(loadPins, 6000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, booking?.targetCategory]);
 
   /* ── Shipping / loading state (reload) ── */
   if (step === "loading") {
@@ -308,11 +379,15 @@ export default function Dispatch() {
             <div className="relative">
               <IndianRupee size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
               <input
-                type="number" min={50} value={price}
-                onChange={(e) => setPrice(Number(e.target.value))}
+                type="number" min={50} value={priceStr}
+                onChange={(e) => setPriceStr(e.target.value)}
                 className="h-12 w-full rounded-xl border border-outline-variant bg-surface-container-lowest pl-10 pr-4 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
+            <p className="mt-1 text-[11px] text-on-surface-variant">
+              Your real offer — every in-range worker sees <strong className="text-on-surface">₹{offerPrice}/hr</strong>. The first to
+              accept locks this exact rate in escrow.
+            </p>
           </label>
 
           <label className="flex items-center gap-3 rounded-xl bg-error-container/40 px-4 py-3 cursor-pointer">
@@ -328,7 +403,7 @@ export default function Dispatch() {
           <button type="submit" disabled={submitting}
             className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-[#e8edff] font-heading font-semibold text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_12px_rgba(0,40,142,0.15)] disabled:opacity-60 transition-all">
             <Radar size={18} />
-            {submitting ? "Broadcasting…" : "Broadcast Job Request (₹0)"}
+            {submitting ? "Broadcasting…" : `Broadcast Job Request · ₹${offerPrice}/hr`}
           </button>
         </form>
       </div>
@@ -356,13 +431,27 @@ export default function Dispatch() {
             <div className="sg-radar-sweep absolute inset-0 rounded-full"
               style={{ background: "conic-gradient(from 0deg, rgba(0,40,142,0.45), rgba(0,40,142,0) 70deg)" }} />
           </div>
-          {/* blips */}
-          {[{ top: "22%", left: "34%" }, { top: "66%", left: "58%" }, { top: "44%", left: "70%" }].map((blip, i) => (
-            <div key={i} className="absolute" style={blip}>
-              <div className="sg-radar-ping w-4 h-4 rounded-full bg-[#006d30]" />
-              <div className="absolute inset-0 w-4 h-4 rounded-full bg-[#006d30]" />
-            </div>
-          ))}
+          {/* blips — real workers, positioned by true distance + bearing */}
+          {pins.map((pin, i) => {
+            const frac = Math.max(0.04, Math.min(pin.distanceKm / RADIUS_KM, 1));
+            const ang = (pin.bearing * Math.PI) / 180;
+            const left = 50 + 46 * frac * Math.sin(ang);
+            const top = 50 - 46 * frac * Math.cos(ang);
+            const label = pin.distanceKm < 1
+              ? `${Math.round(pin.distanceKm * 1000)} m`
+              : `${pin.distanceKm.toFixed(1)} km`;
+            return (
+              <div key={`${i}-${label}`} className="absolute" style={{ top: `${top}%`, left: `${left}%`, transform: "translate(-50%, -50%)" }}>
+                <div className="relative flex items-center justify-center">
+                  <div className="sg-radar-ping w-4 h-4 rounded-full bg-[#006d30]" />
+                  <div className="absolute inset-0 w-4 h-4 rounded-full bg-[#006d30]" />
+                </div>
+                <div className="mt-1 ml-1 -translate-x-1/2 w-fit px-1.5 py-0.5 rounded-md bg-[#006d30]/90 text-white text-[10px] font-bold whitespace-nowrap">
+                  {label}
+                </div>
+              </div>
+            );
+          })}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-14 h-14 rounded-full bg-[#e8edff] text-[#00288e] flex items-center justify-center shadow-[0_4px_16px_rgba(0,40,142,0.2)]">
               <Radar size={26} strokeWidth={2.5} />
@@ -376,9 +465,21 @@ export default function Dispatch() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00288e] opacity-75" />
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#00288e]" />
             </span>
-            Broadcasting to {nearby} nearby verified workers
+            Broadcasting to {nearby} nearby verified worker{nearby === 1 ? "" : "s"}
           </div>
-          <p className="text-[12px] text-on-surface-variant">No payment charged yet — Amount due ₹0</p>
+          {pins.length > 0 && pins.length < nearby && (
+            <p className="text-[12px] text-on-surface-variant">
+              {nearby - pins.length} more worker{nearby - pins.length === 1 ? "" : "s"} nearby (location private — on the way)
+            </p>
+          )}
+          {pins.length === 0 && (
+            <p className="text-[12px] text-on-surface-variant">
+              No workers with live location in range yet — radar is real, keep waiting…
+            </p>
+          )}
+          <p className="text-[12px] text-on-surface-variant">
+            Offer <strong className="text-on-surface">₹{booking?.price || offerPrice}/hr</strong> · no payment charged yet — escrow locks only after a worker accepts
+          </p>
           <p className="text-[12px] text-on-surface-variant">Waiting for the first worker to accept…</p>
           <button onClick={() => { setStep("form"); setBooking(null); }} className="mt-2 text-[13px] font-semibold text-primary hover:underline">
             ← New dispatch
@@ -470,6 +571,42 @@ export default function Dispatch() {
                 <p className="text-[13px] text-on-surface">{r.comment}</p>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Live provider location */}
+      <div className="rounded-2xl border border-outline-variant/60 bg-surface p-5 md:p-6">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[14px] font-bold text-on-surface flex items-center gap-2">
+            <MapPin size={16} className="text-primary" /> Live provider location
+          </p>
+          {livePos ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-error/10 px-2.5 py-1 text-[11px] font-bold text-error">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-error" /> LIVE
+            </span>
+          ) : (
+            <span className="text-[11px] text-on-surface-variant">waiting for GPS…</span>
+          )}
+        </div>
+        {livePos ? (
+          <div className="flex flex-col gap-2">
+            <iframe
+              title="Provider live location"
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${livePos.lng - 0.005}%2C${livePos.lat - 0.005}%2C${livePos.lng + 0.005}%2C${livePos.lat + 0.005}&layer=mapnik&marker=${livePos.lat}%2C${livePos.lng}`}
+              className="h-48 w-full rounded-xl border border-outline-variant"
+              loading="lazy"
+            />
+            <div className="flex items-center justify-between text-[12px] text-on-surface-variant">
+              <span>{livePos.lat.toFixed(5)}, {livePos.lng.toFixed(5)}</span>
+              <a href={`https://www.google.com/maps?q=${livePos.lat},${livePos.lng}`} target="_blank" rel="noreferrer" className="font-heading font-semibold text-primary hover:underline">
+                Open in Maps
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center rounded-xl bg-surface-container-low border border-dashed border-outline-variant py-8 text-[12px] text-on-surface-variant">
+            Location updates appear here as the provider moves.
           </div>
         )}
       </div>

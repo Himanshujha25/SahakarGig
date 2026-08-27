@@ -10,7 +10,7 @@ const bookingSchema = new mongoose.Schema(
     scheduledTime: { type: Date },
 
     // ── AI Geospatial Broadcast & First-Acceptance Dispatch §3.1 ──
-    dispatchMode: { type: String, enum: ['direct', 'broadcast'], default: 'broadcast' },
+    dispatchMode: { type: String, enum: ['direct', 'broadcast'], default: 'direct' },
     broadcastStatus: {
       type: String,
       enum: ['broadcasting', 'assigned', 'expired', 'cancelled'],

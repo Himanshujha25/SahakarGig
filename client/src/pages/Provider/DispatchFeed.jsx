@@ -7,23 +7,50 @@ import {
 } from "lucide-react";
 
 // ── Alarm sound using Web Audio API (no external file needed) ──────────────
-function playAlarm() {
+// Single shared AudioContext — creating a new one per event never plays on
+// Chrome/Edge/Safari because of the autoplay policy (context starts suspended).
+let alarmCtx = null;
+function getAlarmCtx() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // Two-tone urgent beep: 880Hz then 1100Hz
-    [880, 1100, 880, 1100].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.4, ctx.currentTime + i * 0.18);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.15);
-      osc.start(ctx.currentTime + i * 0.18);
-      osc.stop(ctx.currentTime + i * 0.18 + 0.15);
-    });
-  } catch { /* AudioContext blocked — silent fallback */ }
+    if (!alarmCtx) alarmCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return alarmCtx;
+  } catch { return null; }
+}
+
+// Autoplay policy: audio only unlocks after a user gesture. Resume the context
+// on the first tap/click/keypress anywhere in the app so the alarm CAN ring later.
+function unlockAlarmAudio() {
+  const ctx = getAlarmCtx();
+  if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
+}
+if (typeof window !== "undefined") {
+  ["pointerdown", "keydown", "touchstart"].forEach((ev) =>
+    window.addEventListener(ev, unlockAlarmAudio, { once: true, passive: true })
+  );
+}
+
+function playAlarm() {
+  const ctx = getAlarmCtx();
+  if (!ctx) return;
+  if (ctx.state === "suspended") ctx.resume().catch(() => {});
+
+  const now = ctx.currentTime;
+  // Urgent siren: alternating high tones, square wave = far more audible
+  const notes = [880, 1100, 880, 1100, 880, 660];
+  notes.forEach((freq, i) => {
+    const t = now + i * 0.22;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "square";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.3, t + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  });
 }
 
 // ── Browser push notification (asks permission once) ──────────────────────
@@ -64,6 +91,7 @@ export default function DispatchFeed() {
   }, []);
 
   useEffect(() => {
+    if (!socket.connected) socket.connect();
     load();
 
     function onNew(job) {

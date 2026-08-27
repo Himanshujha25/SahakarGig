@@ -13,8 +13,7 @@ export default function AdminLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    socket.connect();
-    return () => { socket.disconnect(); };
+    if (!socket.connected) socket.connect();
   }, []);
 
   return (
