@@ -189,9 +189,11 @@ const INTENT_RULES = [
 ];
 
 function extractUserName(str) {
-  const match = (str || "").match(/(?:mera name|my name is|mera naam|main|i am)\s+([a-zA-Z]+)/i);
-  if (match && !["felling", "feeling", "a", "an", "the", "in", "on", "at", "to", "for"].includes(match[1].toLowerCase())) {
-    return match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+  const match = (str || "").match(/(?:mera name|my name is|mera naam|i am)\s+([a-zA-Z]+)/i);
+  const stop = ["felling", "feeling", "a", "an", "the", "in", "on", "at", "to", "for", "aaj", "raat", "yaha", "yah", "aur", "or", "bhi", "main", "ka", "ke", "ki", "se"];
+  if (match && !stop.includes(match[1].toLowerCase())) {
+    const name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+    if (name.length >= 2 && name.length <= 20) return name;
   }
   return null;
 }
@@ -273,7 +275,41 @@ function fallbackClassify(message) {
     };
   }
 
-  // 6. Greetings ("hi", "hello", "namaste", "hey", "yoo", "kaise ho")
+  // 6. Small talk — thank you, bye, mood, joke
+  if (q.includes("thank") || q.includes("shukriya") || q.includes("dhanyavad") || q.includes("thanks") || q.includes("thx") || q.includes("great") || q.includes("awesome") || q.includes("nice")) {
+    return {
+      reply: `${greeting} Bilkul! 🥳 Aapka swagat hai. Aur kuch chahiye to bas bataiye — electrician, plumber, cook ya koi bhi cooperative service, main turant help karunga.`,
+      actionCategory: null,
+      isEmergency: false,
+      confidence: "99.0%"
+    };
+  }
+  if (q.includes("bye") || q.includes("goodbye") || q.includes("alvida") || q.includes("tata") || q.includes("good night") || q.includes("shubh ratri")) {
+    return {
+      reply: `${greeting} Shukriya! 🙏 SahakarGig ka istemal karne ke liye. Zaroorat pade to main hamesha yahan hoon. Alvida, dhyan rakhiye!`,
+      actionCategory: null,
+      isEmergency: false,
+      confidence: "99.0%"
+    };
+  }
+  if (q.includes("joke") || q.includes("chutkula") || q.includes("hansao") || q.includes("funny") || q.includes("majak")) {
+    return {
+      reply: `${greeting} Arre, ek joke suno! 😄 Plumber ne paani ki tanki ke paas khada hoke kaha — "Paani ki kami nahi hai, sirf pressure ki hai!" Jaise SahakarGig ka escrow — pressure aap par nahi, paisa safe. 🛡️😆 Kuch aur chahiye?`,
+      actionCategory: null,
+      isEmergency: false,
+      confidence: "99.0%"
+    };
+  }
+  if (q.includes("kaise ho") || q.includes("how are you") || q.includes("kya haal") || q.includes("kaisa hai")) {
+    return {
+      reply: `${greeting} Main bilkul badhiya hoon! 🚀 Aapko aaj kis cheez mein help chahiye? Koi service book karni hai ya kuch poochna hai?`,
+      actionCategory: null,
+      isEmergency: false,
+      confidence: "99.0%"
+    };
+  }
+
+  // 7. Greetings ("hi", "hello", "namaste", "hey", "yoo", "kaise ho")
   if (q === "hi" || q === "hello" || q === "hey" || q === "yoo" || q.includes("namaste") || q.includes("kaise ho")) {
     return {
       reply: `${greeting} Welcome to SahakarGig. Main badhiya hoon! Aaj aapko kis kaam ke liye verified worker ya service chahiye?`,
@@ -341,12 +377,91 @@ function fallbackClassify(message) {
   };
 }
 
+const { chatLLM } = require('../lib/llm');
+
+const SERVICE_CATEGORIES = ['Electrician', 'Plumber', 'Carpenter', 'AC Repair', 'Cook', 'Cleaner', 'Gardener', 'Tutor', 'Caregiver', 'Driver'];
+
+const GROQ_SYSTEM_PROMPT = `You are "Saarthi" (सारथी), the warm, human-like AI assistant for SahakarGig (सहकारगीग) — India's Cooperative Gig Services platform. You speak naturally and conversationally, exactly like ChatGPT — short, friendly, helpful replies in Hinglish (mix of Hindi & English) or English matching the user's language. Use a few emojis sparingly for warmth.
+
+PLATFORM FACTS (only claim these):
+- SahakarGig connects verified gig workers (providers) to households through government-registered Cooperative Societies.
+- Services: Electrician, Plumber, Carpenter, AC Repair, Home Cook, House Cleaner, Gardener, Tutor, Senior Caregiver, Private Driver.
+- Approx pricing: Plumbing minor repair ₹350/hr; Electrical switch/wiring ₹350/hr; Home cleaning ₹300–400; Cook ₹350/meal; Driver ₹300/hr.
+- Payments: 100% safe via Razorpay Escrow — money is released to the worker only after the household approves the completed job.
+- Verification: every provider is verified against government e-Shram UAN, PMSBY insurance and DigiLocker databases.
+- Dispatching: the AI Geospatial Broadcast system alerts nearby verified cooperative workers; a broadcast expires quickly if nobody nearby accepts.
+- Ways to get a service: "Dispatch" (radar broadcast), "Find Services", or ask Saarthi.
+
+BEHAVIOUR:
+- Reply to EVERYTHING conversationally like a human friend — greetings, small talk, jokes, chit-chat, thanks, goodbyes. Never give robotic or canned-feeling answers.
+- If the user asks for a service (electrician, plumber, cook, cleaning, tutor, AC, caregiver, driver, gardener, carpenter), detect it and set actionCategory to exactly one of: ${SERVICE_CATEGORIES.join(', ')} (null if no service requested).
+- Set isEmergency=true only for urgent situations (power outage, major leak, medical/care emergency, "urgent", "emergency", "jaldi").
+- When a service is detected, ask a short follow-up (where/when/what exactly) and offer the Auto-Broadcast/booking path.
+- Keep replies concise (1–3 short sentences normally). Never invent prices, policies or facts beyond what is stated above.
+- Identity & transparency: You are Saarthi, SahakarGig's AI assistant. If anyone asks which AI model/provider powers you, answer truthfully from the runtime context (never dodge, never pretend to be human).
+- Be helpful, warm, mix Hindi-English naturally, and always steer back to how SahakarGig can help.`;
+
+function extractStructured(text) {
+  let parsed = null;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      try { parsed = JSON.parse(match[0]); } catch {}
+    }
+  }
+  if (!parsed || typeof parsed.reply !== 'string' || !parsed.reply.trim()) return null;
+  return {
+    reply: parsed.reply.trim(),
+    actionCategory: SERVICE_CATEGORIES.includes(parsed.actionCategory) ? parsed.actionCategory : null,
+    isEmergency: !!parsed.isEmergency,
+  };
+}
+
 async function chatWithGroq(req, res) {
-  const { message } = req.body;
-  const result = fallbackClassify(message);
-  console.log(`\n🤖 [SahakarAI Request] Query: "${message}"`);
-  console.log(`💬 [SahakarAI Response] Reply: "${result.reply.replace(/\n/g, ' ')}"\n🏷️  [Category]: ${result.actionCategory || 'General'} | Emergency: ${result.isEmergency}\n`);
-  return res.json(result);
+  const { message } = req.body || {};
+  if (!message || !message.trim()) return res.status(400).json({ reply: 'Please type something so I can help you! 🙂' });
+
+  // Keep last ~12 turns for human-like, context-aware conversation.
+  const rawHistory = Array.isArray(req.body?.history) ? req.body.history.slice(-12) : [];
+  const history = rawHistory
+    .filter((m) => m && typeof m.text === 'string' && m.text.trim() && (m.sender === 'user' || m.sender === 'ai'))
+    .map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text.slice(0, 1000) }));
+
+  const messages = history.concat([{ role: 'user', content: message.slice(0, 2000) }]);
+
+  console.log(`\n🤖 [SahakarAI Request] User: "${message}" (history: ${history.length} turns)`);
+
+  const llm = await chatLLM(messages, GROQ_SYSTEM_PROMPT);
+
+  let reply;
+  let actionCategory = null;
+  let isEmergency = false;
+  let via = 'local-fallback';
+
+  if (llm) {
+    via = `${llm.provider}:${llm.model}`;
+    const structured = extractStructured(llm.reply);
+    if (structured) {
+      reply = structured.reply;
+      actionCategory = structured.actionCategory;
+      isEmergency = structured.isEmergency;
+    } else {
+      reply = llm.reply;
+      const local = fallbackClassify(message);
+      actionCategory = local.actionCategory;
+      isEmergency = local.isEmergency;
+    }
+  } else {
+    const local = fallbackClassify(message);
+    reply = local.reply;
+    actionCategory = local.actionCategory;
+    isEmergency = local.isEmergency;
+  }
+
+  console.log(`💬 [SahakarAI Response] (${via}) Reply: "${String(reply).replace(/\n/g, ' ')}"\n🏷️  [Category]: ${actionCategory || 'General'} | Emergency: ${isEmergency}\n`);
+  return res.json({ reply, actionCategory, isEmergency, via });
 }
 
 module.exports = { demandForecast, nudgeProviders, chatWithGroq };

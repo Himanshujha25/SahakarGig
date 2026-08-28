@@ -7,6 +7,7 @@ const asyncHandler = require('../middleware/error');
 router.post('/', auth, rbac('Household'), asyncHandler(c.createBooking));
 // AI Geospatial Broadcast & First-Acceptance Dispatch
 router.post('/broadcast', auth, rbac('Household'), asyncHandler(c.createBroadcastBooking));
+router.post('/:id/keepalive', auth, asyncHandler(c.keepaliveBroadcast));
 router.get('/broadcast/available', auth, rbac('Provider'), asyncHandler(c.availableBroadcastBookings));
 router.patch('/:id/broadcast-accept', auth, rbac('Provider'), asyncHandler(c.acceptBroadcastRequest));
 router.get('/:id', auth, asyncHandler(c.getBooking));

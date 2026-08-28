@@ -3,100 +3,314 @@
 @variant dark (&:where(.dark, .dark *));
 
 /* ============================================================
-   Ultra-Premium Dark Mode Engine (Matching Sidebar Obsidian Slate)
+   Ultra-Premium Dark Mode Engine
+   Single source of truth = the `html.dark` token set below
+   (warm charcoal). These rules map the remaining legacy
+   light-only Tailwind utilities onto those tokens so every
+   card, text, border and hover matches exactly — no white leaks.
    ============================================================ */
-.dark {
-  --color-surface: #0f172a;
-  --color-surface-dim: #0b0f19;
-  --color-surface-bright: #1e293b;
-  --color-surface-container-lowest: #0f172a;
-  --color-surface-container-low: #0f172a;
-  --color-surface-container: #1e293b;
-  --color-surface-container-high: #334155;
-  --color-surface-container-highest: #475569;
-  --color-surface-variant: #1e293b;
 
-  --color-on-surface: #f8fafc;
-  --color-on-surface-variant: #94a3b8;
-  --color-background: #090d16;
-  --color-on-background: #f8fafc;
-
-  --color-outline: #334155;
-  --color-outline-variant: #1e293b;
-}
-
-/* Premium Dark Mode Canvas & Body Overrides */
+/* Canvas & body */
 .dark body,
 .dark main,
 .dark .bg-background {
-  background-color: #090d16 !important;
-  color: #f8fafc !important;
+  background-color: var(--color-background) !important;
+  color: var(--color-on-background) !important;
 }
 
+/* Premium card surfacing */
 .dark .orvia-card,
 .dark [class*="orvia-card"] {
-  background-color: #0f172a !important;
-  border-color: #1e293b !important;
-  color: #f8fafc !important;
+  background-color: var(--color-surface-container-low) !important;
+  border-color: var(--color-outline-variant) !important;
+  color: var(--color-on-surface) !important;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45) !important;
 }
 
-.dark .bg-white {
-  background-color: #0f172a !important;
-  border-color: #1e293b !important;
+/* White & translucent-white surfaces → warm container surfaces */
+.dark .bg-white,
+.dark .bg-white\/5,
+.dark .bg-white\/10,
+.dark .bg-white\/20,
+.dark .bg-white\/30,
+.dark .bg-white\/40,
+.dark .bg-white\/50,
+.dark .bg-white\/60,
+.dark .bg-white\/70,
+.dark .bg-white\/80,
+.dark .bg-white\/90,
+.dark .bg-white\/95 {
+  background-color: var(--color-surface-container-low) !important;
+  border-color: var(--color-outline-variant) !important;
 }
 
-.dark .bg-surface-container-lowest,
-.dark .bg-surface-container-low {
-  background-color: #0f172a !important;
-}
-
+/* Slate / Gray / Neutral containers */
 .dark .bg-slate-50,
-.dark .bg-slate-100,
+.dark .bg-slate-50\/30,
+.dark .bg-slate-50\/40,
 .dark .bg-slate-50\/50,
-.dark .bg-slate-50\/80 {
-  background-color: #1e293b !important;
-  border-color: #334155 !important;
-  color: #f8fafc !important;
+.dark .bg-slate-50\/60,
+.dark .bg-slate-50\/70,
+.dark .bg-slate-50\/80,
+.dark .bg-slate-50\/90,
+.dark .bg-slate-100,
+.dark .bg-slate-100\/50,
+.dark .bg-gray-50,
+.dark .bg-gray-100,
+.dark .bg-neutral-50,
+.dark .bg-neutral-100 {
+  background-color: var(--color-surface-container) !important;
+  border-color: var(--color-outline-variant) !important;
+  color: var(--color-on-surface) !important;
+}
+.dark .bg-slate-200,
+.dark .bg-gray-200,
+.dark .bg-neutral-200 {
+  background-color: var(--color-surface-container-high) !important;
+  border-color: var(--color-outline-variant) !important;
+  color: var(--color-on-surface) !important;
+}
+.dark .bg-slate-300,
+.dark .bg-gray-300 {
+  background-color: var(--color-surface-container-highest) !important;
+  color: var(--color-on-surface) !important;
 }
 
-.dark .border-slate-100,
-.dark .border-slate-200,
-.dark .border-outline-variant {
-  border-color: #1e293b !important;
-}
-
+/* Text shades → on-surface scale */
+.dark .text-slate-950,
 .dark .text-slate-900,
 .dark .text-slate-800,
-.dark .text-on-surface {
-  color: #f8fafc !important;
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-neutral-900,
+.dark .text-neutral-800,
+.dark .text-black {
+  color: var(--color-on-surface) !important;
 }
-
 .dark .text-slate-700,
 .dark .text-slate-600,
-.dark .text-on-surface-variant {
-  color: #cbd5e1 !important;
+.dark .text-gray-700,
+.dark .text-gray-600,
+.dark .text-neutral-600,
+.dark .text-neutral-700 {
+  color: var(--color-on-surface-variant) !important;
+}
+.dark .text-slate-500,
+.dark .text-slate-400,
+.dark .text-gray-500,
+.dark .text-gray-400,
+.dark .text-neutral-500 {
+  color: color-mix(in srgb, var(--color-on-surface-variant) 72%, transparent) !important;
+}
+.dark .text-slate-300,
+.dark .text-gray-300,
+.dark .text-slate-200,
+.dark .text-gray-200 {
+  color: color-mix(in srgb, var(--color-on-surface-variant) 55%, transparent) !important;
 }
 
-.dark .text-slate-500,
-.dark .text-slate-400 {
-  color: #94a3b8 !important;
+/* Borders + dividers + rings → outline scale */
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300,
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300,
+.dark .border-neutral-200,
+.dark .border-neutral-300 {
+  border-color: var(--color-outline-variant) !important;
+}
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--color-outline-variant) !important;
+}
+.dark .ring-slate-100,
+.dark .ring-slate-200,
+.dark .ring-gray-100,
+.dark .ring-gray-200 {
+  --tw-ring-color: var(--color-outline-variant) !important;
+}
+
+/* Hover effects — palette-matched, never a white flash */
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-slate-50\/60:hover,
+.dark .hover\:bg-slate-100:hover,
+.dark .hover\:bg-slate-200:hover,
+.dark .hover\:bg-slate-300:hover,
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover,
+.dark .hover\:bg-gray-200:hover,
+.dark .hover\:bg-white:hover {
+  background-color: var(--color-surface-container) !important;
+  color: var(--color-on-surface) !important;
+}
+.dark .hover\:text-slate-900:hover,
+.dark .hover\:text-slate-700:hover,
+.dark .hover\:text-gray-900:hover,
+.dark .hover\:text-gray-700:hover {
+  color: var(--color-on-surface) !important;
+}
+.dark .hover\:border-slate-200:hover,
+.dark .hover\:border-slate-300:hover,
+.dark .hover\:border-gray-200:hover,
+.dark .hover\:border-gray-300:hover {
+  border-color: var(--color-outline) !important;
+}
+
+/* Pale tint chips / soft badges → depth-matched dark containers */
+.dark [class*="bg-[#e8edff]"],
+.dark [class*="bg-[#d7e3ff]"],
+.dark [class*="bg-[#e6f4f1]"] {
+  background-color: var(--color-primary-container) !important;
+}
+.dark [class*="bg-[#f7fee7]"],
+.dark [class*="bg-[#e6f9ec]"] {
+  background-color: var(--color-secondary-container) !important;
+}
+.dark [class*="bg-[#fff3e0]"] {
+  background-color: var(--color-tertiary-container) !important;
+}
+.dark [class*="border-[#d9f99d]"] {
+  border-color: var(--color-secondary-container) !important;
+}
+.dark [class*="text-[#6b4200]"] {
+  color: var(--color-tertiary) !important;
+}
+.dark [class*="text-[#00288e]"],
+.dark [class*="text-[#1e6b65]"] {
+  color: var(--color-primary) !important;
+}
+.dark [class*="text-[#145e58]"] {
+  color: var(--color-on-primary-container) !important;
+}
+.dark [class*="text-[#4d7c0f]"],
+.dark [class*="text-[#65a30d]"],
+.dark [class*="text-[#006d30]"] {
+  color: var(--color-secondary) !important;
+}
+.dark [class*="hover:bg-[#e6f4f1]"]:hover,
+.dark [class*="hover:bg-[#e8edff]"]:hover,
+.dark [class*="hover:bg-[#d7e3ff]"]:hover {
+  background-color: var(--color-primary-container) !important;
+}
+
+/* Red / amber / green soft tints → token-matched */
+.dark .bg-red-50,
+.dark .bg-red-50\/50,
+.dark .bg-red-100,
+.dark .bg-rose-50 {
+  background-color: color-mix(in srgb, var(--color-error-container) 42%, var(--color-surface-container-low)) !important;
+}
+.dark .text-red-700,
+.dark .text-red-600,
+.dark .text-red-500 {
+  color: var(--color-error) !important;
+}
+.dark .bg-amber-50,
+.dark .bg-yellow-50 {
+  background-color: color-mix(in srgb, var(--color-tertiary-container) 40%, var(--color-surface-container-low)) !important;
+}
+.dark .text-amber-700,
+.dark .text-amber-600,
+.dark .text-yellow-700 {
+  color: var(--color-tertiary) !important;
+}
+.dark .bg-green-50,
+.dark .bg-emerald-50,
+.dark .bg-lime-50 {
+  background-color: color-mix(in srgb, var(--color-secondary-container) 35%, var(--color-surface-container-low)) !important;
+}
+.dark .text-green-700,
+.dark .text-emerald-700 {
+  color: var(--color-secondary) !important;
+}
+.dark .bg-blue-100,
+.dark .bg-indigo-100 {
+  background-color: color-mix(in srgb, var(--color-primary-container) 45%, var(--color-surface-container-low)) !important;
+}
+.dark .text-blue-800,
+.dark .text-indigo-800 {
+  color: var(--color-primary) !important;
+}
+html.dark .focus\:bg-white:focus {
+  background-color: var(--color-surface-container) !important;
+}
+
+/* Gradient-tinted card starts → depth-matched containers */
+.dark [class*="from-[#e6f9ec]"] {
+  --tw-gradient-from: color-mix(in srgb, var(--color-secondary-container) 60%, transparent) !important;
+}
+.dark [class*="from-[#fff3e0]"] {
+  --tw-gradient-from: color-mix(in srgb, var(--color-tertiary-container) 55%, transparent) !important;
+}
+.dark [class*="from-[#e8edff]"],
+.dark [class*="from-[#eef2ff]"] {
+  --tw-gradient-from: color-mix(in srgb, var(--color-primary-container) 60%, transparent) !important;
+}
+
+/* AppearanceSettings real preview cards stay colour-accurate in dark mode */
+html.dark .theme-preview-card,
+html.dark .theme-preview-card .w-full.h-3.rounded,
+html.dark .theme-preview-card .w-2\/3.h-2.rounded {
+  background-color: #f8f9ff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+html.dark .theme-preview-card .bg-white {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
 }
 
 /* Table Dark Styling */
 .dark table thead tr,
 .dark table thead {
-  background-color: #1e293b !important;
-  border-color: #334155 !important;
-  color: #94a3b8 !important;
+  background-color: var(--color-surface-container) !important;
+  border-color: var(--color-outline-variant) !important;
+  color: var(--color-on-surface-variant) !important;
 }
 
 .dark table tbody tr {
-  border-color: #1e293b !important;
+  border-color: var(--color-outline-variant) !important;
 }
 
 .dark table tbody tr:hover {
-  background-color: #1e293b !important;
+  background-color: var(--color-surface-container) !important;
+}
+
+/* Dark-mode input autofill + form controls */
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark textarea:-webkit-autofill,
+html.dark select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-surface-container-low) inset !important;
+  -webkit-text-fill-color: var(--color-on-surface) !important;
+  caret-color: var(--color-on-surface) !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Dark-mode text selection + scrollbars */
+html.dark ::selection {
+  background-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  color: var(--color-on-surface);
+}
+html.dark * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-outline) var(--color-surface-dim);
+}
+html.dark ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: var(--color-outline);
+  border-radius: 999px;
+  border: 2px solid var(--color-surface-dim);
+}
+html.dark ::-webkit-scrollbar-track {
+  background: var(--color-surface-dim);
 }
 
 /* ============================================================
@@ -810,6 +1024,47 @@ html.dark {
   border: 1px solid #d9f99d;
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+html.dark .orvia-insight-card {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-secondary-container) 55%, transparent) 0%,
+    color-mix(in srgb, var(--color-tertiary-container) 45%, transparent) 50%,
+    color-mix(in srgb, var(--color-primary-container) 50%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--color-secondary-container) 60%, transparent);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+html.dark .orvia-card:hover {
+  border-color: var(--color-outline-variant);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+}
+html.dark .orvia-pill-selected {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+html.dark .orvia-pill-unselected {
+  color: var(--color-on-surface-variant);
+}
+html.dark .orvia-pill-unselected:hover {
+  color: var(--color-on-surface);
+  background-color: var(--color-surface-container-high);
+}
+html.dark .orvia-btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+}
+html.dark .orvia-btn-primary:hover {
+  background-color: var(--color-primary-fixed);
+  color: var(--color-on-primary-fixed);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
+}
+html.dark .orvia-badge-lime {
+  background-color: color-mix(in srgb, var(--color-secondary-container) 45%, var(--color-surface-container-low));
+  color: var(--color-secondary);
+  border: 1px solid var(--color-secondary-container);
 }
 
 /* ── 3D Flip Card Animation Utilities ── */

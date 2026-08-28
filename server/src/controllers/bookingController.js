@@ -255,6 +255,7 @@ async function createBroadcastBooking(req, res) {
     priority: isEmergency ? 1 : 0,
     price: (price && Number(price) > 0) ? Number(price) : 250,
     status: 'requested',
+    expiresAt: new Date(Date.now() + BROADCAST_TTL_MS),
   });
 
   // Find nearby verified providers holding the matching skill tag
@@ -288,12 +289,30 @@ async function createBroadcastBooking(req, res) {
   res.status(201).json({ booking, nearbyProviders: notified });
 }
 
+// Household heartbeat while watching the radar page. Renews the offer's expiry
+// so the job stays on workers' feeds — leaving the page stops the pings and the
+// job expires after BROADCAST_TTL_MS.
+async function keepaliveBroadcast(req, res) {
+  const b = await Booking.findById(req.params.id);
+  if (!b) return res.status(404).json({ message: 'Not found' });
+  if (b.householdId.toString() !== req.user.userId)
+    return res.status(403).json({ message: 'Forbidden' });
+
+  const active = b.dispatchMode === 'broadcast' && b.broadcastStatus === 'broadcasting' && b.providerId == null;
+  if (active) {
+    b.expiresAt = new Date(Date.now() + BROADCAST_TTL_MS);
+    await b.save();
+  }
+  res.json({ ok: true, active, expiresAt: active ? b.expiresAt : null });
+}
+
 // Live broadcast feed for a provider — only jobs matching their skills,
 // within range, and still awaiting first-acceptance.
 // Live broadcast feed for a provider — only jobs matching their skills,
-// within range, and still awaiting first-acceptance. Broadcasts older than the
-// TTL is set to 1 minute (60 seconds) for fast auto-escalation/expiration
-const BROADCAST_TTL_MS = 60 * 1000; // 1 minute
+// within range, and still awaiting first-acceptance. A household keeps a job
+// alive with keepalive pings while it watches the radar page; leaving the page
+// stops the pings and the job silently expires, so ghosts never linger.
+const BROADCAST_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 async function availableBroadcastBookings(req, res) {
   try {
@@ -304,6 +323,7 @@ async function availableBroadcastBookings(req, res) {
     const radiusKm = parseFloat(radius) || 25;
 
     // Expire stale open broadcasts (household left without cancelling etc.)
+    const now = new Date();
     const staleSince = new Date(Date.now() - BROADCAST_TTL_MS);
     await Booking.updateMany(
       {
@@ -311,9 +331,9 @@ async function availableBroadcastBookings(req, res) {
         broadcastStatus: 'broadcasting',
         providerId: null,
         status: 'requested',
-        createdAt: { $lt: staleSince },
+        expiresAt: { $lt: now },
       },
-      { $set: { status: 'cancelled', broadcastStatus: 'cancelled', cancelReason: 'auto-expired' } }
+      { $set: { status: 'cancelled', broadcastStatus: 'expired', cancelReason: 'auto-expired' } }
     );
 
     const bookings = await Booking.find({
@@ -322,14 +342,19 @@ async function availableBroadcastBookings(req, res) {
       providerId: null,
       status: 'requested',
       createdAt: { $gte: staleSince },
+      expiresAt: { $gt: now },
     })
       .populate('householdId', 'name')
       .sort('-createdAt');
 
     const skills = (provider.skills || []).map((s) => s.toLowerCase());
+    // Feed parity with the household radar: use the worker's fresh live GPS fix
+    // when available, else their saved geoLocation.
+    const liveGeo = require('../socket/liveLocations').getFresh(String(provider.userId));
+    const providerGeo = (liveGeo && liveGeo.lat != null) ? { lat: liveGeo.lat, lng: liveGeo.lng } : provider.geoLocation;
     const within = (coords) => {
       if (lat && lng) return haversine({ lat: +lat, lng: +lng }, coords) <= radiusKm;
-      if (provider.geoLocation) return haversine(provider.geoLocation, coords) <= radiusKm;
+      if (providerGeo) return haversine(providerGeo, coords) <= radiusKm;
       return true;
     };
 
@@ -426,5 +451,5 @@ async function acceptBroadcastRequest(req, res) {
 module.exports = {
   createBooking, getBooking, householdBookings, providerBookings,
   acceptBooking, updateStatus, cancelBooking, disputeBooking, addChat,
-  createBroadcastBooking, availableBroadcastBookings, acceptBroadcastRequest,
+  createBroadcastBooking, keepaliveBroadcast, availableBroadcastBookings, acceptBroadcastRequest,
 };

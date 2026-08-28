@@ -31,6 +31,18 @@
     <meta property="og:image" content="/icon-512.png" />
     <meta property="og:type" content="website" />
 
+    <script>
+      // Apply persisted theme BEFORE paint — no light flash in dark mode.
+      (function () {
+        try {
+          var t = localStorage.getItem("sg_theme") || "system";
+          if (t === "dark" || (t === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
