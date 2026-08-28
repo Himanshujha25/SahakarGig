@@ -129,6 +129,7 @@ export default function Dispatch() {
   const { id } = useParams();
   const navigate = useNavigate();
   const bookingIdRef = useRef(null);
+  const cancelTimerRef = useRef(null);
 
   const [step, setStep] = useState(id ? "loading" : "form");
   const [booking, setBooking] = useState(null);
@@ -136,6 +137,7 @@ export default function Dispatch() {
   const [nearby, setNearby] = useState(0);
   const [pins, setPins] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const [error, setError] = useState("");
   const [livePos, setLivePos] = useState(null);
 
@@ -283,6 +285,33 @@ export default function Dispatch() {
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, booking?.targetCategory]);
+
+  // Household withdraws a live broadcast → workers' feeds clear instantly (socket).
+  async function cancelDispatch() {
+    if (booking?._id) {
+      try {
+        await api.patch(`/bookings/${booking._id}/cancel`);
+      } catch (err) {
+        if (err?.response?.status === 409) {
+          // A worker already accepted right as we cancelled — show the disclosure instead.
+          api.get(`/bookings/${booking._id}`).then((r) => {
+            bookingIdRef.current = r.data._id;
+            if (r.data.broadcastStatus === "assigned") {
+              buildDisclosure(r.data).then((built) => {
+                setBooking(built.booking);
+                setProviderDetails(built.providerDetails);
+                setStep("assigned");
+              });
+            } else setStep("form");
+          }).catch(() => setStep("form"));
+          return;
+        }
+      }
+    }
+    setBooking(null);
+    setPins([]);
+    setStep("form");
+  }
 
   /* ── Shipping / loading state (reload) ── */
   if (step === "loading") {
@@ -481,9 +510,25 @@ export default function Dispatch() {
             Offer <strong className="text-on-surface">₹{booking?.price || offerPrice}/hr</strong> · no payment charged yet — escrow locks only after a worker accepts
           </p>
           <p className="text-[12px] text-on-surface-variant">Waiting for the first worker to accept…</p>
-          <button onClick={() => { setStep("form"); setBooking(null); }} className="mt-2 text-[13px] font-semibold text-primary hover:underline">
-            ← New dispatch
-          </button>
+          <div className="mt-2 flex flex-col items-center gap-1.5">
+            <button
+              onClick={() => {
+                if (confirmCancel) {
+                  cancelDispatch();
+                } else {
+                  setConfirmCancel(true);
+                  clearTimeout(cancelTimerRef.current);
+                  cancelTimerRef.current = setTimeout(() => setConfirmCancel(false), 5000);
+                }
+              }}
+              className={`text-[13px] font-bold hover:underline transition-colors ${confirmCancel ? "text-error" : "text-primary"}`}
+            >
+              {confirmCancel ? "⚠ Tap again to confirm cancel" : "← Cancel dispatch & stop search"}
+            </button>
+            {confirmCancel && (
+              <p className="text-[12px] text-on-surface-variant">Workers are notified instantly — this cannot be undone.</p>
+            )}
+          </div>
         </div>
       </div>
     );

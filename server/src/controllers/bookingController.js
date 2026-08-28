@@ -167,10 +167,21 @@ async function cancelBooking(req, res) {
   const provider = await Provider.findOne({ userId, _id: b.providerId });
   if (!isHousehold && !provider && role !== 'Cooperative Admin')
     return res.status(403).json({ message: 'Forbidden' });
+
+  // Live broadcast dispatch is locked once a worker accepts — no ghost cancels.
+  if (b.dispatchMode === 'broadcast' && b.providerId) {
+    return res.status(409).json({ message: 'A worker already accepted this request — it is locked.' });
+  }
+
   b.status = 'cancelled';
+  if (b.dispatchMode === 'broadcast') b.broadcastStatus = 'cancelled';
   await b.save();
-  await notify(b.householdId._id.toString(), 'booking_cancelled', 'Booking cancelled', b._id);
+  await notify(b.householdId._id.toString(), 'booking_cancelled', 'Dispatch request cancelled', b._id);
   emitTo(b.householdId._id.toString(), 'booking:updated', b);
+  // Withdraw the job from EVERY worker's live feed instantly (broadcast dispatch)
+  if (b.dispatchMode === 'broadcast') {
+    broadcastAll('booking:cancelled', { bookingId: b._id, service: b.service, targetCategory: b.targetCategory });
+  }
   if (b.providerId?.userId?._id) emitTo(b.providerId.userId._id.toString(), 'booking:updated', b);
   res.json(b);
 }
@@ -279,6 +290,11 @@ async function createBroadcastBooking(req, res) {
 
 // Live broadcast feed for a provider — only jobs matching their skills,
 // within range, and still awaiting first-acceptance.
+// Live broadcast feed for a provider — only jobs matching their skills,
+// within range, and still awaiting first-acceptance. Broadcasts older than the
+// TTL are silently expired so ghosts never linger on a worker's feed.
+const BROADCAST_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
 async function availableBroadcastBookings(req, res) {
   try {
     const provider = await Provider.findOne({ userId: req.user.userId });
@@ -287,11 +303,25 @@ async function availableBroadcastBookings(req, res) {
     const { lat, lng, radius } = req.query;
     const radiusKm = parseFloat(radius) || 25;
 
+    // Expire stale open broadcasts (household left without cancelling etc.)
+    const staleSince = new Date(Date.now() - BROADCAST_TTL_MS);
+    await Booking.updateMany(
+      {
+        dispatchMode: 'broadcast',
+        broadcastStatus: 'broadcasting',
+        providerId: null,
+        status: 'requested',
+        createdAt: { $lt: staleSince },
+      },
+      { $set: { status: 'cancelled', broadcastStatus: 'cancelled', cancelReason: 'auto-expired' } }
+    );
+
     const bookings = await Booking.find({
       dispatchMode: 'broadcast',
       broadcastStatus: 'broadcasting',
       providerId: null,
       status: 'requested',
+      createdAt: { $gte: staleSince },
     })
       .populate('householdId', 'name')
       .sort('-createdAt');
