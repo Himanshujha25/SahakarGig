@@ -292,8 +292,8 @@ async function createBroadcastBooking(req, res) {
 // within range, and still awaiting first-acceptance.
 // Live broadcast feed for a provider — only jobs matching their skills,
 // within range, and still awaiting first-acceptance. Broadcasts older than the
-// TTL are silently expired so ghosts never linger on a worker's feed.
-const BROADCAST_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+// TTL is set to 1 minute (60 seconds) for fast auto-escalation/expiration
+const BROADCAST_TTL_MS = 60 * 1000; // 1 minute
 
 async function availableBroadcastBookings(req, res) {
   try {
