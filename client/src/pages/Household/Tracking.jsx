@@ -62,19 +62,19 @@ export default function Tracking() {
 
   if (loading)
     return (
-      <div className="mx-auto w-full max-w-2xl pt-lg">
+      <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         <div className="animate-pulse rounded-xl border border-outline-variant bg-surface p-6">
           <div className="mb-4 h-5 w-1/3 rounded bg-surface-variant"></div>
           <div className="h-4 w-2/3 rounded bg-surface-variant"></div>
         </div>
       </div>
     );
-  if (!booking) return <p className="pt-lg font-body-md text-on-surface-variant">Booking not found.</p>;
+  if (!booking) return <p className="p-8 font-body-md text-on-surface-variant text-center">Booking not found.</p>;
 
   const currentIdx = STEPS.indexOf(booking.status);
 
   return (
-    <div className="mx-auto w-full max-w-2xl pt-lg">
+    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <button
         onClick={() => navigate("/household/bookings")}
         className="mb-6 inline-flex items-center gap-1 font-heading text-sm font-semibold text-primary hover:text-primary-container"
@@ -198,7 +198,7 @@ export default function Tracking() {
       </div>
 
       {booking.status === "completed" && booking.paymentStatus !== "paid" && (
-        <button onClick={() => navigate(`/household/pay/${id}`)} className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-primary/30 bg-[#e8edff] font-heading font-semibold text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200">
+        <button onClick={() => navigate(`/household/pay/${id}`)} className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary-container font-heading font-semibold text-on-primary-container hover:border-primary hover:bg-primary hover:text-on-primary active:scale-[0.98] transition-all duration-200">
           <Icon name="payments" className=" text-[20px]" />
           {t("pay")}
         </button>

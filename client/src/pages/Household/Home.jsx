@@ -17,11 +17,11 @@ function formatMoney(v) {
 }
 
 const STATUS_STYLE = {
-  pending:   { bg: "bg-[#fff3e0] text-[#6b4200]",   dot: "bg-[#6b4200]",  label: "Pending"   },
-  accepted:  { bg: "bg-[#e8edff] text-[#00288e]",   dot: "bg-[#00288e]",  label: "Accepted"  },
-  completed: { bg: "bg-[#e6f9ec] text-[#006d30]",   dot: "bg-[#006d30]",  label: "Completed" },
-  disputed:  { bg: "bg-[#fce8e8] text-[#ba1a1a]",   dot: "bg-[#ba1a1a]",  label: "Disputed"  },
-  cancelled: { bg: "bg-surface-container text-on-surface-variant", dot: "bg-outline", label: "Cancelled" },
+  pending:   { bg: "badge-pending",   dot: "bg-amber-600 dark:bg-amber-400",  label: "Pending"   },
+  accepted:  { bg: "badge-accepted",  dot: "bg-primary-container",       label: "Accepted"  },
+  completed: { bg: "badge-completed", dot: "bg-secondary-container",     label: "Completed" },
+  disputed:  { bg: "badge-disputed",  dot: "bg-error",                   label: "Disputed"  },
+  cancelled: { bg: "bg-surface-container text-on-surface-variant border border-outline-variant/40", dot: "bg-outline", label: "Cancelled" },
 };
 
 export default function Home() {
@@ -59,10 +59,10 @@ export default function Home() {
   const spent     = bookings.filter(b => b.status === "completed").reduce((s, b) => s + (b.price || 0), 0);
 
   const STAT_CARDS = [
-    { label: "Total Bookings",    value: total,            Icon: CalendarDays, bg: "bg-[#e8edff]", ic: "text-[#00288e]" },
-    { label: "Active",            value: active,           Icon: Clock,        bg: "bg-[#fff3e0]", ic: "text-[#6b4200]", accent: active > 0 },
-    { label: "Completed",         value: completed,        Icon: CheckCircle2, bg: "bg-[#e6f9ec]", ic: "text-[#006d30]" },
-    { label: "Total Spent",       value: formatMoney(spent), Icon: IndianRupee, bg: "bg-[#e8edff]", ic: "text-[#00288e]" },
+    { label: "Total Bookings",    value: total,            Icon: CalendarDays, bg: "icon-box-blue",  ic: "text-current" },
+    { label: "Active",            value: active,           Icon: Clock,        bg: "icon-box-amber", ic: "text-current", accent: active > 0 },
+    { label: "Completed",         value: completed,        Icon: CheckCircle2, bg: "icon-box-green", ic: "text-current" },
+    { label: "Total Spent",       value: formatMoney(spent), Icon: IndianRupee, bg: "icon-box-blue",  ic: "text-current" },
   ];
 
   function goSearch(e) {
@@ -73,145 +73,184 @@ export default function Home() {
   const firstName = user?.name?.split(" ")[0] || "there";
 
   return (
-    <div className="w-full px-6 pt-8 pb-10 space-y-6">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12 space-y-6">
 
-      {/* ── Header ── */}
+      {/* ── Orvia Top Header ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-on-surface"
+          <div className="flex items-center gap-2 mb-1">
+            <span className="orvia-badge-lime">
+              <span className="w-2 h-2 rounded-full bg-[#65a30d] animate-pulse" />
+              Live Cooperative Network
+            </span>
+            <span className="text-xs text-slate-400 font-medium">• {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
             style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
-            Welcome back, {firstName} 👋
+            Hey, {firstName} 👋
           </h1>
-          <p className="text-[14px] text-on-surface-variant mt-0.5">
-            Book verified service providers endorsed by your local cooperative.
+          <p className="text-sm text-slate-500 mt-0.5">
+            Book verified service providers endorsed by your local cooperative society.
           </p>
         </div>
+
+        {/* Orvia Pill Search & Actions */}
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           <button
             type="button"
             onClick={() => setIsVoiceOpen(true)}
-            className="h-9 inline-flex items-center gap-1.5 px-3 rounded-xl bg-gradient-to-r from-[#00288e] to-[#6366f1] text-white text-[12px] font-bold shadow-sm hover:scale-105 transition-all"
+            className="h-10 inline-flex items-center gap-2 px-4 rounded-full bg-[#1e6b65] text-white text-xs font-bold shadow-md hover:bg-[#145e58] hover:shadow-lg transition-all"
           >
-            <Mic size={13} className="animate-bounce" />
+            <Mic size={14} className="animate-bounce" />
             <span>Voice AI</span>
           </button>
-          <form onSubmit={goSearch} className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-outline-variant bg-surface hover:border-primary/40 transition-all duration-200">
-            <Search size={13} className="text-outline shrink-0" strokeWidth={2} />
+
+          <form onSubmit={goSearch} className="flex items-center gap-2 h-10 px-4 rounded-full border border-slate-200 bg-white shadow-sm hover:border-[#1e6b65]/40 transition-all">
+            <Search size={14} className="text-slate-400 shrink-0" strokeWidth={2} />
             <input
-              className="w-36 bg-transparent text-[13px] text-on-surface outline-none placeholder:text-on-surface-variant/50"
+              className="w-36 bg-transparent text-xs font-medium text-slate-800 outline-none placeholder:text-slate-400"
               placeholder="Search services…"
               value={service}
               onChange={e => setService(e.target.value)}
             />
           </form>
+
           <Link to="/household/bookings"
-            className="h-9 inline-flex items-center gap-2 px-4 rounded-xl border border-outline-variant bg-surface text-[13px] font-semibold text-on-surface hover:border-primary/40 hover:bg-[#e8edff] hover:text-[#00288e] transition-all duration-200">
+            className="orvia-pill-selected inline-flex items-center gap-2">
             <CalendarDays size={14} strokeWidth={2} />
-            My Bookings
+            <span>My Bookings</span>
           </Link>
         </div>
         <AIVoiceSearchModal isOpen={isVoiceOpen} onClose={() => setIsVoiceOpen(false)} />
       </div>
 
-      {/* ── Stat cards ── */}
+      {/* ── Orvia Insight Hero Banner Card ── */}
+      <div className="orvia-insight-card flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+        <div className="space-y-1.5 max-w-2xl">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="orvia-badge-lime">
+              <CheckCircle2 size={13} /> 100% Escrow Protected
+            </span>
+            <span className="text-xs text-slate-500 font-semibold">• Up next · Today</span>
+          </div>
+          <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">Your Care & Service Journey</h2>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Instant geospatial AI dispatch connecting you with background-checked community experts in under 15 minutes.
+          </p>
+        </div>
+        <Link to="/household/find" className="orvia-btn-primary shrink-0">
+          <span>Book Instant Service</span>
+          <ArrowRight size={16} strokeWidth={2.5} />
+        </Link>
+      </div>
+
+      {/* ── Orvia Stat Cards ── */}
       {loading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[0,1,2,3].map(i => <div key={i} className="animate-pulse rounded-2xl border border-outline-variant bg-surface h-28" />)}
+          {[0,1,2,3].map(i => <div key={i} className="animate-pulse rounded-[28px] border border-slate-200 bg-white h-28" />)}
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {STAT_CARDS.map(({ label, value, Icon, bg, ic, accent }) => (
+          {STAT_CARDS.map(({ label, value, Icon, accent }) => (
             <div key={label}
-              className="group relative overflow-hidden rounded-2xl border border-outline-variant/60 bg-surface p-5 hover:shadow-[0_4px_24px_rgba(0,40,142,0.08)] hover:border-outline transition-all duration-200">
-              <div className="flex items-start justify-between mb-4">
-                <p className="text-[12px] font-bold text-on-surface-variant uppercase tracking-[0.08em]">{label}</p>
-                <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
-                  <Icon size={17} strokeWidth={2} className={ic} />
+              className="orvia-card flex flex-col justify-between group">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</p>
+                <div className="w-9 h-9 rounded-full bg-[#e6f4f1] text-[#145e58] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <Icon size={17} strokeWidth={2} />
                 </div>
               </div>
-              <p className={`text-[28px] font-bold tracking-tight leading-none ${accent ? "text-[#6b4200]" : "text-on-surface"}`}>
-                {value}
-              </p>
+              <div className="flex items-baseline justify-between">
+                <p className={`text-2xl md:text-3xl font-extrabold tracking-tight ${accent ? "text-[#1e6b65]" : "text-slate-900"}`}>
+                  {value}
+                </p>
+                <span className="text-xs font-bold text-slate-400 group-hover:text-[#1e6b65] transition-colors">↗</span>
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* ── Main grid ── */}
+      {/* ── Main Grid ── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
-        {/* Recent bookings */}
-        <section className="lg:col-span-2 rounded-2xl border border-outline-variant/60 bg-surface overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant/40">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#e8edff] flex items-center justify-center">
-                <CalendarDays size={15} className="text-[#00288e]" strokeWidth={2} />
+        {/* Recent Bookings Card */}
+        <section className="lg:col-span-2 orvia-card p-0 overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-full bg-[#0f172a] text-white flex items-center justify-center">
+                <CalendarDays size={16} strokeWidth={2} />
               </div>
-              <h3 className="text-[15px] font-bold text-on-surface">Recent Bookings</h3>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Recent Service Bookings</h3>
+                <p className="text-xs text-slate-400 font-medium">Track active dispatches & history</p>
+              </div>
             </div>
             <Link to="/household/find"
-              className="flex items-center gap-1 text-[13px] font-semibold text-primary hover:text-[#173bab] transition-colors">
+              className="flex items-center gap-1 text-xs font-bold text-[#1e6b65] hover:underline">
               View all <ArrowRight size={13} />
             </Link>
           </div>
 
           {loading ? (
-            <div className="divide-y divide-outline-variant/30">
+            <div className="divide-y divide-slate-100 p-4">
               {[0,1,2].map(i => (
-                <div key={i} className="animate-pulse flex items-center gap-4 px-6 py-4">
-                  <div className="w-9 h-9 rounded-full bg-surface-container shrink-0" />
+                <div key={i} className="animate-pulse flex items-center gap-4 py-4">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-3 w-1/3 rounded bg-surface-container" />
-                    <div className="h-3 w-1/4 rounded bg-surface-container" />
+                    <div className="h-3 w-1/3 rounded bg-slate-200" />
+                    <div className="h-3 w-1/4 rounded bg-slate-200" />
                   </div>
                 </div>
               ))}
             </div>
           ) : bookings.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-              <CheckCircle2 size={40} className="text-outline-variant" strokeWidth={1.5} />
-              <p className="text-[14px] text-on-surface-variant">No bookings yet. Find a provider to get started.</p>
-              <Link to="/household/bookings"
-                className="text-[13px] font-semibold text-primary hover:underline">Browse providers →</Link>
+            <div className="flex flex-col items-center justify-center gap-3 py-16 px-6 text-center">
+              <CheckCircle2 size={44} className="text-slate-300" strokeWidth={1.5} />
+              <p className="text-sm font-semibold text-slate-700">No active bookings yet</p>
+              <p className="text-xs text-slate-400">Discover verified local providers in your neighborhood.</p>
+              <Link to="/household/find" className="orvia-btn-primary mt-2">
+                Browse Categories ↗
+              </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[480px] text-left">
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full min-w-[500px] text-left">
                 <thead>
-                  <tr className="border-b border-outline-variant/40 bg-surface-container-low">
-                    <th className="px-6 py-3 text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.08em]">Service</th>
-                    <th className="px-6 py-3 text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.08em]">Provider</th>
-                    <th className="px-6 py-3 text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.08em]">Status</th>
-                    <th className="px-6 py-3 text-right text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.08em]">Amount</th>
+                  <tr className="border-b border-slate-100 bg-slate-50/50">
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Service</th>
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Provider</th>
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3.5 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-outline-variant/30">
+                <tbody className="divide-y divide-slate-100">
                   {bookings.slice(0, 6).map(b => {
                     const s = STATUS_STYLE[b.status] || STATUS_STYLE.pending;
                     return (
                       <tr key={b._id}
                         onClick={() => navigate(`/household/booking/${b._id}`)}
-                        className="hover:bg-surface-container-low/50 transition-colors cursor-pointer">
-                        <td className="px-6 py-3.5">
+                        className="hover:bg-slate-50 transition-colors cursor-pointer group">
+                        <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <p className="text-[14px] font-semibold text-on-surface">{b.service}</p>
+                            <p className="text-sm font-bold text-slate-900 group-hover:text-[#1e6b65] transition-colors">{b.service}</p>
                             {b.isEmergency && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#fce8e8] text-[#ba1a1a] text-[10px] font-bold">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-extrabold">
                                 <Zap size={10} /> Emergency
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-3.5 text-[13px] text-on-surface-variant">
+                        <td className="px-6 py-4 text-xs font-medium text-slate-500">
                           {b.providerId?.userId?.name || "Provider"}
                         </td>
-                        <td className="px-6 py-3.5">
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${s.bg}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                        <td className="px-6 py-4">
+                          <span className="orvia-badge-lime">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#65a30d]" />
                             {s.label}
                           </span>
                         </td>
-                        <td className="px-6 py-3.5 text-right text-[14px] font-bold text-on-surface">
+                        <td className="px-6 py-4 text-right text-sm font-extrabold text-slate-900">
                           ₹{b.price ?? 0}
                         </td>
                       </tr>
@@ -223,63 +262,71 @@ export default function Home() {
           )}
         </section>
 
-        {/* Verified providers */}
-        <section className="rounded-2xl border border-outline-variant/60 bg-surface p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#e6f9ec] flex items-center justify-center">
-                <Star size={15} className="text-[#006d30]" strokeWidth={2} />
+        {/* Top Verified Providers Card */}
+        <section className="orvia-card space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-[#f7fee7] text-[#4d7c0f] border border-[#d9f99d] flex items-center justify-center">
+                  <Star size={16} strokeWidth={2} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Top Verified Experts</h3>
+                  <p className="text-xs text-slate-400 font-medium">Cooperative Endorsed</p>
+                </div>
               </div>
-              <h3 className="text-[15px] font-bold text-on-surface">Top Providers</h3>
+              <Link to="/household/find" className="text-xs font-bold text-[#1e6b65] hover:underline">
+                View all
+              </Link>
             </div>
-            <Link to="/household/find"
-              className="flex items-center gap-1 text-[13px] font-semibold text-primary hover:text-[#173bab] transition-colors">
-              View all <ArrowRight size={13} />
-            </Link>
+
+            {loading ? (
+              <div className="space-y-3 pt-3">
+                {[0,1,2].map(i => (
+                  <div key={i} className="animate-pulse flex items-center gap-3 p-3 rounded-2xl border border-slate-100">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-1/2 rounded bg-slate-200" />
+                      <div className="h-3 w-1/3 rounded bg-slate-200" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : providers.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-10 text-center">
+                <Star size={36} className="text-slate-300" strokeWidth={1.5} />
+                <p className="text-xs text-slate-500 font-medium">No providers registered yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-3 pt-3">
+                {providers.map(p => (
+                  <div key={p._id}
+                    className="flex items-center gap-3 rounded-2xl border border-slate-100 p-3 bg-slate-50/60 hover:bg-white hover:border-[#1e6b65]/30 hover:shadow-sm transition-all">
+                    <div className="w-10 h-10 rounded-full bg-[#1e6b65] text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-sm">
+                      {(p.userId?.name || "?").charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs font-bold text-slate-900 truncate">{p.userId?.name ?? "Provider"}</p>
+                        {p.verified && <VerifiedBadge />}
+                      </div>
+                      <p className="text-[11px] font-medium text-slate-500 truncate">
+                        {(p.skills || [])[0] || "Service"} · ₹{p.hourlyRate}/hr
+                      </p>
+                    </div>
+                    <Link to={`/household/book/${p._id}`}
+                      className="shrink-0 text-xs font-bold text-white bg-[#0f172a] hover:bg-[#1e6b65] px-3.5 py-1.5 rounded-full transition-colors">
+                      Book
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {loading ? (
-            <div className="space-y-2">
-              {[0,1,2].map(i => (
-                <div key={i} className="animate-pulse flex items-center gap-3 p-3 rounded-xl border border-outline-variant/40">
-                  <div className="w-9 h-9 rounded-full bg-surface-container shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 w-1/2 rounded bg-surface-container" />
-                    <div className="h-3 w-1/3 rounded bg-surface-container" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : providers.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-outline-variant/60 py-10 text-center">
-              <Star size={32} className="text-outline-variant" strokeWidth={1.5} />
-              <p className="text-[13px] text-on-surface-variant">No providers available yet.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {providers.map(p => (
-                <div key={p._id}
-                  className="flex items-center gap-3 rounded-xl border border-outline-variant/40 p-3 hover:border-primary/30 hover:bg-surface-container-low transition-all duration-200">
-                  <div className="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-[13px] font-bold text-on-primary-container shrink-0">
-                    {(p.userId?.name || "?").charAt(0)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-[13px] font-semibold text-on-surface truncate">{p.userId?.name ?? "Provider"}</p>
-                      {p.verified && <VerifiedBadge />}
-                    </div>
-                    <p className="text-[11px] text-on-surface-variant truncate">
-                      {(p.skills || [])[0] || "Service"} · ₹{p.hourlyRate}/hr
-                    </p>
-                  </div>
-                  <Link to={`/household/book/${p._id}`}
-                    className="shrink-0 text-[12px] font-bold text-[#00288e] bg-[#e8edff] px-3 py-1.5 rounded-lg hover:bg-primary hover:text-white transition-all duration-200">
-                    Book
-                  </Link>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="pt-2 border-t border-slate-100 text-center">
+            <span className="text-xs text-slate-400 font-medium">100% Identity & Background Verified</span>
+          </div>
         </section>
       </div>
     </div>

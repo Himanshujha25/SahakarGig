@@ -115,4 +115,42 @@ async function updateCommission(req, res) {
   res.json(fed);
 }
 
-module.exports = { dashboard, listCooperatives, onboardCooperative, updateCommission };
+async function getCooperativeDetail(req, res) {
+  const { id } = req.params;
+  const coop = await Cooperative.findById(id);
+  if (!coop) return res.status(404).json({ message: "Cooperative not found" });
+
+  const providers = await Provider.find({ 
+    $or: [{ cooperativeId: coop._id }, { 'cooperative.name': coop.name }]
+  }).populate('userId', 'name email phone avatarUrl').lean();
+
+  const Payout = require('../models/Payout');
+  const providerIds = providers.map(p => p._id);
+  const payouts = await Payout.find({ 
+    $or: [{ providerId: { $in: providerIds } }, { providerEmail: { $in: providers.map(p => p.email).filter(Boolean) } }]
+  }).sort({ createdAt: -1 });
+
+  const bookings = await Booking.find({ 
+    $or: [{ cooperativeId: coop._id }, { providerId: { $in: providerIds } }]
+  }).populate('householdId', 'name email').sort({ createdAt: -1 });
+
+  res.json({
+    cooperative: coop,
+    providers,
+    payouts,
+    bookings
+  });
+}
+
+async function updateCooperativeCommission(req, res) {
+  const { id } = req.params;
+  const { commissionRate } = req.body;
+  const coop = await Cooperative.findByIdAndUpdate(id, { commissionRate: Number(commissionRate) }, { new: true });
+  if (!coop) return res.status(404).json({ message: "Cooperative not found" });
+  res.json(coop);
+}
+
+module.exports = { 
+  dashboard, listCooperatives, onboardCooperative, updateCommission,
+  getCooperativeDetail, updateCooperativeCommission
+};

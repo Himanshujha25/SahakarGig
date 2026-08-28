@@ -1,5 +1,104 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   Ultra-Premium Dark Mode Engine (Matching Sidebar Obsidian Slate)
+   ============================================================ */
+.dark {
+  --color-surface: #0f172a;
+  --color-surface-dim: #0b0f19;
+  --color-surface-bright: #1e293b;
+  --color-surface-container-lowest: #0f172a;
+  --color-surface-container-low: #0f172a;
+  --color-surface-container: #1e293b;
+  --color-surface-container-high: #334155;
+  --color-surface-container-highest: #475569;
+  --color-surface-variant: #1e293b;
+
+  --color-on-surface: #f8fafc;
+  --color-on-surface-variant: #94a3b8;
+  --color-background: #090d16;
+  --color-on-background: #f8fafc;
+
+  --color-outline: #334155;
+  --color-outline-variant: #1e293b;
+}
+
+/* Premium Dark Mode Canvas & Body Overrides */
+.dark body,
+.dark main,
+.dark .bg-background {
+  background-color: #090d16 !important;
+  color: #f8fafc !important;
+}
+
+.dark .orvia-card,
+.dark [class*="orvia-card"] {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f8fafc !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45) !important;
+}
+
+.dark .bg-white {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+.dark .bg-surface-container-lowest,
+.dark .bg-surface-container-low {
+  background-color: #0f172a !important;
+}
+
+.dark .bg-slate-50,
+.dark .bg-slate-100,
+.dark .bg-slate-50\/50,
+.dark .bg-slate-50\/80 {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-outline-variant {
+  border-color: #1e293b !important;
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-on-surface {
+  color: #f8fafc !important;
+}
+
+.dark .text-slate-700,
+.dark .text-slate-600,
+.dark .text-on-surface-variant {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-slate-500,
+.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+/* Table Dark Styling */
+.dark table thead tr,
+.dark table thead {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+
+.dark table tbody tr {
+  border-color: #1e293b !important;
+}
+
+.dark table tbody tr:hover {
+  background-color: #1e293b !important;
+}
+
 /* ============================================================
    SahakarGig Design System — translated 1:1 from the Stitch
    export (docs/stitch/home.html). Tokens are authoritative.
@@ -7,57 +106,57 @@
    ============================================================ */
 
 @theme {
-  /* ---- Surface scale ---- */
-  --color-surface: #f8f9ff;
-  --color-surface-dim: #ccdbf3;
-  --color-surface-bright: #f8f9ff;
+  /* ---- Surface scale (Orvia Warm Healthcare Canvas) ---- */
+  --color-surface: #faf9f6;
+  --color-surface-dim: #f3f4f6;
+  --color-surface-bright: #ffffff;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #eff4ff;
-  --color-surface-container: #e6eeff;
-  --color-surface-container-high: #dce9ff;
-  --color-surface-container-highest: #d5e3fc;
-  --color-surface-variant: #d5e3fc;
+  --color-surface-container-low: #f4f5f6;
+  --color-surface-container: #eaecee;
+  --color-surface-container-high: #e2e5e8;
+  --color-surface-container-highest: #dadde1;
+  --color-surface-variant: #f2f4f7;
 
   /* ---- Text on surfaces ---- */
-  --color-on-surface: #0d1c2e;
-  --color-on-surface-variant: #444653;
-  --color-inverse-surface: #233144;
-  --color-inverse-on-surface: #eaf1ff;
-  --color-background: #f8f9ff;
-  --color-on-background: #0d1c2e;
+  --color-on-surface: #0f172a;
+  --color-on-surface-variant: #64748b;
+  --color-inverse-surface: #1e293b;
+  --color-inverse-on-surface: #f8fafc;
+  --color-background: #faf9f6;
+  --color-on-background: #0f172a;
 
   /* ---- Outlines ---- */
-  --color-outline: #757684;
-  --color-outline-variant: #c4c5d5;
+  --color-outline: #cbd5e1;
+  --color-outline-variant: #e2e8f0;
 
-  /* ---- Primary (Cooperative Blue) ---- */
-  --color-primary: #00288e;
+  /* ---- Primary (Orvia Deep Ocean Teal) ---- */
+  --color-primary: #1e6b65;
   --color-on-primary: #ffffff;
-  --color-primary-container: #1e40af;
-  --color-on-primary-container: #a8b8ff;
-  --color-inverse-primary: #b8c4ff;
-  --color-surface-tint: #3755c3;
-  --color-primary-fixed: #dde1ff;
-  --color-primary-fixed-dim: #b8c4ff;
-  --color-on-primary-fixed: #001453;
-  --color-on-primary-fixed-variant: #173bab;
+  --color-primary-container: #e6f4f1;
+  --color-on-primary-container: #145e58;
+  --color-inverse-primary: #81e6d9;
+  --color-surface-tint: #2e7d7a;
+  --color-primary-fixed: #ccfbf1;
+  --color-primary-fixed-dim: #99f6e4;
+  --color-on-primary-fixed: #042f2e;
+  --color-on-primary-fixed-variant: #0f766e;
 
-  /* ---- Secondary (Growth Green) ---- */
-  --color-secondary: #006d30;
+  /* ---- Secondary (Active Lime / Health Green) ---- */
+  --color-secondary: #65a30d;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #92f5a4;
-  --color-on-secondary-container: #007233;
-  --color-secondary-fixed: #95f8a7;
-  --color-secondary-fixed-dim: #79db8d;
-  --color-on-secondary-fixed: #00210a;
-  --color-on-secondary-fixed-variant: #005323;
+  --color-secondary-container: #ecfdf5;
+  --color-on-secondary-container: #047857;
+  --color-secondary-fixed: #d9f99d;
+  --color-secondary-fixed-dim: #bef264;
+  --color-on-secondary-fixed: #1a2e05;
+  --color-on-secondary-fixed-variant: #3f6212;
 
-  /* ---- Tertiary (Amber / earning accent) ---- */
-  --color-tertiary: #4c2e00;
+  /* ---- Tertiary (Warm Honey / Amber accent) ---- */
+  --color-tertiary: #d97706;
   --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #6b4200;
-  --color-on-tertiary-container: #ffa929;
-  --color-tertiary-fixed: #ffddb8;
+  --color-tertiary-container: #fffbeb;
+  --color-on-tertiary-container: #92400e;
+  --color-tertiary-fixed: #fef3c7;
   --color-tertiary-fixed-dim: #ffb95f;
   --color-on-tertiary-fixed: #2a1700;
   --color-on-tertiary-fixed-variant: #653e00;
@@ -199,14 +298,151 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
     color: var(--color-on-surface);
+    letter-spacing: -0.015em;
   }
 }
 
 /* ============================================================
-   Component classes — plain CSS (no @apply) so they compile
-   reliably in Tailwind v4's CSS Cascade Layers.
+   Stitch Dark Mode Theme Tokens (Authoritative — from Stitch HTML export)
+   Palette: Warm neutral charcoal grays, NOT cool blue slates.
+   ============================================================ */
+html.dark {
+  color-scheme: dark;
+
+  /* ---- Surface scale (warm charcoal) ---- */
+  --color-surface: #131313;
+  --color-surface-dim: #131313;
+  --color-surface-bright: #393939;
+  --color-surface-container-lowest: #0e0e0e;
+  --color-surface-container-low: #1c1b1b;
+  --color-surface-container: #201f1f;
+  --color-surface-container-high: #2a2a2a;
+  --color-surface-container-highest: #353534;
+  --color-surface-variant: #353534;
+
+  /* ---- Text on surfaces ---- */
+  --color-on-surface: #e5e2e1;
+  --color-on-surface-variant: #c4c5d5;
+  --color-inverse-surface: #e5e2e1;
+  --color-inverse-on-surface: #313030;
+  --color-background: #131313;
+  --color-on-background: #e5e2e1;
+
+  /* ---- Outlines ---- */
+  --color-outline: #8e909f;
+  --color-outline-variant: #444653;
+
+  /* ---- Primary (Cooperative Blue — inverted for dark) ---- */
+  --color-primary: #b8c4ff;
+  --color-on-primary: #002584;
+  --color-primary-container: #1e40af;
+  --color-on-primary-container: #a8b8ff;
+  --color-inverse-primary: #3755c3;
+  --color-surface-tint: #b8c4ff;
+  --color-primary-fixed: #dde1ff;
+  --color-primary-fixed-dim: #b8c4ff;
+
+  /* ---- Secondary (Growth Green — inverted for dark) ---- */
+  --color-secondary: #4ae176;
+  --color-on-secondary: #003915;
+  --color-secondary-container: #00b954;
+  --color-on-secondary-container: #004119;
+
+  /* ---- Tertiary (Amber — inverted for dark) ---- */
+  --color-tertiary: #ffb95f;
+  --color-on-tertiary: #472a00;
+  --color-tertiary-container: #6b4200;
+  --color-on-tertiary-container: #ffa929;
+
+  /* ---- Error (inverted for dark) ---- */
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+}
+
+/* ============================================================
+   Component classes — Stitch Design System Status Badges & Utilities
    ============================================================ */
 @layer components {
+  /* Semantic Status Badges */
+  .badge-pending {
+    background-color: #fff3e0;
+    color: #6b4200;
+  }
+  html.dark .badge-pending {
+    background-color: rgba(255, 185, 95, 0.12);
+    color: #ffb95f;
+    border: 1px solid rgba(255, 185, 95, 0.25);
+  }
+
+  .badge-accepted {
+    background-color: #e8edff;
+    color: #00288e;
+  }
+  html.dark .badge-accepted {
+    background-color: rgba(184, 196, 255, 0.12);
+    color: #b8c4ff;
+    border: 1px solid rgba(184, 196, 255, 0.25);
+  }
+
+  .badge-completed {
+    background-color: #e6f9ec;
+    color: #006d30;
+  }
+  html.dark .badge-completed {
+    background-color: rgba(74, 225, 118, 0.12);
+    color: #4ae176;
+    border: 1px solid rgba(74, 225, 118, 0.25);
+  }
+
+  .badge-disputed {
+    background-color: #fce8e8;
+    color: #ba1a1a;
+  }
+  html.dark .badge-disputed {
+    background-color: rgba(255, 180, 171, 0.12);
+    color: #ffb4ab;
+    border: 1px solid rgba(255, 180, 171, 0.25);
+  }
+
+  .badge-emergency {
+    background-color: #fce8e8;
+    color: #ba1a1a;
+  }
+  html.dark .badge-emergency {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ffb4ab;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  /* Icon Container Boxes */
+  .icon-box-blue {
+    background-color: #e8edff;
+    color: #00288e;
+  }
+  html.dark .icon-box-blue {
+    background-color: rgba(184, 196, 255, 0.1);
+    color: #b8c4ff;
+  }
+
+  .icon-box-amber {
+    background-color: #fff3e0;
+    color: #6b4200;
+  }
+  html.dark .icon-box-amber {
+    background-color: rgba(255, 185, 95, 0.1);
+    color: #ffb95f;
+  }
+
+  .icon-box-green {
+    background-color: #e6f9ec;
+    color: #006d30;
+  }
+  html.dark .icon-box-green {
+    background-color: rgba(74, 225, 118, 0.1);
+    color: #4ae176;
+  }
   .btn-primary {
     display: inline-flex;
     height: 3rem;
@@ -491,3 +727,105 @@
   animation: alertSlideOut 0.6s cubic-bezier(0.7, 0, 0.84, 0) forwards;
   overflow: hidden;
 }
+
+/* ============================================================
+   Orvia Modern Healthcare UI Aesthetic Classes
+   ============================================================ */
+
+.orvia-card {
+  background-color: #ffffff;
+  border-radius: 28px;
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.orvia-card:hover {
+  box-shadow: 0 14px 40px rgba(30, 107, 101, 0.09);
+  border-color: rgba(30, 107, 101, 0.25);
+}
+
+.orvia-insight-card {
+  background: linear-gradient(135deg, rgba(254, 252, 232, 0.7) 0%, rgba(209, 250, 229, 0.7) 50%, rgba(224, 242, 254, 0.7) 100%);
+  border-radius: 28px;
+  border: 1px solid rgba(167, 243, 208, 0.8);
+  padding: 1.5rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.03);
+  backdrop-filter: blur(8px);
+}
+
+.orvia-pill-selected {
+  background-color: #0f172a;
+  color: #ffffff;
+  border-radius: 9999px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.orvia-pill-unselected {
+  background-color: transparent;
+  color: #64748b;
+  border-radius: 9999px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+.orvia-pill-unselected:hover {
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+
+.orvia-btn-primary {
+  background-color: #1e6b65;
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 0.875rem 1.75rem;
+  box-shadow: 0 10px 25px rgba(30, 107, 101, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.orvia-btn-primary:hover {
+  background-color: #145e58;
+  box-shadow: 0 14px 32px rgba(30, 107, 101, 0.35);
+  transform: translateY(-1px);
+}
+.orvia-btn-primary:active {
+  transform: translateY(0);
+}
+
+.orvia-badge-lime {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background-color: #f7fee7;
+  color: #4d7c0f;
+  border: 1px solid #d9f99d;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ── 3D Flip Card Animation Utilities ── */
+.perspective-1000 {
+  perspective: 1000px;
+}
+.transform-style-3d {
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.rotate-y-180 {
+  transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
+}
+

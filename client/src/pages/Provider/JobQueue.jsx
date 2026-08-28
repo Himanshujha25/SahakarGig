@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import socket from "../../lib/socket";
-import { Briefcase, CheckCircle2, Clock, Zap, Check, X, ArrowRight } from "lucide-react";
+import { Briefcase, CheckCircle2, Clock, Zap, Check, X, ArrowRight, Megaphone, Bell } from "lucide-react";
 
 const STATUS_STYLE = {
-  requested:   { bg: "bg-[#fff3e0] text-[#6b4200]", dot: "bg-[#6b4200]", label: "Requested"   },
-  accepted:    { bg: "bg-[#e8edff] text-[#00288e]", dot: "bg-[#00288e]", label: "Accepted"    },
-  'in-progress': { bg: "bg-[#e8edff] text-[#00288e]", dot: "bg-[#00288e]", label: "In Progress" },
-  completed:   { bg: "bg-[#e6f9ec] text-[#006d30]", dot: "bg-[#006d30]", label: "Completed"   },
-  disputed:    { bg: "bg-[#fce8e8] text-[#ba1a1a]", dot: "bg-[#ba1a1a]", label: "Disputed"    },
+  requested:   { bg: "badge-pending",   dot: "bg-tertiary-container dark:bg-tertiary", label: "Requested"   },
+  accepted:    { bg: "badge-accepted",  dot: "bg-primary-container",       label: "Accepted"    },
+  'in-progress': { bg: "badge-accepted",  dot: "bg-primary-container",       label: "In Progress" },
+  completed:   { bg: "badge-completed", dot: "bg-secondary-container",     label: "Completed"   },
+  disputed:    { bg: "badge-disputed",  dot: "bg-error",                   label: "Disputed"    },
   cancelled:   { bg: "bg-surface-container text-on-surface-variant", dot: "bg-outline", label: "Cancelled" },
 };
 
@@ -19,12 +19,22 @@ export default function JobQueue() {
   const [loading, setLoading]   = useState(true);
   const [busy, setBusy]         = useState(null);
   const [filter, setFilter]     = useState("all");
+  const [coopMessages, setCoopMessages] = useState([]);
 
   async function load() {
     try {
       const { data } = await api.get("/bookings/provider/mine");
       setBookings(data || []);
+      const msgs = JSON.parse(localStorage.getItem("sg_coop_messages") || "[]")
+        .filter(m => !m.id?.startsWith("msg_seed_"));
+      setCoopMessages(msgs);
     } catch {} finally { setLoading(false); }
+  }
+
+  function dismissMessage(id) {
+    const updated = coopMessages.filter(m => m.id !== id);
+    setCoopMessages(updated);
+    localStorage.setItem("sg_coop_messages", JSON.stringify(updated));
   }
 
   useEffect(() => {
@@ -64,14 +74,14 @@ export default function JobQueue() {
   const pending  = bookings.filter(b => b.status === "requested").length;
 
   const STAT_CARDS = [
-    { label: "Total Jobs",   value: bookings.length,                                          bg: "bg-[#e8edff]", ic: "text-[#00288e]", Icon: Briefcase  },
-    { label: "Pending",      value: pending,          accent: pending > 0,                    bg: "bg-[#fff3e0]", ic: "text-[#6b4200]", Icon: Clock      },
-    { label: "Active",       value: bookings.filter(b => b.status === "accepted").length,     bg: "bg-[#e8edff]", ic: "text-[#00288e]", Icon: ArrowRight },
-    { label: "Completed",    value: bookings.filter(b => b.status === "completed").length,    bg: "bg-[#e6f9ec]", ic: "text-[#006d30]", Icon: CheckCircle2 },
+    { label: "Total Jobs",   value: bookings.length,                                          bg: "icon-box-blue", ic: "", Icon: Briefcase  },
+    { label: "Pending",      value: pending,          accent: pending > 0,                    bg: "icon-box-amber", ic: "", Icon: Clock      },
+    { label: "Active",       value: bookings.filter(b => b.status === "accepted").length,     bg: "icon-box-blue", ic: "", Icon: ArrowRight },
+    { label: "Completed",    value: bookings.filter(b => b.status === "completed").length,    bg: "icon-box-green", ic: "", Icon: CheckCircle2 },
   ];
 
   return (
-    <div className="w-full px-6 pt-8 pb-10 space-y-6">
+    <div className="w-full max-w-7xl mx-auto px-6 pt-8 pb-10 space-y-6">
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -85,12 +95,36 @@ export default function JobQueue() {
           </p>
         </div>
         {pending > 0 && (
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#fff3e0] text-[#6b4200] text-[13px] font-bold border border-[#6b4200]/10">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl badge-pending text-[13px] font-bold">
             <Clock size={14} strokeWidth={2} />
             {pending} new request{pending > 1 ? "s" : ""}
           </div>
         )}
       </div>
+
+      {/* ── Cooperative Agency Broadcast Alert Banner ── */}
+      {coopMessages.length > 0 && (
+        <div className="orvia-card p-4.5 bg-gradient-to-r from-slate-900 via-slate-800 to-[#1e6b65] text-white border-none shadow-xl space-y-2 animate-alert-in">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-full bg-[#84cc16] text-slate-950 font-extrabold text-xs flex items-center gap-1.5 shadow-sm">
+                <Megaphone size={14} /> Cooperative Agency Alert
+              </span>
+              <span className="text-[11px] text-slate-300 font-semibold">{coopMessages[0].timestamp} · {coopMessages[0].date}</span>
+            </div>
+            <button
+              onClick={() => dismissMessage(coopMessages[0].id)}
+              className="text-xs font-bold text-slate-300 hover:text-white underline cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+          <div className="pt-1">
+            <h3 className="text-sm font-extrabold text-[#84cc16]">{coopMessages[0].title}</h3>
+            <p className="text-xs font-medium text-slate-100 mt-1 leading-relaxed">{coopMessages[0].body}</p>
+          </div>
+        </div>
+      )}
 
       {/* Stat cards */}
       {!loading && (
@@ -104,7 +138,7 @@ export default function JobQueue() {
                   <Icon size={17} strokeWidth={2} className={ic} />
                 </div>
               </div>
-              <p className={`text-[28px] font-bold tracking-tight leading-none ${accent ? "text-[#6b4200]" : "text-on-surface"}`}>
+              <p className={`text-[28px] font-bold tracking-tight leading-none ${accent ? "text-tertiary-container dark:text-tertiary" : "text-on-surface"}`}>
                 {value}
               </p>
             </div>
@@ -160,7 +194,7 @@ export default function JobQueue() {
                       <div className="flex items-center gap-2">
                         <p className="text-[14px] font-bold text-on-surface truncate">{b.householdId?.name || "Household"}</p>
                         {b.isEmergency && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#fce8e8] text-[#ba1a1a] text-[10px] font-bold shrink-0">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full badge-emergency text-[10px] font-bold shrink-0">
                             <Zap size={10} /> Emergency
                           </span>
                         )}
@@ -188,13 +222,13 @@ export default function JobQueue() {
                     <button
                       disabled={busy === b._id}
                       onClick={() => accept(b._id)}
-                      className="h-10 flex items-center justify-center gap-2 rounded-xl border border-primary/25 bg-[#e8edff] text-[#00288e] text-[13px] font-bold hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-60">
+                      className="h-10 flex items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary-container text-on-primary-container text-[13px] font-bold hover:bg-primary hover:text-on-primary active:scale-[0.98] transition-all duration-200 disabled:opacity-60">
                       <Check size={15} strokeWidth={2.5} /> Accept
                     </button>
                     <button
                       disabled={busy === b._id}
                       onClick={() => reject(b._id)}
-                      className="h-10 flex items-center justify-center gap-2 rounded-xl border-2 border-error text-error text-[13px] font-bold hover:bg-[#fce8e8] transition-all duration-200 disabled:opacity-60">
+                      className="h-10 flex items-center justify-center gap-2 rounded-xl border-2 border-error text-error text-[13px] font-bold hover:bg-error-container transition-all duration-200 disabled:opacity-60">
                       <X size={15} strokeWidth={2.5} /> Reject
                     </button>
                   </div>

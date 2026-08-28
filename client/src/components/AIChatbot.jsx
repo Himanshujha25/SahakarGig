@@ -1,9 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../lib/api";
-import { Bot, X, Send, Mic, Zap, ArrowRight, RefreshCw, MessageSquare, Building2 } from "lucide-react";
+import { Bot, X, Send, Mic, Zap, ArrowRight, RefreshCw, Building2, Sparkles, MessageCircle } from "lucide-react";
 
 const KNOWLEDGE_BASE = [
+  {
+    triggers: ["type of help", "what help", "services", "who are you", "what can you do", "kya kar sakte ho", "help me", "service list", "what do you provide", "help"],
+    reply: "Namaste! 🙏 I am Sahakar Assistant, your AI Cooperative Guide.\n\nWe provide verified cooperative services across 4 main areas:\n1. ⚡ Emergency Repairs: Electricians, Plumbers, Carpenters, AC Technicians\n2. 🧹 Home & Meal Services: Home Cooks, House Cleaners, Gardeners\n3. 📚 Education & Care: Qualified Tutors, Senior Caregivers, Private Drivers\n4. 🛡️ Escrow & Govt Security: e-Shram & DigiLocker verified workers with 100% Razorpay Escrow protection.\n\nWhat service or assistance do you need today?",
+    actionCategory: null,
+    isEmergency: false,
+  },
   {
     triggers: ["electric", "light", "bijli", "current", "power", "switch", "line", "chali", "nhi", "elctric", "बिजली"],
     reply: "Electrical issue detected! Our Geospatial Broadcast system can alert nearby certified cooperative electricians in your locality immediately.",
@@ -11,20 +17,28 @@ const KNOWLEDGE_BASE = [
     isEmergency: true,
   },
   {
-    triggers: ["pipe", "leak", "paani", "water", "tap", "flush", "drain", "sink", "पानी", "पाइप"],
+    triggers: ["cook", "khana", "rasoi", "chef", "roti", "food", "kitchen", "lunch", "dinner", "breakfast", "masi", "kok", "bhuk", "bhook", "bhookh", "hungry", "hunger"],
+    reply: "Domestic culinary & meal preparation service requested! I can connect you with verified cooperative cooks in your area right now.",
+    actionCategory: "Cook",
+    isEmergency: false,
+  },
+  {
+    triggers: ["pipe", "leak", "paani", "water", "tap", "flush", "drain", "sink", "pani", "पानी", "पाइप"],
     reply: "Water leakage or plumbing emergency detected! I can broadcast your request to verified cooperative plumbers right now.",
     actionCategory: "Plumber",
     isEmergency: false,
   },
   {
-    triggers: ["escrow", "payment", "razorpay", "paisa", "fee", "cost"],
+    triggers: ["escrow", "payment", "razorpay", "paisa", "fee", "cost", "safe", "secure"],
     reply: "SahakarGig holds your funds safely in Razorpay Escrow. No money is charged until a worker accepts your broadcast job request!",
     actionCategory: null,
+    isEmergency: false,
   },
   {
-    triggers: ["eshram", "uan", "welfare", "pmsby", "insurance"],
+    triggers: ["eshram", "uan", "welfare", "pmsby", "insurance", "digilocker", "kyc"],
     reply: "All providers on SahakarGig are verified against official government e-Shram UAN and PMSBY insurance databases for 100% security.",
     actionCategory: null,
+    isEmergency: false,
   },
   {
     triggers: ["tutor", "study", "math", "teacher", "padhai", "पढ़ाई"],
@@ -32,7 +46,177 @@ const KNOWLEDGE_BASE = [
     actionCategory: "Tutor",
     isEmergency: false,
   },
+  {
+    triggers: ["clean", "safai", "pocha", "jhadu", "dusting", "washroom", "bathroom", "cleaning"],
+    reply: "Home sanitation & deep cleaning requested! We have verified cooperative cleaners ready to assist you.",
+    actionCategory: "Cleaner",
+    isEmergency: false,
+  },
+  {
+    triggers: ["ac", "cooling", "air conditioner", "ac repair", "gas fill"],
+    reply: "AC servicing & repair requested! Nearby certified HVAC technicians can be dispatched immediately.",
+    actionCategory: "AC Repair",
+    isEmergency: false,
+  },
+  {
+    triggers: ["carpenter", "wood", "furniture", "door", "bed", "table", "lock"],
+    reply: "Carpentry work detected! Our cooperative network includes certified carpenters for furniture repair and installation.",
+    actionCategory: "Carpenter",
+    isEmergency: false,
+  }
 ];
+
+function extractUserName(str) {
+  const match = (str || "").match(/(?:mera name|my name is|mera naam|main|i am)\s+([a-zA-Z]+)/i);
+  if (match && !["felling", "feeling", "a", "an", "the", "in", "on", "at", "to", "for"].includes(match[1].toLowerCase())) {
+    return match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+  }
+  return null;
+}
+
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < (str || "").length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash;
+}
+
+function normalizeQuery(str) {
+  let q = (str || "").toLowerCase().trim();
+  q = q.replace(/hungary|hungri|hungr/g, "hungry");
+  q = q.replace(/felling|feelin|feeling/g, "feeling");
+  q = q.replace(/whta|wat|wht|waht|whatt/g, "what");
+  q = q.replace(/serveice|service|services|sevic|servis|servise|serivce|serevice/g, "service");
+  q = q.replace(/elctric|electrik|electrician/g, "electric");
+  q = q.replace(/plumber|plmber|plumb/g, "pipe");
+  q = q.replace(/kaya|kyaa|kyaah/g, "kya");
+  return q;
+}
+
+function processQueryIntent(query) {
+  const q = normalizeQuery(query);
+  const userName = extractUserName(query);
+  const greeting = userName ? `Namaste ${userName} ji! 🙏` : "Namaste! 🙏";
+  const isUrgent = q.includes("urgent") || q.includes("emergency") || q.includes("jaldi") || q.includes("turant") || q.includes("tatkal") || q.includes("fast");
+
+  // 1. Urgent / Emergency Need Intent
+  if (isUrgent) {
+    return {
+      sender: "ai",
+      text: `${greeting} Emergency & Urgent Assistance alert active! 🚨 SahakarGig ka AI Geospatial Broadcast system nearby verified Electricians, Plumbers, Cooks aur Caregivers ko 15 minutes ke andar dispatch kar sakta hai. Aapko abhi turant kaunsi service chahiye?`,
+      actionCategory: null,
+      isEmergency: true
+    };
+  }
+
+  // 2. Identity & Introduction ("app kon ho", "who are you", "kaun ho", "tum kaun ho")
+  if (q.includes("kon ho") || q.includes("kaun ho") || q.includes("who are you") || q.includes("tum kaun") || q.includes("aap kaun") || q.includes("what is your name") || q.includes("you ai")) {
+    return {
+      sender: "ai",
+      text: `${greeting} Main Saarthi (सारथी) hoon — SahakarGig platform ka official AI Assistant. Main aapko verified cooperative workers dhoondhne, bookings karne, aur escrow payments samajhne mein help karta hoon. Aapko aaj kis cheez mein help chahiye?`,
+      actionCategory: null,
+      isEmergency: false
+    };
+  }
+
+  // 3. Cook / Hunger / Food ("hungry", "hungary", "food", "khana", "cook", "chef", "roti", "meal", "dinner")
+  if (q.includes("hungry") || q.includes("hungary") || q.includes("hunger") || q.includes("cook") || q.includes("khana") || q.includes("rasoi") || q.includes("chef") || q.includes("roti") || q.includes("food") || q.includes("bhook") || q.includes("meal") || q.includes("dinner") || q.includes("lunch")) {
+    return {
+      sender: "ai",
+      text: `${greeting} Bhuk ya khana banane ke liye certified cook chahiye? 🍳 Humare paas verified cooperative cooks available hain jo hygienic aur swadist ghar ka khana banate hain. Kya main aapko cook connect karoon?`,
+      actionCategory: "Cook",
+      isEmergency: false
+    };
+  }
+
+  // 4. Pricing & Budget Inquiry ("300 mai kya milega", "kitna lagega", "price", "rate", "cost", "budget")
+  if (q.includes("300") || q.includes("500") || q.includes("price") || q.includes("rate") || q.includes("cost") || q.includes("budget") || q.includes("kitna") || q.includes("charge") || q.includes("kya milega") || q.includes("kya kaya")) {
+    return {
+      sender: "ai",
+      text: `${greeting} ₹300 - ₹500 ke budget mein aapko SahakarGig pe yeh verified cooperative services mil sakti hain:\n\n• 🛠️ Plumbing Minor Repair & Leakage: ₹350/hr\n• ⚡ Electrical Switch/Wiring Check: ₹350/hr\n• 🧹 Home Sanitation & Deep Cleaning: ₹300 - ₹400\n• 🍳 Meal Preparation Cook: ₹350/meal\n• 🚗 Short Trip Driver: ₹300/hr\n\nSaare payments Razorpay Escrow mein 100% safe rehte hain! Aaj kaunsi service book karni hai?`,
+      actionCategory: null,
+      isEmergency: false
+    };
+  }
+
+  // 5. App or Website Inquiry ("app hai ya website", "is this app", "website or app")
+  if (q.includes("app") && (q.includes("website") || q.includes("hai") || q.includes("ya"))) {
+    return {
+      sender: "ai",
+      text: `${greeting} SahakarGig ek Web Application aur Digital Platform hai 🌐📱. Aap ise apne phone ya laptop browser pe chala sakte hain! Yeh verified gig workers aur households ko direct cooperative societies se jodta hai.`,
+      actionCategory: null,
+      isEmergency: false
+    };
+  }
+
+  // 6. Greetings ("hi", "hello", "namaste", "hey", "kaise ho")
+  if (q === "hi" || q === "hello" || q === "hey" || q === "yoo" || q.includes("namaste") || q.includes("kaise ho") || q.includes("hlo") || q.includes("hy")) {
+    return {
+      sender: "ai",
+      text: `${greeting} Welcome to SahakarGig. Main badhiya hoon! Aaj aapko kis kaam ke liye verified worker ya service chahiye?`,
+      actionCategory: null,
+      isEmergency: false
+    };
+  }
+
+  // 7. Services Inquiry ("whta serveice do you have", "what services", "kya kaam hota hai", "services", "help")
+  if (q.includes("service") || q.includes("help") || q.includes("provide") || q.includes("kaam") || q.includes("list") || q.includes("do you have")) {
+    return {
+      sender: "ai",
+      text: `${greeting} SahakarGig pe aapko 4 main categories mein verified cooperative workers milte hain:\n\n1. ⚡ Emergency Repairs: Electrician, Plumber, Carpenter, AC Repair\n2. 🧹 Home & Food Services: Home Cook, House Cleaner, Gardener\n3. 📚 Care & Education: Tutors, Caregivers, Drivers\n4. 🛡️ Escrow Security: Government e-Shram verified workers with 100% Escrow payment protection.\n\nAapko kaunsa worker chahiye?`,
+      actionCategory: null,
+      isEmergency: false
+    };
+  }
+
+  // 8. Electrician / Power Fault
+  if (q.includes("electric") || q.includes("light") || q.includes("bijli") || q.includes("switch") || q.includes("current") || q.includes("wire") || q.includes("fan")) {
+    return {
+      sender: "ai",
+      text: `${greeting} Bijli ya electrical issue hai? ⚡ Humari AI Geospatial Broadcast system aapke aas-paas ke verified cooperative electricians ko turant job alert bhej degi!`,
+      actionCategory: "Electrician",
+      isEmergency: true
+    };
+  }
+
+  // 9. Plumber / Water Leakage
+  if (q.includes("pipe") || q.includes("leak") || q.includes("pani") || q.includes("paani") || q.includes("water") || q.includes("tap") || q.includes("sink") || q.includes("flush")) {
+    return {
+      sender: "ai",
+      text: `${greeting} Paani leakage ya plumbing problem hai? 💧 Aap direct plumbing broadcast trigger kar sakte hain aur verified plumber aapke ghar aayega.`,
+      actionCategory: "Plumber",
+      isEmergency: false
+    };
+  }
+
+  // 10. Escrow / Payment Safety
+  if (q.includes("escrow") || q.includes("payment") || q.includes("paisa") || q.includes("money") || q.includes("safe") || q.includes("charge")) {
+    return {
+      sender: "ai",
+      text: `${greeting} SahakarGig pe aapka paisa 100% safe hai 🛡️! Aapka payment Razorpay Escrow account mein rehta hai. Jab tak worker kaam poora karke aapko satisfy nahi karta, tab tak paisa release nahi hota.`,
+      actionCategory: null,
+      isEmergency: false
+    };
+  }
+
+  // Dynamic Non-Repeating Fallbacks
+  const dynamicFallbacks = [
+    `${greeting} Main Saarthi (सारथी) hoon — aapka official SahakarGig AI Guide. Aap mujhse Electrician, Plumber, Cook, Cleaner, Tutors ya Escrow payments ke baare mein kuch bhi pooch sakte hain. Today main aapki kya help karoon?`,
+    `${greeting} SahakarGig Cooperative Network mein aapka swagat hai! Humare paas 100% e-Shram verified Electricians, Plumbers, Cooks aur Housekeeping staff available hain. Aapko kaunsi service chahiye?`,
+    `${greeting} Main Saarthi (सारथी) 🤖. Aap specific service (jaise "Electrician chahiye", "Cook chahiye", "Water Leakage", "300 me kya milega") batayein aur main aapko turant verified cooperative worker connect kar dunga!`
+  ];
+
+  const selectedText = dynamicFallbacks[Math.abs(hashString(query)) % dynamicFallbacks.length];
+
+  return {
+    sender: "ai",
+    text: selectedText,
+    actionCategory: null,
+    isEmergency: false
+  };
+}
 
 export default function AIChatbot() {
   const navigate = useNavigate();
@@ -41,7 +225,7 @@ export default function AIChatbot() {
   const [messages, setMessages] = useState([
     {
       sender: "ai",
-      text: "Namaste! 🙏 I am Sahakar Assistant, your official cooperative service guide. How can I help you today?",
+      text: "Namaste! 🙏 Main Saarthi (सारथी) hoon, aapka official AI Cooperative Companion. Aaj main aapki kya help karoon?",
       actionCategory: null,
     },
   ]);
@@ -66,22 +250,13 @@ export default function AIChatbot() {
       const { data } = await api.post("/ai/chat", { message: query });
       const aiMsg = {
         sender: "ai",
-        text: data.reply || `I processed your request "${query}". Sahakar Assistant can auto-broadcast your request to nearby verified cooperative workers.`,
+        text: data.reply || processQueryIntent(query).text,
         actionCategory: data.actionCategory,
         isEmergency: !!data.isEmergency,
       };
       setMessages((prev) => [...prev, aiMsg]);
     } catch {
-      const lower = query.toLowerCase();
-      let matchedKb = KNOWLEDGE_BASE.find((kb) =>
-        kb.triggers.some((trig) => lower.includes(trig))
-      );
-      const aiMsg = {
-        sender: "ai",
-        text: matchedKb ? matchedKb.reply : `Namaste! I processed "${query}". Sahakar Assistant can auto-broadcast your request to nearby verified cooperative workers.`,
-        actionCategory: matchedKb ? matchedKb.actionCategory : (lower.includes("electric") ? "Electrician" : null),
-        isEmergency: matchedKb ? matchedKb.isEmergency : false,
-      };
+      const aiMsg = processQueryIntent(query);
       setMessages((prev) => [...prev, aiMsg]);
     } finally {
       setIsTyping(false);
@@ -120,54 +295,58 @@ export default function AIChatbot() {
 
   return (
     <>
-      {/* Official Institutional Floating Support Button */}
+      {/* Orvia UI Floating Support Button — Circular Icon Only */}
       {!isOpen && (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4.5 py-3 rounded-full bg-[#00288e] text-white shadow-[0_8px_24px_rgba(0,40,142,0.28)] hover:bg-[#173bab] hover:scale-105 active:scale-95 transition-all cursor-pointer border border-[#c4c5d5]/40"
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[#1e6b65] text-white shadow-2xl hover:bg-[#145e58] hover:scale-110 active:scale-95 transition-all cursor-pointer border border-white/30 flex items-center justify-center group"
+          title="Saarthi AI Assistant"
         >
-          <Building2 size={18} className="text-white" />
-          <span className="text-[13.5px] font-bold tracking-tight">Sahakar Support</span>
+          <Bot size={26} className="text-[#84cc16] group-hover:rotate-12 transition-transform" />
         </button>
       )}
 
-      {/* Floating Chat Drawer */}
+      {/* Orvia Styled Floating Chat Drawer */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[360px] sm:w-[400px] h-[520px] rounded-3xl border border-[#c4c5d5]/80 bg-white text-[#0d1c2e] shadow-[0_20px_50px_rgba(0,40,142,0.20)] flex flex-col overflow-hidden animate-fadeIn">
-          {/* Drawer Header */}
-          <div className="p-4 px-5 bg-[#00288e] text-white flex items-center justify-between shrink-0">
+        <div className="fixed bottom-6 right-6 z-50 w-[350px] sm:w-[390px] h-[520px] rounded-3xl border border-slate-200 bg-white shadow-2xl flex flex-col overflow-hidden animate-alert-in">
+          
+          {/* Drawer Header — Orvia Ocean Teal */}
+          <div className="p-4 px-5 bg-gradient-to-r from-slate-900 via-[#1e6b65] to-slate-900 text-white flex items-center justify-between shrink-0 shadow-sm">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center border border-white/20">
-                <Building2 size={19} className="text-white" />
+                <Bot size={20} className="text-[#84cc16]" />
               </div>
               <div>
-                <h3 className="text-[15px] font-bold leading-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
-                  Sahakar Assistant
-                </h3>
-                <p className="text-[11px] text-white/80">Ministry of Cooperation Guide</p>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-sm font-black tracking-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+                    Saarthi
+                  </h3>
+                  <span className="w-2 h-2 rounded-full bg-[#84cc16] animate-pulse" />
+                </div>
+                <p className="text-[10.5px] text-slate-300 font-medium">AI Assistant</p>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition-colors cursor-pointer"
             >
-              <X size={18} />
+              <X size={17} />
             </button>
           </div>
 
-          {/* Messages Container */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-[#f8f9ff]">
+          {/* Messages Container — Warm Canvas */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#faf9f6]">
             {messages.map((msg, idx) => (
               <div
                 key={idx}
                 className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl p-3.5 text-[13px] leading-relaxed ${
+                  className={`max-w-[86%] rounded-2xl p-3.5 text-xs leading-relaxed ${
                     msg.sender === "user"
-                      ? "bg-[#00288e] text-white rounded-br-none shadow-xs font-medium"
-                      : "bg-white text-[#0d1c2e] border border-[#c4c5d5]/60 rounded-bl-none shadow-xs"
+                      ? "bg-[#1e6b65] text-white rounded-tr-xs shadow-xs font-semibold"
+                      : "bg-white text-slate-900 border border-slate-200/90 rounded-tl-xs shadow-xs font-medium"
                   }`}
                 >
                   {msg.text}
@@ -178,10 +357,10 @@ export default function AIChatbot() {
                   <button
                     type="button"
                     onClick={() => triggerDispatch(msg.actionCategory, msg.isEmergency)}
-                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00288e] text-white text-[12px] font-bold shadow-xs hover:bg-[#173bab] transition-all cursor-pointer"
+                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1e6b65] text-white text-[11.5px] font-bold shadow-xs hover:bg-[#145e58] transition-all cursor-pointer"
                   >
-                    <Zap size={13} fill="currentColor" />
-                    <span>Auto-Broadcast {msg.actionCategory} Request</span>
+                    <Zap size={13} className="text-[#84cc16]" fill="currentColor" />
+                    <span>Auto-Broadcast {msg.actionCategory}</span>
                     <ArrowRight size={13} />
                   </button>
                 )}
@@ -189,26 +368,27 @@ export default function AIChatbot() {
             ))}
 
             {isTyping && (
-              <div className="flex items-center gap-2 p-3 rounded-2xl bg-white border border-[#c4c5d5]/60 text-[12px] text-[#757684] w-fit">
-                <RefreshCw size={13} className="animate-spin text-[#00288e]" />
-                <span>Processing query…</span>
+              <div className="flex items-center gap-2 p-2.5 px-3 rounded-2xl bg-white border border-slate-200 text-xs text-slate-500 w-fit shadow-xs">
+                <RefreshCw size={13} className="animate-spin text-[#1e6b65]" />
+                <span className="font-semibold">Processing query…</span>
               </div>
             )}
             <div ref={chatEndRef} />
           </div>
 
-          {/* Quick Suggestion Chips */}
-          <div className="px-3 py-2 bg-white border-t border-[#c4c5d5]/50 flex items-center gap-1.5 overflow-x-auto shrink-0 scrollbar-none">
+          {/* Quick Suggestion Chips — Responsive Pills */}
+          <div className="px-3 py-2 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto shrink-0 scrollbar-none">
             {[
-              "⚡ Mere ghar me electric nahi hai",
-              "💧 Pipe leak ho raha hai",
-              "🛡️ Escrow payment info",
+              "⚡ Electrical Help",
+              "💧 Plumbing Leak",
+              "🛡️ Escrow Payout",
+              "📜 e-Shram Welfare"
             ].map((chip) => (
               <button
                 key={chip}
                 type="button"
                 onClick={() => handleSend(chip)}
-                className="whitespace-nowrap text-[11px] font-semibold text-[#00288e] bg-[#e8edff] hover:bg-[#d7e3ff] px-2.5 py-1 rounded-full transition-all cursor-pointer"
+                className="whitespace-nowrap text-[11px] font-bold text-[#145e58] bg-[#e6f4f1] hover:bg-[#1e6b65] hover:text-white px-3 py-1 rounded-full transition-all cursor-pointer border border-[#b2e2d8]/60"
               >
                 {chip}
               </button>
@@ -221,32 +401,33 @@ export default function AIChatbot() {
               e.preventDefault();
               handleSend();
             }}
-            className="p-3 bg-white border-t border-[#c4c5d5]/50 flex items-center gap-2 shrink-0"
+            className="p-3 bg-white border-t border-slate-100 flex items-center gap-2 shrink-0"
           >
             <button
               type="button"
               onClick={handleVoiceInput}
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                 isMicActive
                   ? "bg-red-600 text-white animate-pulse"
-                  : "bg-[#e8edff] text-[#00288e] hover:bg-[#d7e3ff]"
+                  : "bg-slate-100 text-slate-600 hover:bg-[#e6f4f1] hover:text-[#1e6b65]"
               }`}
+              title="Voice Input (Hindi / English)"
             >
-              <Mic size={18} />
+              <Mic size={17} />
             </button>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask in Hindi or English…"
-              className="flex-1 h-10 px-3 rounded-xl border border-[#c4c5d5]/70 bg-[#f8f9ff] text-[13px] text-[#0d1c2e] outline-none focus:border-[#00288e]"
+              className="flex-1 h-9 px-3 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-semibold text-slate-900 outline-none focus:border-[#1e6b65] focus:bg-white transition-all placeholder:text-slate-400"
             />
             <button
               type="submit"
               disabled={!input.trim()}
-              className="w-10 h-10 rounded-xl bg-[#00288e] text-white flex items-center justify-center disabled:opacity-40 hover:bg-[#173bab] transition-all cursor-pointer"
+              className="w-9 h-9 rounded-xl bg-[#1e6b65] text-white flex items-center justify-center disabled:opacity-40 hover:bg-[#145e58] transition-all cursor-pointer"
             >
-              <Send size={16} />
+              <Send size={15} />
             </button>
           </form>
         </div>

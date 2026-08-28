@@ -66,7 +66,7 @@ export default function FindServices() {
   const verified = providers.filter(p => p.verified).length;
 
   return (
-    <div className="w-full px-6 pt-8 pb-10 space-y-6">
+    <div className="w-full max-w-7xl mx-auto px-6 pt-8 pb-10 space-y-6">
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -81,10 +81,10 @@ export default function FindServices() {
         </div>
         {!loading && (
           <div className="flex gap-2">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#e8edff] text-[#00288e] text-[13px] font-bold">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl badge-accepted text-[13px] font-bold">
               {providers.length} providers
             </span>
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#e6f9ec] text-[#006d30] text-[13px] font-bold">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl badge-completed text-[13px] font-bold">
               {verified} verified
             </span>
           </div>
@@ -108,7 +108,7 @@ export default function FindServices() {
             onClick={startVoiceSearch}
             title="Voice Search (Hindi / English)"
             className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all ${
-              isListening ? "text-error animate-pulse bg-error-container" : "text-primary hover:bg-[#e8edff]"
+              isListening ? "text-error animate-pulse bg-error-container" : "text-primary hover:bg-primary-container"
             }`}
           >
             {isListening ? <MicOff size={16} /> : <Mic size={16} />}
@@ -166,14 +166,14 @@ export default function FindServices() {
               {/* Skills */}
               <div className="flex flex-wrap gap-1.5">
                 {(p.skills || []).slice(0, 4).map(s => (
-                  <span key={s} className="px-2.5 py-0.5 rounded-full bg-[#e8edff] text-[#00288e] text-[11px] font-semibold">{s}</span>
+                  <span key={s} className="px-2.5 py-0.5 rounded-full bg-primary-container text-on-primary-container text-[11px] font-semibold">{s}</span>
                 ))}
               </div>
 
               {/* Rate + trust */}
               <div className="flex items-center justify-between rounded-xl bg-surface-container-low px-4 py-2.5 border border-outline-variant/30">
                 <div className="flex items-center gap-1.5 text-[13px] text-on-surface-variant">
-                  <Star size={13} className="text-[#6b4200]" strokeWidth={2} />
+                  <Star size={13} className="text-tertiary-container dark:text-tertiary" strokeWidth={2} />
                   <span className="font-semibold text-on-surface">{p.trustScore ?? "—"}</span>
                   <span>trust score</span>
                 </div>
@@ -184,7 +184,7 @@ export default function FindServices() {
 
               {/* Book button */}
               <Link to={`/household/book/${p._id}`}
-                className="w-full h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-surface text-[13px] font-semibold text-on-surface hover:border-primary/40 hover:bg-[#e8edff] hover:text-[#00288e] transition-all duration-200">
+                className="w-full h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-surface text-[13px] font-semibold text-on-surface hover:border-primary/40 hover:bg-primary-container hover:text-on-primary-container transition-all duration-200">
                 Book Now
               </Link>
             </div>

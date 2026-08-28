@@ -71,7 +71,7 @@ export default function Welfare() {
   }
 
   return (
-    <div className="w-full px-6 pt-8 pb-10 space-y-6">
+    <div className="w-full max-w-7xl mx-auto px-6 pt-8 pb-10 space-y-6">
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -85,7 +85,7 @@ export default function Welfare() {
           </p>
         </div>
         {saved && (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#e6f9ec] border border-[#006d30]/20 text-[13px] font-bold text-[#006d30]">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl badge-completed text-[13px] font-bold">
             <CheckCircle2 size={15} strokeWidth={2.5} /> Saved successfully
           </div>
         )}
@@ -116,20 +116,20 @@ export default function Welfare() {
                   placeholder="e.g. UAN-851926293643 or ES12345678" />
                 {form.eShramId && welfareData?.eShramVerificationStatus !== 'govt_verified' && (
                   <button onClick={verifyEShram} disabled={verifying}
-                    className="shrink-0 h-11 px-4 rounded-xl border border-primary/25 bg-[#e8edff] text-[#00288e] text-[12px] font-bold hover:border-primary hover:bg-[#d7e3ff] disabled:opacity-50 transition-all inline-flex items-center gap-1.5">
+                    className="shrink-0 h-11 px-4 rounded-xl border border-primary/25 bg-primary-container text-on-primary-container text-[12px] font-bold hover:bg-primary hover:text-on-primary disabled:opacity-50 transition-all inline-flex items-center gap-1.5">
                     {verifying ? <Loader2 size={13} className="animate-spin" /> : <BadgeCheck size={13} />}
                     {verifying ? 'Saving…' : 'Save ID'}
                   </button>
                 )}
                 {welfareData?.eShramVerificationStatus === 'govt_verified' && (
-                  <span className="shrink-0 h-11 px-3 rounded-xl bg-[#e6f9ec] border border-[#006d30]/20 text-[#006d30] text-[12px] font-bold inline-flex items-center gap-1.5">
+                  <span className="shrink-0 h-11 px-3 rounded-xl badge-completed text-[12px] font-bold inline-flex items-center gap-1.5">
                     <CheckCircle2 size={13} /> Govt. Verified
                   </span>
                 )}
               </div>
               {verifyError && <p className="text-[12px] text-error mt-1">{verifyError}</p>}
               {welfareData?.eShramVerificationStatus === 'self_declared' && (
-                <p className="text-[11px] text-[#6b4200] mt-1">ID saved. Govt. verification pending — will auto-update when DigiLocker API is connected.</p>
+                <p className="text-[11px] text-tertiary-container dark:text-tertiary mt-1">ID saved. Govt. verification pending — will auto-update when DigiLocker API is connected.</p>
               )}
             </div>
 
@@ -146,14 +146,14 @@ export default function Welfare() {
                   <p className="text-[12px] text-on-surface-variant">Enable cooperative insurance coverage</p>
                 </div>
                 <button onClick={() => setForm(f => ({ ...f, insuranceOptIn: !f.insuranceOptIn }))}
-                  className={`relative w-11 h-6 rounded-full transition-all duration-200 shrink-0 cursor-pointer ${form.insuranceOptIn ? "bg-[#00288e]" : "bg-outline-variant"}`}>
+                  className={`relative w-11 h-6 rounded-full transition-all duration-200 shrink-0 cursor-pointer ${form.insuranceOptIn ? "bg-primary-container" : "bg-outline-variant"}`}>
                   <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ${form.insuranceOptIn ? "left-[22px]" : "left-0.5"}`} />
                 </button>
               </div>
 
               <button onClick={save} disabled={saving}
                 className={`h-10 inline-flex items-center gap-2 px-5 rounded-xl border text-[13px] font-semibold transition-all duration-200 disabled:opacity-50 cursor-pointer ${
-                  saved ? "border-[#006d30]/30 bg-[#e6f9ec] text-[#006d30]" : "border-outline-variant bg-surface text-on-surface hover:border-primary/40 hover:bg-[#e8edff] hover:text-[#00288e]"
+                  saved ? "border-secondary/30 badge-completed" : "border-outline-variant bg-surface text-on-surface hover:border-primary/40 hover:bg-primary-container hover:text-on-primary-container"
                 }`}>
                 <Save size={14} strokeWidth={2.5} />
                 {saving ? "Saving…" : saved ? "Saved ✓" : "Save Changes"}
@@ -168,7 +168,7 @@ export default function Welfare() {
               ) : (
                 <div className="flex flex-wrap gap-2 pt-1">
                   {(welfareData?.schemesEligible || ["PMSBY (₹2 Lakh Cover)", "AB-PMJAY (Health Insurance)", "e-Shram Pension Scheme"]).map(s => (
-                    <span key={s} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#e6f9ec] border border-[#006d30]/20 text-[#006d30] text-[12px] font-bold">
+                    <span key={s} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full badge-completed text-[12px] font-bold">
                       <CheckCircle2 size={13} strokeWidth={2.5} /> {s}
                     </span>
                   ))}
@@ -193,52 +193,20 @@ export default function Welfare() {
             {/* Welfare score */}
             <div className="rounded-2xl border border-outline-variant/60 bg-surface p-5 space-y-4 shadow-xs">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#e8edff] flex items-center justify-center">
-                  <ShieldCheck size={15} className="text-[#00288e]" strokeWidth={2} />
+                <div className="w-8 h-8 rounded-xl icon-box-blue flex items-center justify-center">
+                  <ShieldCheck size={15} strokeWidth={2} />
                 </div>
                 <h3 className="text-[15px] font-bold text-on-surface">Welfare Score</h3>
               </div>
-              <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-[#e8edff] border border-[#00288e]/10">
-                <span className="text-[13px] font-bold text-[#00288e]">Current Score</span>
-                <span className="text-[28px] font-bold text-[#00288e]">{welfareData?.welfareScore || 85}</span>
+              <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-primary-container border border-primary/10">
+                <span className="text-[13px] font-bold text-on-primary-container">Current Score</span>
+                <span className="text-[28px] font-bold text-on-primary-container">{welfareData?.welfareScore || 85}</span>
               </div>
               <div className="h-2.5 w-full rounded-full bg-surface-container-low overflow-hidden">
-                <div className="h-full rounded-full bg-[#00288e] transition-all duration-500"
+                <div className="h-full rounded-full bg-primary-container transition-all duration-500"
                   style={{ width: `${Math.max(welfareData?.welfareScore || 85, 5)}%` }} />
               </div>
               <p className="text-[11px] text-on-surface-variant font-medium">{welfareData?.welfareScore || 85}/100 — Active Protection Tier</p>
-            </div>
-
-            {/* QR card */}
-            <div className="rounded-2xl border border-outline-variant/60 bg-surface p-5 flex flex-col items-center gap-3 text-center shadow-xs">
-              <div className="flex items-center gap-2 self-start">
-                <div className="w-8 h-8 rounded-xl bg-[#e8edff] flex items-center justify-center">
-                  <QrCode size={15} className="text-[#00288e]" strokeWidth={2} />
-                </div>
-                <h3 className="text-[15px] font-bold text-on-surface">Welfare ID Card</h3>
-              </div>
-              {qr ? (
-                <>
-                  <img src={qr} alt="Welfare QR Code" className="w-40 h-40 rounded-xl border border-outline-variant" />
-                  <p className="text-[11px] text-on-surface-variant">Scan to verify identity &amp; welfare status</p>
-                  <p className="text-[13px] font-bold text-on-surface">{form.eShramId || '—'}</p>
-                  <button onClick={() => { const a = document.createElement('a'); a.href = qr; a.download = 'welfare-card.png'; a.click(); }}
-                    className="h-9 px-4 rounded-xl border border-outline-variant text-[12px] font-semibold text-on-surface hover:bg-[#e8edff] hover:text-[#00288e] hover:border-primary/40 transition-colors cursor-pointer">
-                    Download Card
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="w-20 h-20 rounded-xl bg-surface-container-low flex items-center justify-center">
-                    <QrCode size={32} className="text-on-surface-variant/40" strokeWidth={1.5} />
-                  </div>
-                  <p className="text-[12px] text-on-surface-variant">Generate your digital welfare card</p>
-                  <button onClick={loadQR} disabled={qrLoading || !providerId}
-                    className="h-9 px-4 rounded-xl border border-primary/25 bg-[#e8edff] text-[12px] font-semibold text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_12px_rgba(0,40,142,0.18)] active:scale-[0.98] disabled:opacity-50 transition-all duration-200 cursor-pointer">
-                    {qrLoading ? 'Generating…' : 'Generate QR Card'}
-                  </button>
-                </>
-              )}
             </div>
           </div>
         </div>

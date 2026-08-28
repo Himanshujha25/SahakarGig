@@ -3,16 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import api from "../../lib/api";
 import socket from "../../lib/socket";
-import Icon from "../../components/Icon";
-
-const statusPillClass = {
-  requested: "bg-surface-container-high text-on-surface-variant",
-  accepted: "bg-primary-fixed-dim text-primary",
-  "in-progress": "bg-[#e8edff] text-[#00288e]",
-  completed: "bg-secondary-container text-on-secondary-container",
-  cancelled: "bg-error-container text-on-error-container",
-  disputed: "bg-tertiary-container text-on-tertiary-container",
-};
+import { 
+  ArrowLeft, Phone, MapPin, Navigation, 
+  AlertCircle, Send, Zap, User, Key, Check, ExternalLink, MessageSquare
+} from "lucide-react";
 
 export default function JobDetail() {
   const { id } = useParams();
@@ -23,12 +17,15 @@ export default function JobDetail() {
   const [busy, setBusy] = useState(false);
   const [chat, setChat] = useState("");
   const [messages, setMessages] = useState([]);
+  const [otpError, setOtpError] = useState(null);
 
   const load = useCallback(async () => {
     try {
       const { data } = await api.get(`/bookings/${id}`);
       setBooking(data);
       setMessages(data.chat || []);
+    } catch (err) {
+      console.error("Failed to load booking details:", err);
     } finally {
       setLoading(false);
     }
@@ -50,9 +47,8 @@ export default function JobDetail() {
       socket.off('booking:updated');
       socket.off('booking:chat');
     };
-  }, [load]);
+  }, [load, id]);
 
-  // PRD §3.3: live GPS stream while the job is accepted/in-progress.
   const isActive = booking && ['accepted', 'in-progress'].includes(booking.status);
   useEffect(() => {
     if (!isActive || !navigator.geolocation) return;
@@ -76,9 +72,8 @@ export default function JobDetail() {
         () => {},
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
       );
-    } catch { /* geolocation unavailable */ }
+    } catch {}
 
-    // Periodic fallback in case watchPosition emits rarely.
     const tick = setInterval(emitPos, 8000);
     return () => {
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
@@ -95,6 +90,7 @@ export default function JobDetail() {
       setBusy(false);
     }
   }
+
   async function markInProgress() {
     setBusy(true);
     try {
@@ -104,15 +100,20 @@ export default function JobDetail() {
       setBusy(false);
     }
   }
+
   async function complete() {
     setBusy(true);
+    setOtpError(null);
     try {
       await api.patch(`/bookings/${id}/status`, { status: "completed" });
       await load();
+    } catch (err) {
+      setOtpError(err.response?.data?.message || "Failed to complete job");
     } finally {
       setBusy(false);
     }
   }
+
   async function cancel() {
     setBusy(true);
     try {
@@ -122,199 +123,286 @@ export default function JobDetail() {
       setBusy(false);
     }
   }
-  async function sendChat() {
-    if (!chat.trim()) return;
+
+  async function sendChat(customText) {
+    const textToSend = customText || chat;
+    if (!textToSend || !textToSend.trim()) return;
     try {
-      const { data } = await api.post(`/bookings/${id}/chat`, { message: chat });
+      const { data } = await api.post(`/bookings/${id}/chat`, { message: textToSend });
       setMessages(data.chat || []);
-      setChat("");
-    } catch {
-      // ignore
-    }
+      if (!customText) setChat("");
+    } catch {}
   }
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="mx-auto w-full max-w-2xl pt-lg">
-        <div className="animate-pulse rounded-xl border border-outline-variant bg-surface p-6">
-          <div className="mb-4 h-5 w-1/3 rounded bg-surface-variant"></div>
-          <div className="mb-3 h-4 w-2/3 rounded bg-surface-variant"></div>
-          <div className="h-4 w-1/2 rounded bg-surface-variant"></div>
+      <div className="w-full max-w-5xl mx-auto px-6 py-12 space-y-6">
+        <div className="animate-pulse rounded-xl border border-slate-200 bg-white p-8 space-y-4">
+          <div className="h-6 w-1/3 rounded bg-slate-100" />
+          <div className="h-4 w-1/2 rounded bg-slate-100" />
+          <div className="h-24 w-full rounded bg-slate-50" />
         </div>
       </div>
     );
-  if (!booking) return <p className="pt-lg font-body-md text-on-surface-variant">Booking not found.</p>;
+  }
+
+  if (!booking) {
+    return (
+      <div className="w-full max-w-md mx-auto my-16 p-8 text-center rounded-xl border border-slate-200 bg-white space-y-4">
+        <AlertCircle size={40} className="mx-auto text-slate-400" />
+        <h2 className="text-base font-semibold text-slate-900">Job Record Not Found</h2>
+        <p className="text-xs text-slate-500">The requested job reference could not be located in the ledger.</p>
+        <button
+          onClick={() => navigate("/provider")}
+          className="px-4 py-2 rounded-lg bg-slate-900 text-white font-medium text-xs hover:bg-slate-800 transition-colors"
+        >
+          Back to Job Queue
+        </button>
+      </div>
+    );
+  }
 
   const b = booking;
+  const isEmergency = b.isEmergency || false;
 
   return (
-    <div className="mx-auto w-full max-w-2xl pt-lg">
-      <button
-        onClick={() => navigate("/provider")}
-        className="mb-6 inline-flex items-center gap-1 font-heading text-sm font-semibold text-primary hover:text-primary-container"
-      >
-        <Icon name="arrow_back" className=" text-[18px]" />
-        Back to jobs
-      </button>
+    <div className="w-full max-w-5xl mx-auto px-6 pt-8 pb-20 space-y-6 text-slate-900">
 
-      <h1 className="mb-2 font-heading font-bold tracking-tight text-on-background text-2xl md:text-3xl">
-        Job Details
-      </h1>
-      <p className="mb-6 font-body-md text-on-surface-variant">Review the request and take action.</p>
-
-      {/* Job summary card */}
-      <div className="rounded-2xl border border-outline-variant/60 bg-surface p-6 space-y-6 shadow-xs">
-        <div className="flex items-start justify-between gap-3 pb-4 border-b border-outline-variant/40">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h2 className="truncate font-heading text-xl font-bold text-on-surface">
-                {b.householdId?.name || "Customer Request"}
-              </h2>
-              {b.isEmergency && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-error-container px-3 py-0.5 text-xs font-bold text-on-error-container">
-                  <Icon name="local_fire_department" className="text-[14px]" />
-                  Emergency Dispatch
-                </span>
-              )}
-            </div>
-            <p className="text-[14px] text-on-surface-variant font-medium">Service Category: <strong className="text-on-surface">{b.targetCategory || b.service}</strong></p>
+      {/* Header Bar */}
+      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate("/provider")}
+            className="p-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+            title="Back to Job Queue"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <div>
+            <h1 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+              Job Details
+            </h1>
+            <p className="text-xs text-slate-500">Reference #{b._id?.substring(0, 10) || "89412"}</p>
           </div>
-          <span className={`inline-flex shrink-0 rounded-full px-3.5 py-1 text-xs font-bold capitalize ${statusPillClass[b.status] || "bg-surface-container-high text-on-surface-variant"}`}>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold px-3 py-1 rounded bg-slate-100 text-slate-800 border border-slate-200 capitalize">
             {b.status}
           </span>
+          {isEmergency && (
+            <span className="text-xs font-semibold px-3 py-1 rounded bg-slate-900 text-white">
+              Emergency Request
+            </span>
+          )}
         </div>
+      </div>
 
-        {/* Customer Contact & Delivery Location */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="rounded-xl bg-[#f8f9ff] border border-[#00288e]/15 p-4 space-y-1">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Customer Phone</p>
-            <p className="text-[15px] font-bold text-[#00288e]">
-              {b.householdId?.phone || "+91 98765 43210"}
+      {/* Main Details Card */}
+      <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-6">
+        
+        {/* Customer Header Info */}
+        <div className="flex items-start justify-between border-b border-slate-100 pb-5">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">
+              {b.householdId?.name || "Anita Sharma"}
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Service: <span className="font-semibold text-slate-800">{b.targetCategory || b.service || "General Repair"}</span>
             </p>
           </div>
 
-          <div className="rounded-xl bg-[#f8f9ff] border border-[#00288e]/15 p-4 space-y-1">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Offered Payout Rate</p>
-            <p className="text-[18px] font-extrabold text-[#00288e]">₹{b.price} <span className="text-[12px] font-normal text-on-surface-variant">/ hr</span></p>
-          </div>
-
-          <div className="rounded-xl bg-[#f8f9ff] border border-[#00288e]/15 p-4 space-y-2 sm:col-span-2">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Customer Address & Locality</p>
-              {b.coordinates && (
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${b.coordinates.lat},${b.coordinates.lng}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[11.5px] font-bold text-[#00288e] hover:underline inline-flex items-center gap-1"
-                >
-                  <Icon name="navigation" className="text-[12px]" /> Navigate on Maps ↗
-                </a>
-              )}
-            </div>
-            <p className="text-[14px] font-semibold text-on-surface">
-              {b.locationText || b.address || "Indiranagar, Ghaziabad, Uttar Pradesh"}
-            </p>
-          </div>
-
-          <div className="rounded-xl bg-emerald-50 border border-emerald-500/20 p-4 sm:col-span-2 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <Icon name="shield" className="text-emerald-700 text-[18px]" />
-              <div>
-                <p className="text-[13px] font-bold text-emerald-900">Razorpay Escrow Protected</p>
-                <p className="text-[12px] text-emerald-800">Funds of ₹{b.price} held safely in escrow. Released upon completion.</p>
-              </div>
-            </div>
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-700 text-white">Escrow Secured</span>
+          <div className="text-right">
+            <p className="text-xs text-slate-400 font-medium uppercase">Offered Rate</p>
+            <p className="text-2xl font-bold text-slate-900">₹{b.price} <span className="text-xs font-normal text-slate-500">/ hr</span></p>
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="pt-2 flex flex-wrap gap-3">
-          {b.status === "requested" && (
-            <>
-              <button
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#00288e] px-6 font-heading font-bold text-white hover:bg-[#173bab] active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer shadow-sm"
-                disabled={busy}
-                onClick={accept}
+        {/* 2-Column Info Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 space-y-1">
+            <p className="text-[11px] font-bold text-slate-400 uppercase">Customer Phone</p>
+            <p className="text-sm font-semibold text-slate-900 font-mono">{b.householdId?.phone || "9811000004"}</p>
+            <a
+              href={`tel:${b.householdId?.phone || "9811000004"}`}
+              className="inline-flex items-center gap-1 text-xs text-slate-700 hover:text-slate-900 font-medium underline pt-1"
+            >
+              <Phone size={12} /> Call Customer
+            </a>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 space-y-1">
+            <p className="text-[11px] font-bold text-slate-400 uppercase">Service Location</p>
+            <p className="text-xs font-medium text-slate-800">{b.locationText || b.address || "Street 3, Noida, UP"}</p>
+            {b.coordinates ? (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${b.coordinates.lat},${b.coordinates.lng}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-slate-700 hover:text-slate-900 font-medium underline pt-1"
               >
-                <Icon name="check" className="text-[18px]" />
-                Accept Job Request Now
-              </button>
+                <Navigation size={12} /> Open Maps Navigation <ExternalLink size={10} />
+              </a>
+            ) : (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.locationText || b.address || "Noida")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-slate-700 hover:text-slate-900 font-medium underline pt-1"
+              >
+                <Navigation size={12} /> Open Maps Navigation <ExternalLink size={10} />
+              </a>
+            )}
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* Grid: Actions & Communication */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        {/* Left Column: Actions */}
+        <div className="lg:col-span-6 space-y-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-4">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-3">
+              Actions
+            </h3>
+
+            {otpError && (
+              <div className="p-3 rounded-lg bg-slate-100 text-slate-800 text-xs font-medium">
+                {otpError}
+              </div>
+            )}
+
+            {b.status === "requested" && (
+              <div className="space-y-2">
+                <button
+                  disabled={busy}
+                  onClick={accept}
+                  className="w-full py-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Accept Job Request
+                </button>
+
+                <button
+                  disabled={busy}
+                  onClick={cancel}
+                  className="w-full py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 font-medium text-xs transition-colors cursor-pointer"
+                >
+                  Decline Job
+                </button>
+              </div>
+            )}
+
+            {b.status === "accepted" && (
               <button
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-error px-6 font-heading font-bold text-on-error hover:bg-error/90 disabled:opacity-60 cursor-pointer"
+                disabled={busy}
+                onClick={markInProgress}
+                className="w-full py-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors cursor-pointer"
+              >
+                Mark In-Progress (On Site)
+              </button>
+            )}
+
+            {b.status === "in-progress" && (
+              <button
+                disabled={busy}
+                onClick={complete}
+                className="w-full py-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors cursor-pointer"
+              >
+                Complete Job & Release Payout
+              </button>
+            )}
+
+            {b.status === "completed" && (
+              <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-center space-y-1">
+                <p className="text-xs font-bold text-slate-900">Job Completed</p>
+                <p className="text-[11px] text-slate-500">Funds have been added to your wallet balance.</p>
+              </div>
+            )}
+
+            {(b.status === "accepted" || b.status === "in-progress") && (
+              <button
                 disabled={busy}
                 onClick={cancel}
+                className="w-full py-2 text-slate-500 hover:text-slate-700 font-medium text-xs transition-colors cursor-pointer"
               >
-                <Icon name="close" className="text-[18px]" />
-                Reject
+                Cancel Job
               </button>
-            </>
-          )}
-          {b.status === 'accepted' && (
-            <button
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#00288e] px-6 font-heading font-bold text-white hover:bg-[#173bab] transition-all duration-200 disabled:opacity-60 cursor-pointer shadow-sm"
-              disabled={busy}
-              onClick={markInProgress}
-            >
-              <Icon name="directions_run" className="text-[18px]" />
-              Mark In Progress
-            </button>
-          )}
-          {b.status === 'in-progress' && (
-            <button
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-6 font-heading font-bold text-white hover:bg-emerald-800 transition-all duration-200 disabled:opacity-60 cursor-pointer shadow-sm"
-              disabled={busy}
-              onClick={complete}
-            >
-              <Icon name="task_alt" className="text-[18px]" />
-              Mark Job Completed (Release ₹{b.price} Payout)
-            </button>
-          )}
-          {(b.status === 'in-progress' || b.status === 'accepted') && (
-            <button
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-outline-variant px-6 font-heading font-semibold text-on-surface hover:bg-surface-container disabled:opacity-60 cursor-pointer"
-              disabled={busy}
-              onClick={cancel}
-            >
-              Cancel Job
-            </button>
-          )}
+            )}
+
+          </div>
         </div>
+
+        {/* Right Column: Customer Messages */}
+        <div className="lg:col-span-6 rounded-xl border border-slate-200 bg-white p-6 flex flex-col justify-between min-h-[360px]">
+          <div className="space-y-3 flex-1 flex flex-col">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-3">
+              Messages
+            </h3>
+
+            {/* Quick Text Options */}
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                "On my way",
+                "Arrived at location",
+                "Job completed"
+              ].map((txt) => (
+                <button
+                  key={txt}
+                  type="button"
+                  onClick={() => sendChat(txt)}
+                  className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer"
+                >
+                  {txt}
+                </button>
+              ))}
+            </div>
+
+            {/* Message List */}
+            <div className="flex-1 max-h-56 overflow-y-auto space-y-2 p-2 rounded bg-slate-50 border border-slate-100 my-1">
+              {messages.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-6">No messages recorded.</p>
+              ) : (
+                messages.map((m, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex flex-col ${m.from === "provider" || m.from === "You" ? "items-end" : "items-start"}`}
+                  >
+                    <div className={`p-2.5 rounded-lg max-w-[85%] text-xs ${m.from === "provider" || m.from === "You" ? "bg-slate-900 text-white" : "bg-white text-slate-800 border border-slate-200"}`}>
+                      <p>{m.message}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Message Input */}
+          <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
+            <input
+              type="text"
+              value={chat}
+              onChange={(e) => setChat(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendChat()}
+              placeholder="Type message..."
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-800 outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => sendChat()}
+              className="px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer"
+            >
+              Send
+            </button>
+          </div>
+
+        </div>
+
       </div>
 
-      {/* Chat card */}
-      <div className="mt-4 flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface p-5 md:p-6">
-        <h2 className="font-heading text-base font-semibold text-on-surface">Chat</h2>
-        <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
-          {messages.length === 0 && (
-            <p className="font-body-md text-sm text-on-surface-variant">No messages yet.</p>
-          )}
-          {messages.map((m, i) => (
-            <div key={i} className="rounded-lg bg-surface-container-low p-3">
-              <p className="font-body-md text-sm text-on-surface">{m.message}</p>
-              <p className="mt-1 font-body-md text-xs text-on-surface-variant">
-                {m.from} · {m.at ? new Date(m.at).toLocaleString() : ""}
-              </p>
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <input
-            className="h-12 flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-md text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
-            value={chat}
-            onChange={(e) => setChat(e.target.value)}
-            placeholder="Type a message…"
-            onKeyDown={(e) => e.key === "Enter" && sendChat()}
-          />
-          <button
-            className="inline-flex h-12 w-12 items-center justify-center rounded-lg border border-primary/30 bg-[#e8edff] font-heading text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_12px_rgba(0,40,142,0.18)] active:scale-[0.95] transition-all duration-200"
-            onClick={sendChat}
-          >
-            <Icon name="send" className="" />
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

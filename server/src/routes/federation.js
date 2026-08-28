@@ -11,6 +11,8 @@ const fedOnly = (req, res, next) => {
 router.use(auth, fedOnly);
 router.get('/dashboard', asyncHandler(c.dashboard));
 router.get('/cooperatives', asyncHandler(c.listCooperatives));
+router.get('/cooperatives/:id', asyncHandler(c.getCooperativeDetail));
+router.patch('/cooperatives/:id/commission', asyncHandler(c.updateCooperativeCommission));
 router.post('/cooperatives/onboard', asyncHandler(c.onboardCooperative));
 router.patch('/commission', asyncHandler(c.updateCommission));
 

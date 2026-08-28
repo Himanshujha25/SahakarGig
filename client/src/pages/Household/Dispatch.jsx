@@ -59,7 +59,7 @@ function CategoryDropdown({ value, onChange }) {
         onClick={() => setOpen((v) => !v)}
         className={`h-12 w-full inline-flex items-center justify-between gap-2 px-4 rounded-xl border text-[14px] font-semibold transition-all duration-200 ${
           open
-            ? "border-primary bg-[#e8edff] text-[#00288e]"
+            ? "border-primary bg-primary-container text-on-primary-container"
             : selected
             ? "border-primary/40 bg-surface-container-lowest text-on-surface hover:border-primary/60"
             : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/40 hover:bg-surface-container-low"
@@ -68,7 +68,7 @@ function CategoryDropdown({ value, onChange }) {
         <span className={selected ? "" : "font-normal"}>
           {selected ? CATEGORIES.find((c) => c === selected) || selected : "Select a category…"}
         </span>
-        <ChevronDown size={18} strokeWidth={2.5} className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180 text-[#00288e]" : ""}`} />
+        <ChevronDown size={18} strokeWidth={2.5} className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180 text-on-primary-container" : ""}`} />
       </button>
 
       {open && (
@@ -83,12 +83,12 @@ function CategoryDropdown({ value, onChange }) {
                   onClick={() => { onChange(c); setOpen(false); }}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-150 ${
                     isSel
-                      ? "bg-[#e8edff] text-[#00288e]"
+                      ? "bg-primary-container text-on-primary-container"
                       : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
                   }`}
                 >
                   {c}
-                  {isSel && <Check size={16} strokeWidth={2.5} className="text-[#00288e]" />}
+                  {isSel && <Check size={16} strokeWidth={2.5} className="text-on-primary-container" />}
                 </button>
               );
             })}
@@ -330,10 +330,10 @@ export default function Dispatch() {
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e8edff] text-[#00288e] text-xs font-bold border border-[#00288e]/20">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container text-on-primary-container text-xs font-bold border border-primary/20">
               <Building2 size={13} />
               <span>Ministry of Cooperation</span>
-              <span className="w-1 h-1 rounded-full bg-[#00288e]/40" />
+              <span className="w-1 h-1 rounded-full bg-on-primary-container/40" />
               <span>Geospatial Radar Engine</span>
             </span>
           </div>
@@ -356,7 +356,7 @@ export default function Dispatch() {
                 { Icon: Lock, title: "3. Escrow Pay", sub: "Pay only after assignment" },
               ].map(({ Icon, title, sub }) => (
                 <div key={title} className="flex items-center gap-3 rounded-2xl border border-outline-variant/60 bg-surface p-4 shadow-2xs">
-                  <div className="w-10 h-10 rounded-xl bg-[#e8edff] text-[#00288e] flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-xl icon-box-blue flex items-center justify-center shrink-0">
                     <Icon size={18} strokeWidth={2.5} />
                   </div>
                   <div className="min-w-0">
@@ -401,7 +401,7 @@ export default function Dispatch() {
                         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                       );
                     }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#e8edff] text-[#00288e] text-[11.5px] font-bold hover:bg-[#d7e3ff] disabled:opacity-50 transition-all cursor-pointer"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container text-[11.5px] font-bold hover:opacity-80 disabled:opacity-50 transition-all cursor-pointer"
                   >
                     <MapPin size={12} />
                     {locLoading ? "Detecting…" : "Use GPS"}
@@ -438,7 +438,7 @@ export default function Dispatch() {
               )}
 
               <button type="submit" disabled={submitting}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#00288e] text-white font-heading font-bold text-[14.5px] hover:bg-[#173bab] active:scale-[0.99] disabled:opacity-60 transition-all cursor-pointer shadow-md">
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary-container text-on-primary-container font-heading font-bold text-[14.5px] hover:bg-primary hover:text-on-primary active:scale-[0.99] disabled:opacity-60 transition-all cursor-pointer shadow-md">
                 <Radar size={18} />
                 {submitting ? "Broadcasting Request…" : `Broadcast Job Request · ₹${offerPrice}/hr`}
               </button>
@@ -448,18 +448,18 @@ export default function Dispatch() {
           {/* Right Column: Live Network Preview & Security Shield (col-span-5) */}
           <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
             {/* Live Geospatial Network Radar Card */}
-            <div className="rounded-2xl border border-[#00288e]/20 bg-gradient-to-br from-[#e8edff] via-white to-[#f0f4ff] p-6 space-y-4 shadow-sm">
+            <div className="rounded-2xl border border-primary/20 bg-surface-container-low p-6 space-y-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[12px] font-extrabold uppercase tracking-wider text-[#00288e] flex items-center gap-2">
-                  <Radar size={16} className="text-[#00288e]" /> Live Geospatial Coverage
+                <span className="text-[12px] font-extrabold uppercase tracking-wider text-primary flex items-center gap-2">
+                  <Radar size={16} /> Live Geospatial Coverage
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#00288e] text-white">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary-container text-on-primary-container">
                   Active Coverage
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-white border border-[#c4c5d5]/50 flex items-center gap-4 shadow-2xs">
-                <div className="w-12 h-12 rounded-xl bg-[#00288e] text-white flex items-center justify-center shrink-0 font-bold text-[18px]">
+              <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/60 flex items-center gap-4 shadow-2xs">
+                <div className="w-12 h-12 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center shrink-0 font-bold text-[18px]">
                   {dynamicWorkerCount}+
                 </div>
                 <div>
@@ -474,8 +474,8 @@ export default function Dispatch() {
                   { title: "Razorpay Escrow Safety", desc: "Zero advance payment until job assigned" },
                   { title: "Institutional Oversight", desc: "Supervised by Primary Agricultural Credit Societies" },
                 ].map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-2.5 text-[12.5px] text-[#444653]">
-                    <ShieldCheck size={16} className="text-[#00288e] shrink-0 mt-0.5" />
+                   <div key={idx} className="flex items-start gap-2.5 text-[12.5px] text-on-surface-variant">
+                    <ShieldCheck size={16} className="text-primary shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-on-surface font-semibold">{item.title}:</strong> {item.desc}
                     </div>
@@ -504,7 +504,7 @@ export default function Dispatch() {
         {/* Radar animation */}
         <div className="relative w-64 h-64 md:w-72 md:h-72">
           {[0.25, 0.5, 0.75, 1].map((s) => (
-            <div key={s} className="absolute rounded-full border border-[#00288e]/20"
+            <div key={s} className="absolute rounded-full border border-primary/20"
               style={{ top: `${(1 - s) * 50}%`, left: `${(1 - s) * 50}%`, width: `${s * 100}%`, height: `${s * 100}%` }} />
           ))}
           {/* sweep */}
@@ -524,27 +524,27 @@ export default function Dispatch() {
             return (
               <div key={`${i}-${label}`} className="absolute" style={{ top: `${top}%`, left: `${left}%`, transform: "translate(-50%, -50%)" }}>
                 <div className="relative flex items-center justify-center">
-                  <div className="sg-radar-ping w-4 h-4 rounded-full bg-[#006d30]" />
-                  <div className="absolute inset-0 w-4 h-4 rounded-full bg-[#006d30]" />
+                  <div className="sg-radar-ping w-4 h-4 rounded-full bg-secondary-container" />
+                  <div className="absolute inset-0 w-4 h-4 rounded-full bg-secondary-container" />
                 </div>
-                <div className="mt-1 ml-1 -translate-x-1/2 w-fit px-1.5 py-0.5 rounded-md bg-[#006d30]/90 text-white text-[10px] font-bold whitespace-nowrap">
+                <div className="mt-1 ml-1 -translate-x-1/2 w-fit px-1.5 py-0.5 rounded-md bg-secondary-container text-on-secondary text-[10px] font-bold whitespace-nowrap">
                   {label}
                 </div>
               </div>
             );
           })}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-14 h-14 rounded-full bg-white text-[#00288e] flex items-center justify-center shadow-[0_4px_20px_rgba(0,40,142,0.3)] border border-primary/20">
+            <div className="w-14 h-14 rounded-full bg-surface text-primary flex items-center justify-center shadow-[0_4px_20px_rgba(0,40,142,0.3)] border border-primary/20">
               <AIIcon size={28} glow />
             </div>
           </div>
         </div>
 
         <div className="mt-8 flex flex-col items-center gap-2">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[#e8edff] text-[#00288e] px-4 py-2 text-[13px] font-bold">
+          <div className="inline-flex items-center gap-2 rounded-full bg-primary-container text-on-primary-container px-4 py-2 text-[13px] font-bold">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00288e] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#00288e]" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
             </span>
             Broadcasting to {nearby} nearby verified worker{nearby === 1 ? "" : "s"}
           </div>
@@ -573,7 +573,7 @@ export default function Dispatch() {
   /* ── DISCLOSURE (assigned) ────────────────────────────── */
   const pd = providerDetails;
   return (
-    <div className="w-full px-6 pt-8 pb-10 max-w-3xl space-y-6">
+    <div className="w-full max-w-3xl mx-auto px-6 pt-8 pb-10 space-y-6">
       <div>
         <p className="text-[14px] font-semibold text-secondary mb-1">
           <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={15} /> Worker Accepted — Provider Unlocked</span>
@@ -586,7 +586,7 @@ export default function Dispatch() {
       {/* Provider identity card */}
       <div className="rounded-2xl border border-outline-variant/60 bg-surface p-5 md:p-6 space-y-5">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-[#e8edff] text-[#00288e] flex items-center justify-center text-[26px] font-bold shrink-0">
+          <div className="w-16 h-16 rounded-2xl icon-box-blue flex items-center justify-center text-[26px] font-bold shrink-0">
             {(pd?.name || "?").charAt(0)}
           </div>
           <div className="min-w-0 flex-1">
@@ -599,8 +599,8 @@ export default function Dispatch() {
             </p>
           </div>
           <div className="text-right shrink-0">
-            <p className="flex items-center gap-1 text-[16px] font-bold text-[#6b4200]">
-              <Star size={16} className="fill-[#6b4200] text-[#6b4200]" /> {(pd?.rating || 0).toFixed(1)}
+            <p className="flex items-center gap-1 text-[16px] font-bold text-tertiary-container dark:text-tertiary">
+              <Star size={16} className="fill-current" /> {(pd?.rating || 0).toFixed(1)}
             </p>
             <p className="text-[11px] text-on-surface-variant">{pd?.jobsCompleted || 0} jobs completed</p>
           </div>
@@ -609,32 +609,32 @@ export default function Dispatch() {
         {/* Disclosure grid */}
         <div className="grid sm:grid-cols-2 gap-3">
           <div className="flex items-center gap-3 rounded-xl bg-surface-container-low border border-outline-variant/30 p-3.5">
-            <Phone size={17} className="text-[#00288e]" />
+            <Phone size={17} className="text-primary" />
             <div className="min-w-0">
               <p className="text-[11px] text-on-surface-variant">Contact</p>
               {pd?.phone ? (
-                <a href={`tel:${pd.phone}`} className="text-[14px] font-bold text-[#00288e] hover:underline">{pd.phone}</a>
+                <a href={`tel:${pd.phone}`} className="text-[14px] font-bold text-primary hover:underline">{pd.phone}</a>
               ) : (
                 <p className="text-[13px] font-semibold text-on-surface">Available via chat</p>
               )}
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl bg-surface-container-low border border-outline-variant/30 p-3.5">
-            <IdCard size={17} className="text-[#006d30]" />
+            <IdCard size={17} className="text-secondary" />
             <div className="min-w-0">
               <p className="text-[11px] text-on-surface-variant">e-Shram & UAN</p>
               <p className="text-[13px] font-bold text-on-surface truncate">{pd?.eShramId || "Verified Worker"}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl bg-surface-container-low border border-outline-variant/30 p-3.5">
-            <ShieldCheck size={17} className="text-[#006d30]" />
+            <ShieldCheck size={17} className="text-secondary" />
             <div className="min-w-0">
               <p className="text-[11px] text-on-surface-variant">Insurance & Social Security</p>
               <p className="text-[13px] font-bold text-on-surface truncate">{pd?.insuranceProvider || "PMSBY Active"}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl bg-surface-container-low border border-outline-variant/30 p-3.5">
-            <Users size={17} className="text-[#00288e]" />
+            <Users size={17} className="text-primary" />
             <div className="min-w-0">
               <p className="text-[11px] text-on-surface-variant">Skills</p>
               <p className="text-[13px] font-bold text-on-surface truncate">{(pd?.skills || []).slice(0, 4).join(" · ")}</p>
@@ -648,7 +648,7 @@ export default function Dispatch() {
             <p className="text-[13px] font-semibold text-on-surface">Recent feedback</p>
             {pd.reviews.map((r, i) => (
               <div key={i} className="rounded-xl bg-surface-container-low border border-outline-variant/30 p-3">
-                <p className="text-[12px] font-bold text-[#6b4200]">{"★".repeat(r.rating)}</p>
+                <p className="text-[12px] font-bold text-tertiary-container dark:text-tertiary">{"★".repeat(r.rating)}</p>
                 <p className="text-[13px] text-on-surface">{r.comment}</p>
               </div>
             ))}

@@ -5,13 +5,13 @@ import socket from "../../lib/socket";
 import { Plus, CheckCircle2, Zap } from "lucide-react";
 
 const STATUS_STYLE = {
-  requested:    { bg: "bg-[#fff3e0] text-[#6b4200]",    dot: "bg-[#6b4200]",    label: "Pending"     },
-  pending:      { bg: "bg-[#fff3e0] text-[#6b4200]",    dot: "bg-[#6b4200]",    label: "Pending"     },
-  accepted:     { bg: "bg-[#e8edff] text-[#00288e]",    dot: "bg-[#00288e]",    label: "Accepted"    },
-  "in-progress": { bg: "bg-[#e0f2fe] text-[#026aa2]",   dot: "bg-[#026aa2]",    label: "In Progress" },
-  completed:    { bg: "bg-[#e6f9ec] text-[#006d30]",    dot: "bg-[#006d30]",    label: "Completed"   },
-  disputed:     { bg: "bg-[#fce8e8] text-[#ba1a1a]",    dot: "bg-[#ba1a1a]",    label: "Disputed"    },
-  cancelled:    { bg: "bg-surface-container text-on-surface-variant", dot: "bg-outline", label: "Cancelled" },
+  requested:    { bg: "badge-pending",    dot: "bg-amber-600 dark:bg-amber-400",  label: "Pending"     },
+  pending:      { bg: "badge-pending",    dot: "bg-amber-600 dark:bg-amber-400",  label: "Pending"     },
+  accepted:     { bg: "badge-accepted",   dot: "bg-primary-container",       label: "Accepted"    },
+  "in-progress": { bg: "badge-accepted",  dot: "bg-primary-container",       label: "In Progress" },
+  completed:    { bg: "badge-completed",  dot: "bg-secondary-container",     label: "Completed"   },
+  disputed:     { bg: "badge-disputed",   dot: "bg-error",                   label: "Disputed"    },
+  cancelled:    { bg: "bg-surface-container text-on-surface-variant border border-outline-variant/40", dot: "bg-outline", label: "Cancelled" },
 };
 
 const TABS = [
@@ -74,7 +74,7 @@ export default function Bookings() {
   }, {});
 
   return (
-    <div className="w-full px-6 pt-8 pb-10 space-y-6">
+    <div className="w-full max-w-7xl mx-auto px-6 pt-8 pb-10 space-y-6">
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -156,7 +156,7 @@ export default function Bookings() {
                         <div className="flex items-center gap-2">
                           <p className="text-[14px] font-semibold text-on-surface">{b.service}</p>
                           {b.isEmergency && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#fce8e8] text-[#ba1a1a] text-[10px] font-bold">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full badge-emergency text-[10px] font-bold">
                               <Zap size={10} /> Emergency
                             </span>
                           )}
@@ -175,7 +175,7 @@ export default function Bookings() {
                         <div className="flex items-center justify-end gap-2">
                           <span className="text-[14px] font-bold text-on-surface">₹{b.price ?? 0}</span>
                           {b.paymentStatus === 'paid' ? (
-                            <span className="px-2 py-0.5 rounded-full bg-[#e6f9ec] text-[#006d30] text-[10px] font-bold">
+                            <span className="px-2 py-0.5 rounded-full badge-completed text-[10px] font-bold">
                               Paid ✓
                             </span>
                           ) : (

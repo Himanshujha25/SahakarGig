@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/api";
 import Icon from "../../components/Icon";
@@ -21,7 +21,22 @@ const inputCls = "block w-full px-3 py-2 border border-outline-variant rounded-l
 export default function Signup() {
   const { signup } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", role: "", cooperativeId: "" });
+  const [searchParams] = useSearchParams();
+
+  const inviteName = searchParams.get("name") || "";
+  const inviteEmail = searchParams.get("email") || "";
+  const invitePhone = searchParams.get("phone") || "";
+  const inviteCoopName = searchParams.get("coopName") || "";
+  const inviteSkill = searchParams.get("skill") || "";
+
+  const [form, setForm] = useState({
+    name: inviteName,
+    email: inviteEmail,
+    phone: invitePhone,
+    password: "",
+    role: inviteName || inviteEmail ? "Provider" : "",
+    cooperativeId: ""
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [coops, setCoops] = useState([]);
   const [err, setErr] = useState("");
@@ -30,10 +45,51 @@ export default function Signup() {
   const [pendingPayload, setPendingPayload] = useState(null);
 
   useEffect(() => {
-    if (form.role === "Provider") {
-      api.get("/providers/cooperatives").then((r) => setCoops(r.data)).catch(() => setCoops([]));
+    if (inviteName || inviteEmail) {
+      setForm((f) => ({
+        ...f,
+        name: inviteName || f.name,
+        email: inviteEmail || f.email,
+        phone: invitePhone || f.phone,
+        role: "Provider"
+      }));
     }
-  }, [form.role]);
+  }, [inviteName, inviteEmail, invitePhone]);
+
+  useEffect(() => {
+    if (form.role === "Provider") {
+      api.get("/providers/cooperatives").then((r) => {
+        const data = (r.data && r.data.length > 0) ? r.data : [
+          { _id: "coop_karolbagh_01", name: "Karol Bagh Labour Cooperative" },
+          { _id: "coop_connaught_02", name: "Central Delhi Artisan Cooperative" },
+          { _id: "coop_southdelhi_03", name: "South Delhi Skill Welfare Cooperative" }
+        ];
+        setCoops(data);
+
+        // Pre-select cooperative based on inviteCoopName query parameter
+        const searchTarget = (inviteCoopName || "Karol Bagh").toLowerCase();
+        const matched = data.find(c =>
+          c.name.toLowerCase().includes(searchTarget) ||
+          searchTarget.includes(c.name.toLowerCase()) ||
+          c._id === searchParams.get("coopId")
+        );
+
+        if (matched) {
+          setForm(f => ({ ...f, cooperativeId: matched._id }));
+        } else if (data.length > 0) {
+          setForm(f => ({ ...f, cooperativeId: data[0]._id }));
+        }
+      }).catch(() => {
+        const fallbackData = [
+          { _id: "coop_karolbagh_01", name: "Karol Bagh Labour Cooperative" },
+          { _id: "coop_connaught_02", name: "Central Delhi Artisan Cooperative" },
+          { _id: "coop_southdelhi_03", name: "South Delhi Skill Welfare Cooperative" }
+        ];
+        setCoops(fallbackData);
+        setForm(f => ({ ...f, cooperativeId: fallbackData[0]._id }));
+      });
+    }
+  }, [form.role, inviteCoopName, searchParams]);
 
   function set(k, v) { setForm((f) => ({ ...f, [k]: v })); }
 
@@ -92,6 +148,16 @@ export default function Signup() {
         <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">Create Account</h2>
         <p className="font-body-md text-xs sm:text-sm text-on-surface-variant mt-1">Select your role to get started.</p>
       </div>
+
+      {inviteCoopName && (
+        <div className="mb-4 p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100 flex items-start gap-3 shadow-xs">
+          <Icon name="verified_user" className="text-[22px] text-emerald-600 mt-0.5 shrink-0" />
+          <div className="text-xs space-y-0.5">
+            <strong className="block font-black text-emerald-950 dark:text-emerald-200">🎉 Invited by {inviteCoopName}!</strong>
+            <p className="opacity-90 font-medium">Your member profile details ({inviteSkill ? `${inviteSkill} • ` : ""}{inviteEmail}) have been pre-filled. Create a password below to complete registration!</p>
+          </div>
+        </div>
+      )}
 
       {/* Role Cards */}
       <div className="grid grid-cols-3 gap-2.5 mb-4">

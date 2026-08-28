@@ -27,7 +27,7 @@ export default function Verifications() {
   }
 
   return (
-    <div className="w-full px-6 pt-8 pb-24 lg:pb-10 space-y-6">
+    <div className="w-full max-w-7xl mx-auto px-6 pt-8 pb-24 lg:pb-10 space-y-6">
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

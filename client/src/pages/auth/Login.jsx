@@ -53,10 +53,10 @@ export default function Login() {
       <div className="mb-4 flex flex-wrap items-center gap-1.5">
         <span className="text-[10.5px] font-bold tracking-widest text-outline uppercase">Demo:</span>
         {[
-          ["nitinprakash268@gmail.com", "Coop Admin"],
-          ["nitin268@gmail.com", "Household"],
-          ["nitin@gmail.com", "Gig Worker"],
-          ["coder268@gmail.com", "Federation"],
+          ["coop.test@gmail.com", "Coop Admin"],
+          ["household.test@gmail.com", "Household"],
+          ["plumber.test@gmail.com", "Gig Worker"],
+          ["federation.test@gmail.com", "Federation"],
         ].map(([email, label]) => (
           <button
             key={label}
