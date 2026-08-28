@@ -134,8 +134,9 @@ export default function Dispatch() {
   const [step, setStep] = useState(id ? "loading" : "form");
   const [booking, setBooking] = useState(null);
   const [providerDetails, setProviderDetails] = useState(null);
-  const [nearby, setNearby] = useState(0);
   const [pins, setPins] = useState([]);
+  const [liveWorkers, setLiveWorkers] = useState(0);
+  const [locAccuracy, setLocAccuracy] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [error, setError] = useState("");
@@ -176,6 +177,44 @@ export default function Dispatch() {
     }
   }, [searchParams]);
 
+  // High-accuracy GPS: watchPosition samples continuously and resolves the
+  // best (lowest-accuracy) settled fix — stops early at ≤30 m, else after 6s.
+  function requestAccurateLoc(onProgress) {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("GPS unavailable"));
+        return;
+      }
+      let watchId = null;
+      let best = null;
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        if (watchId != null) navigator.geolocation.clearWatch(watchId);
+        if (best) resolve(best);
+        else reject(new Error("GPS timeout"));
+      };
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const fix = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: Math.round(pos.coords.accuracy || 0),
+          };
+          if (!best || fix.accuracy < best.accuracy) {
+            best = fix;
+            onProgress?.(fix);
+          }
+          if (fix.accuracy <= 30) finish();
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
+      );
+      setTimeout(finish, 6000);
+    });
+  }
+
   // Reverse-geocode coords → full street-level address (like Rapido / Google Maps)
   async function reverseGeocode(lat, lng) {
     try {
@@ -198,21 +237,20 @@ export default function Dispatch() {
     }
   }
 
-  // Auto-fill location on mount — like Rapido
+  // Auto-fill location on mount — watchPosition keeps sampling and resolves the
+  // most-accurate settled fix (≤30 m), so the default is pin-level, not city-level.
   useEffect(() => {
     if (!navigator.geolocation) return;
     setLocLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
+    requestAccurateLoc((fix) => setLocAccuracy(fix.accuracy))
+      .then(async ({ lat, lng, accuracy }) => {
         setCoords({ lat, lng });
+        setLocAccuracy(accuracy);
         const text = await reverseGeocode(lat, lng);
         if (text) setLocationText(text);
-        setLocLoading(false);
-      },
-      () => setLocLoading(false),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+      })
+      .catch(() => {})
+      .finally(() => setLocLoading(false));
   }, []);
 
   // Live "worker accepted" push → unlock disclosure card
@@ -269,7 +307,6 @@ export default function Dispatch() {
       });
       bookingIdRef.current = data.booking._id;
       setBooking(data.booking);
-      setNearby(data.nearbyProviders || 0);
       setStep("radar");
     } catch (err) {
       setError(err?.response?.data?.message || "Could not broadcast the job. Please try again.");
@@ -278,8 +315,9 @@ export default function Dispatch() {
     }
   }
 
-  // Real radar pins: the actual verified workers in range, positioned by
-  // true distance + bearing from the household location (same match as the server).
+  // Real radar pins + live available count. Server filters by radius, merges
+  // the worker's fresh live GPS (or saved geo) and returns distanceKm — so the
+  // blips are accurate AND update every poll as workers stream their location.
   async function loadPins() {
     const origin = booking?.coordinates?.lat != null ? booking.coordinates : coords;
     try {
@@ -288,28 +326,41 @@ export default function Dispatch() {
           category: booking?.targetCategory || category,
           lat: origin.lat, lng: origin.lng,
           radius: RADIUS_KM, limit: 100,
+          isVerified: true,
         },
       });
-      const list = (data.providers || [])
-        .filter((p) => p.verified && p.geoLocation?.lat != null && p.geoLocation?.lng != null)
+      const list = Array.isArray(data) ? data : (data.providers || []);
+      // Server returns only verified + in-range workers for this category.
+      setLiveWorkers(list.length);
+
+      const pinList = list
+        .filter((p) => p.hasLocation && p.geoLocation?.lat != null)
         .map((p) => ({
-          distanceKm: haversineKm(origin, p.geoLocation),
+          distanceKm: p.distanceKm ?? haversineKm(origin, p.geoLocation),
           bearing: bearingDeg(origin, p.geoLocation),
         }))
         .filter((p) => p.distanceKm <= RADIUS_KM)
         .sort((a, b) => a.distanceKm - b.distanceKm);
-      setPins(list);
+      setPins(pinList);
     } catch {
-      /* keep last known pins on network hiccup */
+      /* keep last known pins + count on network hiccup */
     }
   }
 
-  // Live refresh while the radar is on screen (workers / GPS move)
+  // Live refresh + heartbeat while the radar is on screen. The heartbeat renews
+// the broadcast (household is still watching) — leaving this page stops the
+// pings so the job auto-expires from workers' feeds within ~5 min.
   useEffect(() => {
-    if (step !== "radar" || !booking) return;
+    if (step !== "radar" || !booking?._id) return;
     loadPins();
-    const t = setInterval(loadPins, 6000);
-    return () => clearInterval(t);
+    const beat = () => api.post(`/bookings/${booking._id}/keepalive`).catch(() => {});
+    beat();
+    const pinsTimer = setInterval(loadPins, 6000);
+    const beatTimer = setInterval(beat, 15000);
+    return () => {
+      clearInterval(pinsTimer);
+      clearInterval(beatTimer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, booking?.targetCategory]);
 
@@ -418,17 +469,17 @@ export default function Dispatch() {
                     onClick={async () => {
                       if (!navigator.geolocation) return;
                       setLocLoading(true);
-                      navigator.geolocation.getCurrentPosition(
-                        async (pos) => {
-                          const { latitude: lat, longitude: lng } = pos.coords;
-                          setCoords({ lat, lng });
-                          const text = await reverseGeocode(lat, lng);
-                          if (text) setLocationText(text);
-                          setLocLoading(false);
-                        },
-                        () => setLocLoading(false),
-                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                      );
+                      try {
+                        const { lat, lng, accuracy } = await requestAccurateLoc((fix) => setLocAccuracy(fix.accuracy));
+                        setCoords({ lat, lng });
+                        setLocAccuracy(accuracy);
+                        const text = await reverseGeocode(lat, lng);
+                        if (text) setLocationText(text);
+                      } catch {
+                        // leave coords/text unchanged on GPS failure
+                      } finally {
+                        setLocLoading(false);
+                      }
                     }}
                     className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container text-[11.5px] font-bold hover:opacity-80 disabled:opacity-50 transition-all cursor-pointer"
                   >
@@ -437,7 +488,7 @@ export default function Dispatch() {
                   </button>
                 </div>
                 <p className="mt-1.5 text-[11.5px] text-on-surface-variant font-medium">
-                  Broadcasting within ~25 km radius · ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)})
+                  Broadcasting within ~25 km radius · ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}){locAccuracy != null && ` · ±${locAccuracy}m GPS`}
                 </p>
               </label>
 
@@ -520,6 +571,14 @@ export default function Dispatch() {
 
   /* ── RADAR (scanning) ─────────────────────────────────── */
   if (step === "radar") {
+    const origin = booking?.coordinates?.lat != null ? booking.coordinates : coords;
+    const RING_LABELS = [25, 18.75, 12.5, 6.25];
+    const COMPASS = [
+      { label: "N", at: "top-1 left-1/2 -translate-x-1/2" },
+      { label: "E", at: "top-1/2 right-1 -translate-y-1/2" },
+      { label: "S", at: "bottom-1 left-1/2 -translate-x-1/2" },
+      { label: "W", at: "top-1/2 left-1 -translate-y-1/2" },
+    ];
     return (
       <div className="w-full px-6 pt-10 pb-10 flex flex-col items-center text-center">
         <div className="mb-2">
@@ -530,67 +589,144 @@ export default function Dispatch() {
         </h1>
         <p className="text-[13px] text-on-surface-variant mb-8">{booking?.locationText}</p>
 
-        {/* Radar animation */}
-        <div className="relative w-64 h-64 md:w-72 md:h-72">
-          {[0.25, 0.5, 0.75, 1].map((s) => (
-            <div key={s} className="absolute rounded-full border border-primary/20"
-              style={{ top: `${(1 - s) * 50}%`, left: `${(1 - s) * 50}%`, width: `${s * 100}%`, height: `${s * 100}%` }} />
+        {/* ── PREMIUM LIVE RADAR ── */}
+        <div
+          className="sg-radar-wrap relative h-80 w-80 md:h-96 md:w-96 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 50%, rgba(16, 60, 78, 0.55), rgba(6, 18, 33, 0.92) 72%)",
+            boxShadow:
+              "inset 0 0 70px rgba(34,211,238,0.14), inset 0 0 18px rgba(34,211,238,0.08), 0 18px 50px rgba(1, 22, 34, 0.45)",
+          }}
+        >
+          {/* outer glow frame */}
+          <div className="pointer-events-none absolute -inset-2 rounded-full border border-cyan-300/15" />
+          {/* tick gear */}
+          {[0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].map((t) => (
+            <div key={t} className="absolute inset-0" style={{ transform: `rotate(${t * 360}deg)` }}>
+              <span className="absolute left-1/2 top-[3px] -translate-x-1/2 h-1.5 w-px bg-cyan-200/40 rounded" />
+            </div>
           ))}
-          {/* sweep */}
-          <div className="absolute inset-0 rounded-full overflow-hidden">
-            <div className="sg-radar-sweep absolute inset-0 rounded-full"
-              style={{ background: "conic-gradient(from 0deg, rgba(0,40,142,0.45), rgba(0,40,142,0) 70deg)" }} />
+          {/* compass */}
+          {COMPASS.map((c) => (
+            <span key={c.label} className={`absolute z-10 ${c.at} text-[10px] font-extrabold tracking-widest text-cyan-100/60`}>
+              {c.label}
+            </span>
+          ))}
+
+          {/* distance rings + range labels */}
+          {[0.25, 0.5, 0.75, 1].map((s, idx) => (
+            <div
+              key={s}
+              className="absolute rounded-full border border-cyan-200/15"
+              style={{ top: `${(1 - s) * 50}%`, left: `${(1 - s) * 50}%`, width: `${s * 100}%`, height: `${s * 100}%` }}
+            >
+              <span className="absolute left-1/2 top-1 -translate-x-1/2 text-[8.5px] font-bold tracking-wider text-cyan-100/35">
+                {RING_LABELS[idx]}
+              </span>
+            </div>
+          ))}
+          {/* crosshairs */}
+          <div className="pointer-events-none absolute left-1/2 top-0 bottom-0 w-px bg-cyan-200/10" />
+          <div className="pointer-events-none absolute top-1/2 left-0 right-0 h-px bg-cyan-200/10" />
+
+          {/* sweep trail — BELOW the blips so a point is never covered */}
+          <div className="pointer-events-none absolute inset-0 rounded-full overflow-hidden">
+            <div
+              className="sg-radar-sweep absolute inset-0 rounded-full"
+              style={{
+                background:
+                  "conic-gradient(from 0deg, rgba(34,211,238,0.55), rgba(34,211,238,0.18) 45deg, rgba(34,211,238,0) 95deg)",
+              }}
+            />
           </div>
-          {/* blips — real workers, positioned by true distance + bearing */}
+
+          {/* blips — real workers, true distance + bearing, always on top */}
           {pins.map((pin, i) => {
             const frac = Math.max(0.04, Math.min(pin.distanceKm / RADIUS_KM, 1));
             const ang = (pin.bearing * Math.PI) / 180;
-            const left = 50 + 46 * frac * Math.sin(ang);
-            const top = 50 - 46 * frac * Math.cos(ang);
+            const left = 50 + 45 * frac * Math.sin(ang);
+            const top = 50 - 45 * frac * Math.cos(ang);
             const label = pin.distanceKm < 1
               ? `${Math.round(pin.distanceKm * 1000)} m`
               : `${pin.distanceKm.toFixed(1)} km`;
             return (
-              <div key={`${i}-${label}`} className="absolute" style={{ top: `${top}%`, left: `${left}%`, transform: "translate(-50%, -50%)" }}>
-                <div className="relative flex items-center justify-center">
-                  <div className="sg-radar-ping w-4 h-4 rounded-full bg-secondary-container" />
-                  <div className="absolute inset-0 w-4 h-4 rounded-full bg-secondary-container" />
+              <div key={`${i}-${label}`} className="absolute z-30" style={{ top: `${top}%`, left: `${left}%`, transform: "translate(-50%, -50%)" }}>
+                <div className="relative h-6 w-6 flex items-center justify-center">
+                  <span className="sg-radar-ping absolute inline-flex h-full w-full rounded-full bg-lime-400/50" />
+                  <span className="relative inline-flex h-4 w-4 rounded-full bg-gradient-to-br from-lime-300 to-emerald-500 ring-2 ring-slate-900/50 shadow-[0_0_14px_rgba(163,230,53,0.75)]" />
                 </div>
-                <div className="mt-1 ml-1 -translate-x-1/2 w-fit px-1.5 py-0.5 rounded-md bg-secondary-container text-on-secondary text-[10px] font-bold whitespace-nowrap">
+                <div className="mt-1 -translate-x-1/2 w-fit px-1.5 py-0.5 rounded-md bg-slate-950/60 backdrop-blur text-lime-100 text-[10px] font-bold whitespace-nowrap ring-1 ring-white/15 shadow-lg">
                   {label}
                 </div>
               </div>
             );
           })}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-14 h-14 rounded-full bg-surface text-primary flex items-center justify-center shadow-[0_4px_20px_rgba(0,40,142,0.3)] border border-primary/20">
-              <AIIcon size={28} glow />
+
+          {/* YOU marker */}
+          <div className="absolute inset-0 z-20 flex items-center justify-center">
+            <div className="absolute h-20 w-20 rounded-full bg-cyan-400/15 animate-ping" />
+            <div className="relative h-14 w-14 rounded-full bg-slate-950/70 backdrop-blur flex items-center justify-center ring-1 ring-cyan-300/50 shadow-[0_0_24px_rgba(34,211,238,0.4)]">
+              <AIIcon size={22} glow />
             </div>
+            <span className="absolute top-[calc(50%+38px)] text-[9px] font-extrabold uppercase tracking-[0.25em] text-cyan-100/70">
+              You
+            </span>
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col items-center gap-2">
-          <div className="inline-flex items-center gap-2 rounded-full bg-primary-container text-on-primary-container px-4 py-2 text-[13px] font-bold">
+        {/* radar HUD */}
+        <div className="mt-4 inline-flex items-stretch divide-x divide-white/10 rounded-2xl bg-slate-900/85 text-cyan-100/80 ring-1 ring-cyan-300/20 shadow-lg overflow-hidden">
+          <span className="flex flex-col items-center px-4 py-2">
+            <em className="not-italic text-[8.5px] uppercase tracking-widest opacity-50">Job GPS</em>
+            <strong className="text-[11px] font-bold text-cyan-50">{origin.lat.toFixed(4)}°, {origin.lng.toFixed(4)}°</strong>
+          </span>
+          <span className="flex flex-col items-center px-4 py-2">
+            <em className="not-italic text-[8.5px] uppercase tracking-widest opacity-50">GPS Acc</em>
+            <strong className="text-[11px] font-bold text-cyan-50">±{locAccuracy != null ? `${locAccuracy} m` : "–"}</strong>
+          </span>
+          <span className="flex flex-col items-center px-4 py-2">
+            <em className="not-italic text-[8.5px] uppercase tracking-widest opacity-50">Range</em>
+            <strong className="text-[11px] font-bold text-cyan-50">{RADIUS_KM} km</strong>
+          </span>
+        </div>
+
+        <p className="mt-3 flex items-center gap-4 text-[11px] text-on-surface-variant font-medium">
+          <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,0.7)]" /> Live verified worker (live GPS)</span>
+          <span className="flex items-center gap-1.5"><span className="inline-flex h-3 w-3 items-center justify-center rounded-full bg-cyan-400 ring-1 ring-white/30" /> Your location</span>
+        </p>
+
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <div className="inline-flex items-center gap-2 rounded-full bg-slate-900/85 text-cyan-50 px-5 py-2 text-[13px] font-extrabold ring-1 ring-cyan-300/25 shadow-lg">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400" />
             </span>
-            Broadcasting to {nearby} nearby verified worker{nearby === 1 ? "" : "s"}
+            <span className="text-cyan-300">{liveWorkers}</span>
+            <span className="normal-case font-semibold text-cyan-100/80">gig worker{liveWorkers === 1 ? "" : "s"} broadcasting to</span>
           </div>
-          {pins.length > 0 && pins.length < nearby && (
+          {pins.length > 0 && pins.length < liveWorkers && (
             <p className="text-[12px] text-on-surface-variant">
-              {nearby - pins.length} more worker{nearby - pins.length === 1 ? "" : "s"} nearby (location private — on the way)
+              {liveWorkers - pins.length} more worker{liveWorkers - pins.length === 1 ? "" : "s"} nearby (GPS off — they appear live the moment they stream location)
             </p>
           )}
-          {pins.length === 0 && (
+          {pins.length === 0 && liveWorkers > 0 && (
             <p className="text-[12px] text-on-surface-variant">
-              No workers with live location in range yet — radar is real, keep waiting…
+              {liveWorkers} worker{liveWorkers === 1 ? " is" : "s are"} in range — watching their live GPS, keep waiting…
+            </p>
+          )}
+          {pins.length === 0 && liveWorkers === 0 && (
+            <p className="text-[12px] text-on-surface-variant">
+              No workers with matching skills nearby yet — radar updates live…
             </p>
           )}
           <p className="text-[12px] text-on-surface-variant">
             Offer <strong className="text-on-surface">₹{booking?.price || offerPrice}/hr</strong> · no payment charged yet — escrow locks only after a worker accepts
           </p>
           <p className="text-[12px] text-on-surface-variant">Waiting for the first worker to accept…</p>
+          <p className="text-[11px] text-on-surface-variant/80">
+            This offer auto-cancels ~5 min after you leave this page. Cancel now to stop it instantly.
+          </p>
           <div className="mt-2 flex flex-col items-center gap-1.5">
             <button
               onClick={() => {

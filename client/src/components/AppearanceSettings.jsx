@@ -13,7 +13,7 @@ export default function AppearanceSettings() {
       icon: Sun,
       accent: "text-amber-500",
       preview: (
-        <div className="w-full h-20 rounded-xl bg-[#f8f9ff] border border-slate-200 p-2 space-y-1.5 flex flex-col justify-between overflow-hidden shadow-2xs">
+        <div className="theme-preview-card w-full h-20 rounded-xl bg-[#f8f9ff] border border-slate-200 p-2 space-y-1.5 flex flex-col justify-between overflow-hidden shadow-2xs">
           <div className="flex items-center justify-between">
             <div className="w-12 h-2.5 rounded bg-[#1e40af]" />
             <div className="w-3 h-3 rounded-full bg-slate-300" />
@@ -52,7 +52,7 @@ export default function AppearanceSettings() {
       accent: "text-emerald-400",
       preview: (
         <div className="w-full h-20 rounded-xl border border-slate-300 dark:border-[#444653] flex overflow-hidden shadow-2xs">
-          <div className="w-1/2 bg-[#f8f9ff] p-2 flex flex-col justify-between">
+          <div className="theme-preview-card w-1/2 bg-[#f8f9ff] p-2 flex flex-col justify-between">
             <div className="w-8 h-2 rounded bg-[#1e40af]" />
             <div className="w-full h-3 rounded bg-white border border-slate-200" />
           </div>

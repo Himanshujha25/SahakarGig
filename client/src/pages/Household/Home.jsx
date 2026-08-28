@@ -8,6 +8,7 @@ import {
   CheckCircle2, Clock, AlertTriangle, MapPin, Zap, Mic
 } from "lucide-react";
 import AIVoiceSearchModal from "../../components/AIVoiceSearchModal";
+import ThemeToggle from "../../components/ThemeToggle";
 
 function formatMoney(v) {
   const n = Number(v) || 0;
@@ -96,6 +97,8 @@ export default function Home() {
 
         {/* Orvia Pill Search & Actions */}
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <ThemeToggle />
+
           <button
             type="button"
             onClick={() => setIsVoiceOpen(true)}

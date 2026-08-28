@@ -242,12 +242,13 @@ export default function AIChatbot() {
     if (!query || !query.trim()) return;
 
     const userMsg = { sender: "user", text: query };
+    const history = messages.slice(-12);
     setMessages((prev) => [...prev, userMsg]);
     if (!userText) setInput("");
     setIsTyping(true);
 
     try {
-      const { data } = await api.post("/ai/chat", { message: query });
+      const { data } = await api.post("/ai/chat", { message: query, history });
       const aiMsg = {
         sender: "ai",
         text: data.reply || processQueryIntent(query).text,
@@ -309,7 +310,7 @@ export default function AIChatbot() {
 
       {/* Orvia Styled Floating Chat Drawer */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[350px] sm:w-[390px] h-[520px] rounded-3xl border border-slate-200 bg-white shadow-2xl flex flex-col overflow-hidden animate-alert-in">
+        <div className="fixed bottom-6 right-6 z-50 w-[350px] sm:w-[390px] h-[520px] rounded-3xl border border-outline-variant bg-surface shadow-2xl flex flex-col overflow-hidden animate-alert-in">
           
           {/* Drawer Header — Orvia Ocean Teal */}
           <div className="p-4 px-5 bg-gradient-to-r from-slate-900 via-[#1e6b65] to-slate-900 text-white flex items-center justify-between shrink-0 shadow-sm">
@@ -336,17 +337,17 @@ export default function AIChatbot() {
           </div>
 
           {/* Messages Container — Warm Canvas */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#faf9f6]">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-surface-container-low">
             {messages.map((msg, idx) => (
               <div
                 key={idx}
                 className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
               >
                 <div
-                  className={`max-w-[86%] rounded-2xl p-3.5 text-xs leading-relaxed ${
+                  className={`max-w-[86%] rounded-2xl p-3.5 text-xs leading-relaxed whitespace-pre-line ${
                     msg.sender === "user"
                       ? "bg-[#1e6b65] text-white rounded-tr-xs shadow-xs font-semibold"
-                      : "bg-white text-slate-900 border border-slate-200/90 rounded-tl-xs shadow-xs font-medium"
+                      : "bg-surface-container-high text-on-surface border border-outline-variant rounded-tl-xs shadow-xs font-medium"
                   }`}
                 >
                   {msg.text}
@@ -368,7 +369,7 @@ export default function AIChatbot() {
             ))}
 
             {isTyping && (
-              <div className="flex items-center gap-2 p-2.5 px-3 rounded-2xl bg-white border border-slate-200 text-xs text-slate-500 w-fit shadow-xs">
+              <div className="flex items-center gap-2 p-2.5 px-3 rounded-2xl bg-surface-container-high border border-outline-variant text-xs text-on-surface-variant w-fit shadow-xs">
                 <RefreshCw size={13} className="animate-spin text-[#1e6b65]" />
                 <span className="font-semibold">Processing query…</span>
               </div>
@@ -377,7 +378,7 @@ export default function AIChatbot() {
           </div>
 
           {/* Quick Suggestion Chips — Responsive Pills */}
-          <div className="px-3 py-2 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto shrink-0 scrollbar-none">
+          <div className="px-3 py-2 bg-surface border-t border-outline-variant/60 flex items-center gap-1.5 overflow-x-auto shrink-0 scrollbar-none">
             {[
               "⚡ Electrical Help",
               "💧 Plumbing Leak",
@@ -388,7 +389,7 @@ export default function AIChatbot() {
                 key={chip}
                 type="button"
                 onClick={() => handleSend(chip)}
-                className="whitespace-nowrap text-[11px] font-bold text-[#145e58] bg-[#e6f4f1] hover:bg-[#1e6b65] hover:text-white px-3 py-1 rounded-full transition-all cursor-pointer border border-[#b2e2d8]/60"
+                className="whitespace-nowrap text-[11px] font-bold text-on-primary-container bg-primary-container hover:bg-primary hover:text-on-primary px-3 py-1 rounded-full transition-all cursor-pointer border border-primary/30"
               >
                 {chip}
               </button>
@@ -401,7 +402,7 @@ export default function AIChatbot() {
               e.preventDefault();
               handleSend();
             }}
-            className="p-3 bg-white border-t border-slate-100 flex items-center gap-2 shrink-0"
+            className="p-3 bg-surface border-t border-outline-variant/60 flex items-center gap-2 shrink-0"
           >
             <button
               type="button"
@@ -409,7 +410,7 @@ export default function AIChatbot() {
               className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                 isMicActive
                   ? "bg-red-600 text-white animate-pulse"
-                  : "bg-slate-100 text-slate-600 hover:bg-[#e6f4f1] hover:text-[#1e6b65]"
+                  : "bg-surface-container-high text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container"
               }`}
               title="Voice Input (Hindi / English)"
             >
@@ -420,7 +421,7 @@ export default function AIChatbot() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask in Hindi or English…"
-              className="flex-1 h-9 px-3 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-semibold text-slate-900 outline-none focus:border-[#1e6b65] focus:bg-white transition-all placeholder:text-slate-400"
+              className="flex-1 h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface-container transition-all placeholder:text-outline-variant"
             />
             <button
               type="submit"

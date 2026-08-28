@@ -23,6 +23,8 @@ const bookingSchema = new mongoose.Schema(
       lng: { type: Number, default: 77.2090 },
     },
     claimedAt: { type: Date },
+    // Broadcast offers expire unless the household keeps them alive from the radar page
+    expiresAt: { type: Date },
 
     status: {
       type: String,

@@ -166,6 +166,36 @@ export default function DispatchFeed() {
     };
   }, [alarmMuted]);
 
+  // Presence + live GPS stream while this page is open → household radar shows
+  // the worker's live pin (accurate distance), not a stale saved location.
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    if (!socket.connected) socket.connect();
+    let watchId = null;
+    let last = null;
+    try {
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          last = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          };
+          if (socket.connected) socket.emit("provider:heartbeat", last);
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+      );
+    } catch {}
+    const tick = setInterval(() => {
+      if (last && socket.connected) socket.emit("provider:heartbeat", last);
+    }, 10000);
+    return () => {
+      if (watchId != null) navigator.geolocation.clearWatch(watchId);
+      clearInterval(tick);
+    };
+  }, []);
+
   async function handleTestAlarm() {
     await ensureAlarmUnlocked();
     playAlarmSound(false);

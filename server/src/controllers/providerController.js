@@ -4,6 +4,17 @@ const Booking = require('../models/Booking');
 const Review = require('../models/Review');
 const Payout = require('../models/Payout');
 
+function haversine(a, b) {
+  const R = 6371;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const la = toRad(a.lat);
+  const lb = toRad(b.lat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la) * Math.cos(lb) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
 async function computeTrustScore(providerId) {
   const p = await Provider.findById(providerId);
   if (!p) return 0;
@@ -15,22 +26,48 @@ async function computeTrustScore(providerId) {
 }
 
 async function listProviders(req, res) {
-  const { category, isVerified, minRating } = req.query;
+  const { category, isVerified, minRating, lat, lng, radius } = req.query;
   const filter = {};
   if (category) filter.skills = { $in: [category] };
-  if (isVerified === 'true') filter.isVerified = true;
+  if (isVerified === 'true') filter.verified = true;
   if (minRating) filter.rating = { $gte: parseFloat(minRating) };
 
   const list = await Provider.find(filter).populate('cooperativeId', 'name').lean();
-  const withScore = await Promise.all(
-    list.map(async (item) => {
-      let base = 50;
-      if (item.isVerified) base += 20;
-      if (item.rating >= 4.5) base += 15;
-      if (item.completedJobs >= 10) base += 15;
-      return { ...item, trustScore: Math.min(100, base) };
-    })
-  );
+  const qLat = lat == null ? null : Number(lat);
+  const qLng = lng == null ? null : Number(lng);
+  const rad = Math.max(1, Number(radius) || 25);
+
+  const withScore = [];
+  for (const item of list) {
+    let base = 50;
+    if (item.verified) base += 20;
+    if (item.rating >= 4.5) base += 15;
+    if (item.completedJobs >= 10) base += 15;
+    const trustScore = Math.min(100, base);
+
+    // Prefer the worker's fresh live GPS; fall back to last saved geoLocation.
+    const live = require('../socket/liveLocations').getFresh(String(item.userId));
+    const geo = (live && live.lat != null && live.lng != null)
+      ? { lat: live.lat, lng: live.lng }
+      : item.geoLocation;
+
+    let distanceKm = null;
+    let inRange = true;
+    if (geo && geo.lat != null && qLat != null && qLng != null) {
+      distanceKm = haversine({ lat: qLat, lng: qLng }, geo);
+      inRange = distanceKm <= rad;
+    }
+    if (!inRange) continue; // feed-parity: workers without any geo stay in-range (notified but unpinned)
+
+    withScore.push({
+      ...item,
+      trustScore,
+      geoLocation: geo,        // effective (live or saved) — client pins use this
+      liveAt: live?.at || null,
+      hasLocation: !!(geo && geo.lat != null),
+      distanceKm,
+    });
+  }
   res.json(withScore);
 }
 
