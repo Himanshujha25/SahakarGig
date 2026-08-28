@@ -7,13 +7,127 @@ import { AIIcon, AIBadge } from "../../components/AIIcon";
 import {
   Radar, MapPin, Phone, Star, ShieldCheck, BadgeCheck, Lock,
   IndianRupee, ArrowRight, Zap, Handshake, CheckCircle2, Users, IdCard,
-  ChevronDown, Check, Building2, Sparkles
+  ChevronDown, Check, Building2, Sparkles, Search, Plus, X, Wrench, Hammer,
+  Paintbrush, ChefHat, HeartPulse, Car, Sprout, GraduationCap, Tv, Bug,
+  HardHat, Scissors, Tag, Layers
 } from "lucide-react";
 
-const CATEGORIES = [
-  "Plumber", "Electrician", "Tutor", "Cook", "Cleaner",
-  "Caregiver", "Driver", "Gardener", "Carpenter", "Painter",
+export const SERVICE_CATEGORIES = [
+  {
+    id: "Plumber",
+    name: "Plumber",
+    Icon: Wrench,
+    badgeBg: "bg-blue-500/10 text-blue-600 border-blue-200",
+    desc: "Taps, pipe leakage, water tanks, motor repair, drainage",
+    subServices: ["Tap Leakage Fix", "Pipe Blockage Clearing", "Water Tank Cleaning", "Flush & Basin Repair", "Water Motor Fitting"],
+  },
+  {
+    id: "Electrician",
+    name: "Electrician",
+    Icon: Zap,
+    badgeBg: "bg-amber-500/10 text-amber-600 border-amber-200",
+    desc: "Wiring, switchboard, MCB, ceiling fans, inverter, lights",
+    subServices: ["Fan Repair / Install", "Switchboard / MCB", "Short Circuit Repair", "Inverter Wiring", "Light / Chandelier Fitting"],
+  },
+  {
+    id: "Carpenter",
+    name: "Carpenter",
+    Icon: Hammer,
+    badgeBg: "bg-orange-500/10 text-orange-600 border-orange-200",
+    desc: "Furniture repair, door locks, hinges, modular fittings",
+    subServices: ["Door Lock / Handle Fix", "Furniture Assembly", "Hinges / Channel Repair", "Wooden Partition", "Cabinet & Drawer Repair"],
+  },
+  {
+    id: "Painter",
+    name: "Painter",
+    Icon: Paintbrush,
+    badgeBg: "bg-rose-500/10 text-rose-600 border-rose-200",
+    desc: "Full wall painting, waterproofing, putty, touchup & polish",
+    subServices: ["Room Wall Painting", "Waterproofing & Seepage", "Door / Wood Polish", "Putty & Crack Fill", "Exterior Wall Coating"],
+  },
+  {
+    id: "Cleaner",
+    name: "Cleaner",
+    Icon: Sparkles,
+    badgeBg: "bg-cyan-500/10 text-cyan-600 border-cyan-200",
+    desc: "Deep house cleaning, sofa shampoo, kitchen & bathroom sanitize",
+    subServices: ["Full Home Deep Clean", "Bathroom Sanitization", "Kitchen Chimney Clean", "Sofa & Carpet Shampoo", "Floor & Balcony Scrub"],
+  },
+  {
+    id: "Cook",
+    name: "Cook / Chef",
+    Icon: ChefHat,
+    badgeBg: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
+    desc: "Daily meal cooking, party catering, North/South Indian dishes",
+    subServices: ["Daily Home Meals", "Party / Event Cooking", "Diet & Healthy Food", "Breakfast / Tiffin Prep", "Regional Specialities"],
+  },
+  {
+    id: "Caregiver",
+    name: "Caregiver",
+    Icon: HeartPulse,
+    badgeBg: "bg-red-500/10 text-red-600 border-red-200",
+    desc: "Elderly care, patient bedside assistance, baby sitting",
+    subServices: ["Elderly Daily Care", "Post-Hospital Bedside Care", "Baby Sitting & Child Care", "Physio Assistance", "Medication Monitoring"],
+  },
+  {
+    id: "Driver",
+    name: "Driver",
+    Icon: Car,
+    badgeBg: "bg-indigo-500/10 text-indigo-600 border-indigo-200",
+    desc: "Personal chauffeur, local city drives, outstation road trips",
+    subServices: ["Hourly City Driving", "Outstation Road Trip", "Airport Pickup / Drop", "Office Daily Commute", "Commercial Vehicle Drive"],
+  },
+  {
+    id: "Gardener",
+    name: "Gardener",
+    Icon: Sprout,
+    badgeBg: "bg-green-500/10 text-green-600 border-green-200",
+    desc: "Lawn mowing, plant pruning, potting, landscaping, fertilizing",
+    subServices: ["Lawn Trimming / Mowing", "Pot Repotting & Soil", "Plant Pruning & Trimming", "Insecticide & Fertilizing", "Balcony Garden Setup"],
+  },
+  {
+    id: "Tutor",
+    name: "Tutor",
+    Icon: GraduationCap,
+    badgeBg: "bg-purple-500/10 text-purple-600 border-purple-200",
+    desc: "School subjects, maths, science, home tuition & languages",
+    subServices: ["Maths & Science (CBSE/ICSE)", "English & Hindi Tuition", "Primary School Tutoring", "Exam Prep & Revisions", "Language Lessons"],
+  },
+  {
+    id: "Appliance Repair",
+    name: "Appliance Repair",
+    Icon: Tv,
+    badgeBg: "bg-teal-500/10 text-teal-600 border-teal-200",
+    desc: "AC service, washing machine, refrigerator, microwave repair",
+    subServices: ["AC Service & Gas Refill", "Washing Machine Fix", "Refrigerator Cooling Fix", "Microwave / Oven Repair", "RO Water Purifier Service"],
+  },
+  {
+    id: "Pest Control",
+    name: "Pest Control",
+    Icon: Bug,
+    badgeBg: "bg-yellow-500/10 text-yellow-600 border-yellow-200",
+    desc: "Termite treatment, cockroach, rodent, mosquito protection",
+    subServices: ["Cockroach Gel Treatment", "Termite Anti-Borer Drill", "Bed Bug Elimination", "Mosquito Fogging", "Rodent Trapping"],
+  },
+  {
+    id: "Mason",
+    name: "Mason / Civil Work",
+    Icon: HardHat,
+    badgeBg: "bg-stone-500/10 text-stone-600 border-stone-200",
+    desc: "Brickwork, tile fixing, plastering, minor civil construction",
+    subServices: ["Floor Tile Replacement", "Wall Plastering / Repair", "Granite / Marble Fitting", "Minor Brick Construction", "Grouting & Sealing"],
+  },
+  {
+    id: "Tailor",
+    name: "Tailor / Laundry",
+    Icon: Scissors,
+    badgeBg: "bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-200",
+    desc: "Stitching, clothes alteration, curtains, custom fitting",
+    subServices: ["Dress / Shirt Alteration", "Curtain Stitching", "Zip & Button Replacement", "Custom Suit / Kurta Fit", "Ironing & Dry Clean Pickup"],
+  },
 ];
+
+const CATEGORIES = SERVICE_CATEGORIES.map((c) => c.id);
 
 const RADIUS_KM = 25;
 
@@ -40,58 +154,148 @@ function bearingDeg(a, b) {
   return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
-// Custom category dropdown — matches the dashboard TimeframePicker style
+// Searchable Category Dropdown with Recognizable Logos & Icons
 function CategoryDropdown({ value, onChange }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const ref = useRef(null);
+  const searchInputRef = useRef(null);
   const selected = value || "";
 
+  const selectedCategoryObj = SERVICE_CATEGORIES.find(
+    (c) => c.id.toLowerCase() === selected.toLowerCase() || c.name.toLowerCase() === selected.toLowerCase()
+  );
+
   useEffect(() => {
-    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    if (open && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  }, [open]);
+
+  const filtered = SERVICE_CATEGORIES.filter((c) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      c.name.toLowerCase().includes(q) ||
+      c.desc.toLowerCase().includes(q) ||
+      c.subServices.some((s) => s.toLowerCase().includes(q))
+    );
+  });
 
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`h-12 w-full inline-flex items-center justify-between gap-2 px-4 rounded-xl border text-[14px] font-semibold transition-all duration-200 ${
+        className={`h-13 w-full inline-flex items-center justify-between gap-3 px-4 rounded-xl border text-[14px] font-semibold transition-all duration-200 shadow-2xs ${
           open
-            ? "border-primary bg-primary-container text-on-primary-container"
+            ? "border-primary bg-primary-container text-on-primary-container ring-2 ring-primary/20"
             : selected
             ? "border-primary/40 bg-surface-container-lowest text-on-surface hover:border-primary/60"
             : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/40 hover:bg-surface-container-low"
         }`}
       >
-        <span className={selected ? "" : "font-normal"}>
-          {selected ? CATEGORIES.find((c) => c === selected) || selected : "Select a category…"}
-        </span>
-        <ChevronDown size={18} strokeWidth={2.5} className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180 text-on-primary-container" : ""}`} />
+        <div className="flex items-center gap-2.5 min-w-0">
+          {selectedCategoryObj ? (
+            <>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${selectedCategoryObj.badgeBg}`}>
+                <selectedCategoryObj.Icon size={16} strokeWidth={2.5} />
+              </div>
+              <span className="font-bold text-on-surface truncate text-[14.5px]">
+                {selectedCategoryObj.name}
+              </span>
+            </>
+          ) : (
+            <span className="font-normal text-on-surface-variant">Select a service category…</span>
+          )}
+        </div>
+        <ChevronDown
+          size={18}
+          strokeWidth={2.5}
+          className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180 text-primary" : "text-on-surface-variant"}`}
+        />
       </button>
 
       {open && (
-        <div className="sg-dropdown-list absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-60 overflow-y-auto rounded-2xl border border-outline-variant/60 bg-surface shadow-[0_8px_32px_rgba(0,40,142,0.12)]">
-          <div className="p-1.5 space-y-0.5">
-            {CATEGORIES.map((c) => {
-              const isSel = c === selected;
-              return (
+        <div className="sg-dropdown-list absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-2xl border border-outline-variant/70 bg-surface shadow-[0_12px_40px_rgba(0,40,142,0.18)] overflow-hidden animate-slide-up">
+          {/* Built-in Search Bar */}
+          <div className="p-2.5 border-b border-outline-variant/50 bg-surface-container-low">
+            <div className="relative">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+              <input
+                ref={searchInputRef}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search service (e.g. plumber, wire, lock, paint)..."
+                className="w-full h-9 pl-9 pr-8 rounded-lg bg-surface border border-outline-variant text-[13px] text-on-surface placeholder:text-on-surface-variant/70 outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium"
+              />
+              {search && (
                 <button
-                  key={c}
                   type="button"
-                  onClick={() => { onChange(c); setOpen(false); }}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-150 ${
-                    isSel
-                      ? "bg-primary-container text-on-primary-container"
-                      : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
-                  }`}
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-0.5 rounded"
                 >
-                  {c}
-                  {isSel && <Check size={16} strokeWidth={2.5} className="text-on-primary-container" />}
+                  <X size={13} />
                 </button>
-              );
-            })}
+              )}
+            </div>
+          </div>
+
+          {/* Categories List with Recognizable Logos */}
+          <div className="p-1.5 max-h-72 overflow-y-auto space-y-1">
+            {filtered.length === 0 ? (
+              <div className="py-6 text-center text-[13px] text-on-surface-variant">
+                No services found matching &ldquo;{search}&rdquo;
+              </div>
+            ) : (
+              filtered.map((c) => {
+                const isSel = selectedCategoryObj?.id === c.id;
+                const IconComp = c.Icon;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(c.id);
+                      setOpen(false);
+                      setSearch("");
+                    }}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all duration-150 cursor-pointer ${
+                      isSel
+                        ? "bg-primary-container text-on-primary-container shadow-2xs"
+                        : "hover:bg-surface-container-low text-on-surface"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${c.badgeBg}`}>
+                        <IconComp size={17} strokeWidth={2.5} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13.5px] font-bold truncate leading-tight">
+                          {c.name}
+                        </div>
+                        <div className="text-[11.5px] text-on-surface-variant/80 truncate leading-snug mt-0.5 font-normal">
+                          {c.desc}
+                        </div>
+                      </div>
+                    </div>
+                    {isSel && (
+                      <Check size={16} strokeWidth={2.5} className="text-primary shrink-0 ml-2" />
+                    )}
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
       )}
@@ -143,6 +347,9 @@ export default function Dispatch() {
   const [livePos, setLivePos] = useState(null);
 
   const [category, setCategory] = useState("");
+  const [selectedTasks, setSelectedTasks] = useState([]);
+  const [customTaskInput, setCustomTaskInput] = useState("");
+  const [showAddCustom, setShowAddCustom] = useState(false);
   const [locationText, setLocationText] = useState("");
   const [locLoading, setLocLoading] = useState(false);
   const [priceStr, setPriceStr] = useState("250");
@@ -300,10 +507,21 @@ export default function Dispatch() {
     if (!category) { setError("Please choose a service category."); return; }
     setSubmitting(true);
     setError("");
+
+    // Combine category with specific requested tasks / services
+    const combinedService = selectedTasks.length > 0
+      ? `${category} (${selectedTasks.join(", ")})`
+      : category;
+
     try {
       const { data } = await api.post("/bookings/broadcast", {
-        category, locationText, price: offerPrice,
-        lat: coords.lat, lng: coords.lng, isEmergency,
+        category,
+        service: combinedService,
+        locationText,
+        price: offerPrice,
+        lat: coords.lat,
+        lng: coords.lng,
+        isEmergency,
       });
       bookingIdRef.current = data.booking._id;
       setBooking(data.booking);
@@ -448,10 +666,155 @@ export default function Dispatch() {
             </div>
 
             <form onSubmit={broadcast} className="rounded-2xl border border-outline-variant/70 bg-surface p-6 sm:p-7 space-y-5 shadow-xs">
-              <label className="block">
-                <span className="mb-1.5 block text-[13px] font-semibold text-on-surface-variant">Service Category</span>
-                <CategoryDropdown value={category} onChange={setCategory} />
-              </label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="block text-[13px] font-semibold text-on-surface-variant">
+                    Service Category &amp; Skills Needed
+                  </span>
+                  {category && (
+                    <span className="text-[12px] font-bold text-primary flex items-center gap-1">
+                      <Layers size={13} /> {category}
+                    </span>
+                  )}
+                </div>
+                <CategoryDropdown
+                  value={category}
+                  onChange={(newCat) => {
+                    setCategory(newCat);
+                    setSelectedTasks([]);
+                  }}
+                />
+              </div>
+
+              {/* Multi-Service Task Selection & Add Service Button */}
+              {category && (
+                <div className="rounded-xl border border-primary/20 bg-surface-container-low p-4 space-y-3 animate-fade-in">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[12.5px] font-bold text-on-surface flex items-center gap-1.5">
+                      <Tag size={14} className="text-primary" /> Request Specific Tasks / Add Services:
+                    </span>
+                    <span className="text-[11px] text-on-surface-variant">Tap to include in request</span>
+                  </div>
+
+                  {/* Pre-defined Popular Task Chips for the Selected Category */}
+                  {(() => {
+                    const catObj = SERVICE_CATEGORIES.find(
+                      (c) => c.id.toLowerCase() === category.toLowerCase() || c.name.toLowerCase() === category.toLowerCase()
+                    );
+                    if (!catObj?.subServices) return null;
+                    return (
+                      <div className="flex flex-wrap gap-1.5">
+                        {catObj.subServices.map((task) => {
+                          const isSelected = selectedTasks.includes(task);
+                          return (
+                            <button
+                              key={task}
+                              type="button"
+                              onClick={() => {
+                                setSelectedTasks((prev) =>
+                                  isSelected ? prev.filter((t) => t !== task) : [...prev, task]
+                                );
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                                isSelected
+                                  ? "bg-primary text-on-primary shadow-2xs"
+                                  : "bg-surface border border-outline-variant/70 text-on-surface hover:border-primary/40 hover:bg-surface-container-high"
+                              }`}
+                            >
+                              {isSelected ? <Check size={12} strokeWidth={2.5} /> : <Plus size={12} />}
+                              {task}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Add Custom / Multiple Service Input Button */}
+                  <div className="pt-1">
+                    {showAddCustom ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          value={customTaskInput}
+                          onChange={(e) => setCustomTaskInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (customTaskInput.trim()) {
+                                if (!selectedTasks.includes(customTaskInput.trim())) {
+                                  setSelectedTasks((prev) => [...prev, customTaskInput.trim()]);
+                                }
+                                setCustomTaskInput("");
+                                setShowAddCustom(false);
+                              }
+                            }
+                          }}
+                          placeholder="Type custom task (e.g. Washroom leakage + motor wiring) & Enter..."
+                          className="flex-1 h-9 px-3 rounded-lg bg-surface border border-outline-variant text-[12.5px] text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (customTaskInput.trim()) {
+                              if (!selectedTasks.includes(customTaskInput.trim())) {
+                                setSelectedTasks((prev) => [...prev, customTaskInput.trim()]);
+                              }
+                              setCustomTaskInput("");
+                            }
+                            setShowAddCustom(false);
+                          }}
+                          className="px-3.5 py-1.5 rounded-lg bg-primary text-on-primary text-[12px] font-bold cursor-pointer hover:opacity-90"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddCustom(false)}
+                          className="p-1.5 text-on-surface-variant hover:text-on-surface cursor-pointer rounded"
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowAddCustom(true)}
+                        className="inline-flex items-center gap-1.5 text-[12px] font-bold text-primary hover:underline cursor-pointer py-1"
+                      >
+                        <Plus size={13} strokeWidth={2.5} /> + Add Custom Service / Task
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Active Selected Tasks Chips Display */}
+                  {selectedTasks.length > 0 && (
+                    <div className="pt-2 border-t border-outline-variant/40 space-y-1.5">
+                      <div className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
+                        Included in this Dispatch Broadcast:
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedTasks.map((t) => (
+                          <span
+                            key={t}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary-container text-on-primary-container text-[11.5px] font-bold shadow-2xs"
+                          >
+                            {t}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedTasks((prev) => prev.filter((item) => item !== t))}
+                              className="hover:opacity-70 cursor-pointer"
+                              title="Remove"
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <label className="block">
                 <span className="mb-1.5 block text-[13px] font-semibold text-on-surface-variant">Locality / Address</span>
