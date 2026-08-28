@@ -14,5 +14,6 @@ router.get('/commission', asyncHandler(c.getCommission));
 router.patch('/commission', asyncHandler(c.updateCommission));
 router.get('/leaderboard', asyncHandler(c.leaderboard));
 router.get('/providers', asyncHandler(c.listProviders));
+router.post('/invite-worker', asyncHandler(c.inviteWorker));
 
 module.exports = router;

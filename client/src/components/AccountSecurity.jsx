@@ -109,39 +109,43 @@ export function ChangePasswordSection({ onSaved }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PwField label="Current Password" visible={showPw} toggle={() => setShowPw(v => !v)}
         value={current} onChange={setCurrent} placeholder="Enter current password" />
-      <PwField label="New Password" visible={showPw} toggle={() => setShowPw(v => !v)}
-        value={next} onChange={setNext} placeholder="At least 8 characters" />
-      <PwField label="Confirm New Password" visible={showPw} toggle={() => setShowPw(v => !v)}
-        value={confirm} onChange={setConfirm} placeholder="Repeat new password" />
 
-      {mismatch && <p className="font-body-md text-xs font-semibold text-error">Passwords do not match.</p>}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <PwField label="New Password" visible={showPw} toggle={() => setShowPw(v => !v)}
+          value={next} onChange={setNext} placeholder="At least 8 characters" />
+        <PwField label="Confirm New Password" visible={showPw} toggle={() => setShowPw(v => !v)}
+          value={confirm} onChange={setConfirm} placeholder="Repeat new password" />
+      </div>
 
-      {/* Same banner patterns as Login.jsx / OtpModal.jsx */}
+      {mismatch && <p className="text-[11px] font-bold text-error">Passwords do not match.</p>}
+
       {msg && (
         msg.type === "ok" ? (
-          <div className="rounded-xl px-3.5 py-3 flex items-center gap-2.5 bg-[#e6f9ec] border border-[#006d30]/20 text-[#006d30] shadow-xs">
-            <Icon name="check_circle" className="text-[18px] shrink-0" />
-            <span className="font-body-md text-sm font-medium">{msg.text}</span>
+          <div className="rounded-xl px-3 py-2 flex items-center gap-2 bg-[#e6f9ec] border border-[#006d30]/20 text-[#006d30] text-xs font-semibold">
+            <Icon name="check_circle" className="text-[16px] shrink-0" />
+            <span>{msg.text}</span>
           </div>
         ) : (
-          <div className="rounded-xl p-3.5 flex items-center gap-2.5 bg-error-container border border-error/30 text-on-error-container shadow-xs">
-            <Icon name="error" className="text-[20px] shrink-0" />
-            <span className="font-body-md text-sm font-medium">{msg.text}</span>
+          <div className="rounded-xl p-2.5 flex items-center gap-2 bg-error-container border border-error/30 text-on-error-container text-xs font-semibold">
+            <Icon name="error" className="text-[16px] shrink-0" />
+            <span>{msg.text}</span>
           </div>
         )
       )}
 
-      <button type="button" onClick={save} disabled={saving}
-        className="h-10 inline-flex items-center gap-2 px-5 rounded-xl border border-primary/25 bg-surface-container-lowest text-primary text-[13px] font-bold hover:border-primary hover:bg-surface-container hover:shadow-sm active:scale-[0.98] transition-all duration-200 cursor-pointer disabled:opacity-60">
-        <Icon name="save" className="text-[16px]" strokeWidth={2.5} />
-        Update Password
-      </button>
-      <p className="font-body-md text-xs text-on-surface-variant">
-        For security, we'll email you a one-time code to confirm this change.
-      </p>
+      <div className="flex items-center justify-between gap-2 pt-1">
+        <p className="text-[11px] text-on-surface-variant">
+          We'll email a one-time OTP code to confirm this change.
+        </p>
+        <button type="button" onClick={save} disabled={saving}
+          className="h-9 inline-flex items-center gap-1.5 px-4 rounded-full bg-[#1e6b65] text-white text-xs font-bold hover:bg-[#145e58] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-60 shrink-0">
+          <Icon name="save" className="text-[15px]" strokeWidth={2.5} />
+          <span>Update Password</span>
+        </button>
+      </div>
 
       <OtpModal
         open={otpOpen}
@@ -158,10 +162,9 @@ export function ChangePasswordSection({ onSaved }) {
 }
 
 function PwField({ label, value, onChange, placeholder, visible, toggle }) {
-  // Label + input identical to the shared <Field/> component, plus an eye toggle
   return (
     <label className="block w-full">
-      <span className="block text-xs font-bold text-on-surface uppercase tracking-wider mb-1.5">{label}</span>
+      <span className="block text-[11px] font-bold text-on-surface uppercase tracking-wider mb-1">{label}</span>
       <div className="relative w-full">
         <input
           type={visible ? "text" : "password"}
@@ -169,12 +172,12 @@ function PwField({ label, value, onChange, placeholder, visible, toggle }) {
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           autoComplete="new-password"
-          className="w-full py-3 pr-11 pl-4 bg-surface border border-outline-variant rounded-xl text-on-surface font-body-md text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+          className="w-full h-9 px-3 pr-9 bg-surface border border-outline-variant rounded-xl text-on-surface text-xs focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all outline-none"
         />
         <button type="button" onClick={toggle} tabIndex={-1}
           aria-label={visible ? "Hide password" : "Show password"}
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors cursor-pointer">
-          <Icon name={visible ? "visibility_off" : "visibility"} className="text-[20px]" />
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors cursor-pointer">
+          <Icon name={visible ? "visibility_off" : "visibility"} className="text-[16px]" />
         </button>
       </div>
     </label>

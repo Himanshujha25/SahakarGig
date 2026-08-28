@@ -3,17 +3,16 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
 import socket from '../lib/socket';
-import { Home, CalendarDays, User, LogOut, Handshake, Search, Radar } from 'lucide-react';
+import { Home, CalendarDays, User, LogOut, Handshake, Search, Radar, Settings } from 'lucide-react';
 
 const NAV = [
   { label: 'Home',          Icon: Home,         to: '/household',       end: true  },
   { label: 'Dispatch',      Icon: Radar,        to: '/household/dispatch', end: false },
   { label: 'Find Services', Icon: Search,        to: '/household/find',  end: false },
   { label: 'My Bookings',   Icon: CalendarDays,  to: '/household/bookings', end: false },
-  { label: 'Profile',       Icon: User,          to: '/household/profile',  end: false },
 ];
 
-const activeStyle   = 'bg-[#e8edff] text-[#00288e]';
+const activeStyle   = 'bg-primary-container text-on-primary-container font-bold';
 const inactiveStyle = 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface';
 
 export default function HouseholdLayout() {
@@ -68,15 +67,32 @@ export default function HouseholdLayout() {
                 <>
                   <Icon size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
                   <span>{label}</span>
-                  {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00288e]" />}
+                  {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-on-primary-container" />}
                 </>
               )}
             </NavLink>
           ))}
         </nav>
 
-        {/* Sign out */}
-        <div className="px-3 pb-4 pt-3 border-t border-outline-variant/40">
+        {/* Bottom section: Settings + Sign out */}
+        <div className="px-3 pb-4 pt-3 border-t border-outline-variant/40 space-y-0.5">
+          <NavLink
+            to="/household/profile"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 ${
+                isActive ? activeStyle : inactiveStyle
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Settings size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                <span>Settings</span>
+                {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-on-primary-container" />}
+              </>
+            )}
+          </NavLink>
+
           <button onClick={signOut}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold text-error hover:bg-error-container/30 transition-all duration-200">
             <LogOut size={17} strokeWidth={2} className="shrink-0" />
@@ -115,7 +131,9 @@ export default function HouseholdLayout() {
 
       {/* ── Page content ── */}
       <main className="flex-1 lg:ml-[260px] pt-14 lg:pt-0 pb-20 lg:pb-0 min-h-screen">
-        <Outlet />
+        <div className="w-full max-w-7xl mx-auto">
+          <Outlet />
+        </div>
       </main>
 
       {/* ── Mobile bottom nav ── */}

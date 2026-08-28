@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import Icon from '../../components/Icon';
 
 export default function FederationCooperatives() {
+  const navigate = useNavigate();
   const [coops, setCoops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [coopId, setCoopId] = useState('');
@@ -34,7 +36,7 @@ export default function FederationCooperatives() {
   }
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="w-full max-w-7xl mx-auto p-6 lg:p-8 space-y-6">
       <div>
         <h1 className="font-heading text-2xl font-bold text-on-surface">Cooperatives</h1>
         <p className="text-sm text-on-surface-variant mt-0.5">Manage cooperatives under this federation.</p>
@@ -77,20 +79,29 @@ export default function FederationCooperatives() {
             <table className="w-full min-w-[500px] text-left">
               <thead>
                 <tr className="border-b border-outline-variant bg-surface-container-low">
-                  {['Name', 'Registration ID', 'Region', 'Commission'].map((h) => (
+                  {['Name', 'Registration ID', 'Region', 'Commission', 'Action'].map((h) => (
                     <th key={h} className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {coops.map((c) => (
-                  <tr key={c._id} className="border-b border-outline-variant hover:bg-surface-container-low/50">
-                    <td className="px-5 py-3 font-semibold text-sm text-on-surface">{c.name}</td>
-                    <td className="px-5 py-3 text-sm text-on-surface-variant font-mono">{c.registrationId}</td>
-                    <td className="px-5 py-3 text-sm text-on-surface-variant">{c.region || '—'}</td>
-                    <td className="px-5 py-3">
-                      <span className="inline-flex items-center rounded-full bg-[#e8edff] text-[#00288e] px-2.5 py-0.5 text-xs font-semibold">
-                        {c.commissionRate}%
+                  <tr 
+                    key={c._id} 
+                    onClick={() => navigate(`/federation/cooperatives/${c._id}`)}
+                    className="border-b border-outline-variant hover:bg-[#1e6b65]/5 transition-colors cursor-pointer"
+                  >
+                    <td className="px-5 py-3.5 font-bold text-sm text-on-surface hover:text-[#1e6b65]">{c.name}</td>
+                    <td className="px-5 py-3.5 text-sm text-on-surface-variant font-mono">{c.registrationId || c.registrationNumber || 'REG-2026-001'}</td>
+                    <td className="px-5 py-3.5 text-sm text-on-surface-variant">{c.region || c.state || 'Delhi Central'}</td>
+                    <td className="px-5 py-3.5">
+                      <span className="inline-flex items-center rounded-full bg-[#e8edff] text-[#00288e] px-2.5 py-0.5 text-xs font-bold">
+                        {c.commissionRate || 8}%
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-[#1e6b65]">
+                        View Profile ➔
                       </span>
                     </td>
                   </tr>

@@ -9,6 +9,7 @@ const providerSchema = new mongoose.Schema(
     verified: { type: Boolean, default: false },
     availabilitySlots: [{ day: String, from: String, to: String }],
     documents: [String],
+    avatar: { type: String, default: "" },
     geoLocation: { lat: Number, lng: Number },
     trustScore: { type: Number, default: 0 },
   },

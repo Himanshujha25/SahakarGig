@@ -8,7 +8,7 @@ import socket from '../lib/socket';
 const NAV = [
   { to: '/federation', icon: 'dashboard', label: 'Dashboard', end: true },
   { to: '/federation/cooperatives', icon: 'corporate_fare', label: 'Cooperatives' },
-  { to: '/federation/settings', icon: 'settings', label: 'Settings' },
+  { to: '/federation/earnings', icon: 'payments', label: 'Earnings & Payouts' },
 ];
 
 export default function FederationLayout() {
@@ -58,18 +58,36 @@ export default function FederationLayout() {
         ))}
       </nav>
 
-      <div className="px-3 pb-3 border-t border-outline-variant pt-3">
+      <div className="px-3 pb-3 border-t border-outline-variant pt-3 space-y-1">
+        <NavLink to="/federation/settings"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+              isActive
+                ? 'bg-[#e8edff] text-[#00288e]'
+                : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <Icon name="settings" className="text-[20px]" />
+              <span className="flex-1">Settings</span>
+              {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#00288e]" />}
+            </>
+          )}
+        </NavLink>
+
         <button onClick={signOut}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-error hover:bg-error-container transition-colors">
           <Icon name="logout" className="text-[20px]" />
           Sign Out
         </button>
-          <div className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-container">
+        <div className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-container">
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
-            {user?.name?.[0]?.toUpperCase()}
+            {user?.name?.[0]?.toUpperCase() || "F"}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-on-surface truncate">{user?.name}</p>
+            <p className="text-xs font-semibold text-on-surface truncate">{user?.name || "Neeta Joshi"}</p>
             <p className="text-[10px] text-on-surface-variant truncate">Federation Admin</p>
           </div>
           <NotificationBell />
@@ -124,7 +142,9 @@ export default function FederationLayout() {
             <Icon name="menu" />
           </button>
         </header>
-        <Outlet />
+        <div className="w-full max-w-7xl mx-auto">
+          <Outlet />
+        </div>
       </main>
 
       <nav className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around bg-surface border-t border-outline-variant px-4 py-3 rounded-t-xl">

@@ -46,7 +46,7 @@ export default function Invoice() {
 
   if (loading)
     return (
-      <div className="mx-auto w-full max-w-3xl pt-lg">
+      <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         <div className="animate-pulse rounded-xl border border-outline-variant bg-surface p-6">
           <div className="mb-4 h-5 w-1/3 rounded bg-surface-variant"></div>
           <div className="mb-3 h-4 w-2/3 rounded bg-surface-variant"></div>
@@ -54,10 +54,10 @@ export default function Invoice() {
         </div>
       </div>
     );
-  if (!invoice) return <p className="pt-lg font-body-md text-on-surface-variant">Invoice not found.</p>;
+  if (!invoice) return <p className="p-8 font-body-md text-on-surface-variant text-center">Invoice not found.</p>;
 
   return (
-    <div className="mx-auto w-full max-w-2xl pt-lg">
+    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <h1 className="mb-2 font-heading font-bold tracking-tight text-on-background text-2xl md:text-3xl">{t("invoices")}</h1>
 
       <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface">

@@ -39,7 +39,7 @@ export default function PwaInstallBanner() {
   if (!showBanner) return null;
 
   return (
-    <div className="fixed bottom-16 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-50 max-w-md bg-white border border-[#00288e]/20 rounded-2xl shadow-[0_8px_30px_rgba(0,40,142,0.15)] p-4 flex items-center gap-3 animate-slide-up">
+    <div className="fixed bottom-20 sm:bottom-20 left-4 right-4 sm:left-auto sm:right-6 z-40 max-w-md bg-white border border-[#00288e]/20 rounded-2xl shadow-[0_8px_30px_rgba(0,40,142,0.18)] p-4 flex items-center gap-3 animate-slide-up">
       <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center text-white shrink-0 shadow-md">
         <Handshake size={20} strokeWidth={2.5} />
       </div>

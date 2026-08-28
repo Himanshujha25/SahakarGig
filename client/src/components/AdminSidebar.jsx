@@ -4,16 +4,17 @@ import { useEffect, useState } from "react";
 import api from "../lib/api";
 import {
   LayoutDashboard, ShieldCheck, AlertTriangle, BarChart2,
-  Trophy, Settings, LogOut, Handshake
+  Trophy, Settings, LogOut, Handshake, Users, IndianRupee, Receipt
 } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 
 const NAV = [
-  { label: "Dashboard",     Icon: LayoutDashboard, to: "/admin",               end: true },
-  { label: "Verifications", Icon: ShieldCheck,     to: "/admin/verifications", end: false },
-  { label: "Disputes",      Icon: AlertTriangle,   to: "/admin/disputes",      end: false },
-  { label: "Analytics",     Icon: BarChart2,       to: "/admin/commission",    end: false },
-  { label: "Leaderboard",   Icon: Trophy,          to: "/admin/providers",     end: false },
+  { label: "Dashboard",          Icon: LayoutDashboard, to: "/admin",               end: true },
+  { label: "Agency Workers",         Icon: Users,           to: "/admin/providers",     end: false },
+  { label: "Verifications",          Icon: ShieldCheck,     to: "/admin/verifications", end: false },
+  { label: "Disputes",               Icon: AlertTriangle,   to: "/admin/disputes",      end: false },
+  { label: "Earnings & Payouts",     Icon: IndianRupee,     to: "/admin/earnings",      end: false },
+  { label: "Analytics",              Icon: BarChart2,       to: "/admin/commission",    end: false },
 ];
 
 const activeStyle = "bg-[#e8edff] text-[#00288e]";

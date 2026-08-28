@@ -35,7 +35,7 @@ export default function ProviderProfile() {
 
   if (loading)
     return (
-      <div className="mx-auto w-full max-w-2xl pt-lg">
+      <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         <div className="animate-pulse rounded-xl border border-outline-variant bg-surface p-6">
           <div className="mb-4 h-12 w-12 rounded-full bg-surface-variant"></div>
           <div className="mb-3 h-5 w-1/3 rounded bg-surface-variant"></div>
@@ -43,10 +43,10 @@ export default function ProviderProfile() {
         </div>
       </div>
     );
-  if (!provider) return <p className="pt-lg font-body-md text-on-surface-variant">Provider not found.</p>;
+  if (!provider) return <p className="p-8 font-body-md text-on-surface-variant text-center">Provider not found.</p>;
 
   return (
-    <div className="mx-auto w-full max-w-2xl pt-lg">
+    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <button
         onClick={() => navigate(-1)}
         className="mb-6 inline-flex items-center gap-1 font-heading text-sm font-semibold text-primary hover:text-primary-container"

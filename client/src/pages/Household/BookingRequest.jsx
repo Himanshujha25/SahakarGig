@@ -106,7 +106,7 @@ export default function BookingRequest() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl pt-lg">
+    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <button
         onClick={() => navigate(-1)}
         className="mb-6 inline-flex items-center gap-1 font-heading text-sm font-semibold text-primary hover:text-primary-container"
