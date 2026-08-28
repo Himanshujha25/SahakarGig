@@ -120,13 +120,24 @@ export default function DispatchFeed() {
       setJobs((prev) => prev.filter((j) => j._id !== payload?.bookingId));
     }
 
+    function onCancelled(payload) {
+      setJobs((prev) => prev.filter((j) => j._id !== payload?.bookingId));
+      if (payload?.targetCategory || payload?.service) {
+        setConflict(`${payload.targetCategory || payload.service} request was cancelled by the household.`);
+        clearTimeout(alertTimerRef.current);
+        alertTimerRef.current = setTimeout(() => setConflict(null), 5000);
+      }
+    }
+
     socket.on("booking:broadcast_new", onNew);
     socket.on("booking:claimed", onClaimed);
+    socket.on("booking:cancelled", onCancelled);
 
     const poll = setInterval(load, 15000);
     return () => {
       socket.off("booking:broadcast_new", onNew);
       socket.off("booking:claimed", onClaimed);
+      socket.off("booking:cancelled", onCancelled);
       clearInterval(poll);
       clearTimeout(alertTimerRef.current);
     };

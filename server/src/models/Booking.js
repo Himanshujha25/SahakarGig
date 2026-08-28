@@ -34,6 +34,7 @@ const bookingSchema = new mongoose.Schema(
     isEmergency: { type: Boolean, default: false },
     priority: { type: Number, default: 0 },
     issue: { type: String },
+    cancelReason: { type: String },
     chat: [{ sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, message: String, at: { type: Date, default: Date.now } }],
   },
   { timestamps: true }

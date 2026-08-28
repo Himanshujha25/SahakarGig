@@ -181,7 +181,7 @@ async function acceptBroadcastRequest(req, res) {
 | **Rating & Reviews** | Hidden | **Unlocked**: Star Rating + Past Customer Feedback |
 | **Live GPS Map** | Hidden | **Unlocked**: Real-time Socket Position Stream |
 | **2-Way Chat** | Hidden | **Unlocked**: Instant Socket Chat Room |
-| **Razorpay Payment** | Disabled (₹0) | **Enabled**: Pay ₹250 Escrow Button |
+| **Razorpay Payment** | Disabled (₹0) | **Enabled**: Pay ₹250 Escrow Buttons |
 
 ---
 
