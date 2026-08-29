@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import FavoriteButton from "../../components/FavoriteButton";
@@ -11,10 +11,11 @@ const SEARCH_HISTORY_KEY = "sg_search_history";
 const MAX_HISTORY = 6;
 
 export default function FindServices() {
+  const [searchParams] = useSearchParams();
   const [providers, setProviders] = useState([]);
   const [loading, setLoading]     = useState(true);
-  const [query, setQuery]         = useState("");
-  const [skill, setSkill]         = useState("All");
+  const [query, setQuery]         = useState(searchParams.get("query") || searchParams.get("search") || "");
+  const [skill, setSkill]         = useState(searchParams.get("skill") || "All");
   const [isListening, setIsListening] = useState(false);
   const [favIds, setFavIds]       = useState(() => new Set());
   const [favBusy, setFavBusy]     = useState(false);

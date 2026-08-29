@@ -51,4 +51,9 @@ router.patch('/compliance/grievance/:grievanceId/resolve', asyncHandler(c.resolv
 router.get('/disputes', asyncHandler(c.disputes));
 router.patch('/resolve/:bookingId', asyncHandler(c.resolveDispute));
 
+// 9. Institutional Bulk RFPs & Crew Mobilization
+router.get('/rfp', asyncHandler(c.listRFPs));
+router.patch('/rfp/:bookingId/accept', asyncHandler(c.acceptRFP));
+router.patch('/rfp/:bookingId/quotation', asyncHandler(c.updateRFPQuotation));
+
 module.exports = router;

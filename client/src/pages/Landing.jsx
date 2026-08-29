@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { SERVER_URL } from '../lib/config';
 import {
   IconSearch, IconMapPin, IconCircleCheck, IconShieldCheck, IconBolt,
@@ -53,9 +54,198 @@ const HOW = [
   { n: '04', title: 'Pay & Review',      desc: 'Pay securely after the job is done and leave a review for the community.' },
 ];
 
+const ALL_SERVICES = [
+  { label: 'Electrician', desc: 'Wiring, Fuse, Short Circuit, Inverter, Switches', icon: '⚡' },
+  { label: 'Plumber', desc: 'Pipe Leakage, Tap Repair, Drain Jetting, Tank Cleaning', icon: '🔧' },
+  { label: 'Home Cook', desc: 'Daily Meals, North/South Indian, Party Chef', icon: '🍲' },
+  { label: 'Tutor', desc: 'School Math, Science, Board Exams, Language Coaching', icon: '📚' },
+  { label: 'House Cleaning', desc: 'Deep Cleaning, Bathroom Sanitation, Kitchen Wash', icon: '🧹' },
+  { label: 'Caregiver', desc: 'Elderly Care, Patient Nursing, Post-Surgery Support', icon: '🩺' },
+  { label: 'Driver', desc: 'Daily Commute, Outstation Trips, Commercial Driver', icon: '🚗' },
+  { label: 'Gardener', desc: 'Lawn Mowing, Plant Trimming, Organic Fertilizer', icon: '🪴' },
+  { label: 'Carpenter', desc: 'Furniture Repair, Door Latches, Wood Polish', icon: '🪚' },
+  { label: 'Painter', desc: 'Wall Painting, Waterproofing, Texture Designs', icon: '🎨' },
+];
+
+const DEFAULT_INDIAN_HUBS = [
+  { title: "New Delhi", subtitle: "National Capital Territory of Delhi, India", state: "Delhi", full: "New Delhi, Delhi, India" },
+  { title: "Noida Sector 62", subtitle: "Gautam Buddha Nagar, Uttar Pradesh, India", state: "Uttar Pradesh", full: "Noida Sector 62, Uttar Pradesh, India" },
+  { title: "Bengaluru", subtitle: "Bengaluru Urban, Karnataka, India", state: "Karnataka", full: "Bengaluru, Karnataka, India" },
+  { title: "Mumbai", subtitle: "Mumbai Suburban, Maharashtra, India", state: "Maharashtra", full: "Mumbai, Maharashtra, India" },
+  { title: "Hyderabad", subtitle: "Telangana, India", state: "Telangana", full: "Hyderabad, Telangana, India" },
+  { title: "Pune", subtitle: "Pune District, Maharashtra, India", state: "Maharashtra", full: "Pune, Maharashtra, India" },
+  { title: "Kolkata", subtitle: "West Bengal, India", state: "West Bengal", full: "Kolkata, West Bengal, India" },
+  { title: "Chennai", subtitle: "Chennai District, Tamil Nadu, India", state: "Tamil Nadu", full: "Chennai, Tamil Nadu, India" },
+];
+
 export default function Landing() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+  const [serviceQuery, setServiceQuery] = useState("");
+  const [locationQuery, setLocationQuery] = useState("");
+  
+  // Suggestion Dropdown States
+  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [locationSuggestions, setLocationSuggestions] = useState(DEFAULT_INDIAN_HUBS);
+  const [isLocating, setIsLocating] = useState(false);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+
+  // Filtered Services based on user typing
+  const filteredServices = serviceQuery.trim()
+    ? ALL_SERVICES.filter(s => 
+        s.label.toLowerCase().includes(serviceQuery.toLowerCase()) || 
+        s.desc.toLowerCase().includes(serviceQuery.toLowerCase())
+      )
+    : ALL_SERVICES;
+
+  // 100% Live Real-Time Indian Geocoding Engine (Photon Komoot + OpenStreetMap Nominatim Live API)
+  async function searchIndianLocations(text) {
+    if (!text || text.trim().length < 2) {
+      setLocationSuggestions(DEFAULT_INDIAN_HUBS);
+      return;
+    }
+    setIsLoadingLocations(true);
+
+    try {
+      // 1. Live Photon Komoot OpenStreetMap Geocoder for India
+      const photonPromise = fetch(
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(text)}&limit=8&bbox=68.1,6.5,97.4,35.5&lang=en`
+      ).then(r => r.json()).catch(() => null);
+
+      // 2. Live OpenStreetMap Nominatim Geocoder with Indian addressdetails
+      const nominatimPromise = fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&accept-language=en&addressdetails=1&q=${encodeURIComponent(text)}&limit=8`
+      ).then(r => r.json()).catch(() => null);
+
+      const [photonData, nominatimData] = await Promise.all([photonPromise, nominatimPromise]);
+
+      const results = [];
+      const seen = new Set();
+
+      // Parse Photon live results
+      if (photonData && Array.isArray(photonData.features)) {
+        for (const feat of photonData.features) {
+          const p = feat.properties || {};
+          const name = p.name || p.street || p.district || p.city;
+          const city = p.city || p.county || p.district || '';
+          const state = p.state || '';
+          const postcode = p.postcode || '';
+
+          if (name && (state || p.country === 'India')) {
+            const title = name;
+            const subtitle = [city !== name ? city : '', state, 'India'].filter(Boolean).join(', ');
+            const full = [title, city !== name ? city : '', state].filter(Boolean).join(', ');
+            
+            if (!seen.has(full.toLowerCase()) && /^[\w\s,.-]+$/i.test(title)) {
+              seen.add(full.toLowerCase());
+              results.push({ title, subtitle, state, pincode: postcode, full });
+            }
+          }
+        }
+      }
+
+      // Parse Nominatim live results
+      if (nominatimData && Array.isArray(nominatimData)) {
+        for (const item of nominatimData) {
+          const addr = item.address || {};
+          const name = item.name || addr.suburb || addr.neighbourhood || addr.city || addr.town || addr.village;
+          const city = addr.city || addr.town || addr.district || addr.county || '';
+          const state = addr.state || '';
+          const postcode = addr.postcode || '';
+
+          if (name && state) {
+            const title = name;
+            const subtitle = [city !== name ? city : '', state, 'India'].filter(Boolean).join(', ');
+            const full = [title, city !== name ? city : '', state].filter(Boolean).join(', ');
+
+            if (!seen.has(full.toLowerCase()) && /^[\w\s,.-]+$/i.test(title)) {
+              seen.add(full.toLowerCase());
+              results.push({ title, subtitle, state, pincode: postcode, full });
+            }
+          }
+        }
+      }
+
+      if (results.length > 0) {
+        setLocationSuggestions(results.slice(0, 8));
+      }
+    } catch {
+      // Keep previous
+    } finally {
+      setIsLoadingLocations(false);
+    }
+  }
+
+  // Detect Current Location via Geolocation API
+  function detectCurrentLocation() {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&accept-language=en`);
+          const data = await res.json();
+          if (data?.display_name) {
+            const loc = data.display_name.split(',').slice(0, 3).join(', ').trim();
+            setLocationQuery(loc);
+          } else {
+            setLocationQuery("Noida, Uttar Pradesh");
+          }
+        } catch {
+          setLocationQuery("Noida, Uttar Pradesh");
+        } finally {
+          setIsLocating(false);
+          setShowLocationDropdown(false);
+        }
+      },
+      () => {
+        setIsLocating(false);
+        setLocationQuery("Noida, Uttar Pradesh");
+        setShowLocationDropdown(false);
+      }
+    );
+  }
+
+  function handleSearch(e, forcedService, forcedLoc) {
+    if (e) e.preventDefault();
+    const query = (forcedService !== undefined ? forcedService : serviceQuery).trim();
+    const location = (forcedLoc !== undefined ? forcedLoc : locationQuery).trim();
+
+    // 1. Save search intent in localStorage with 2-minute (120,000 ms) expiration
+    const intent = {
+      query: query || "Electrician",
+      location: location || "Noida, Uttar Pradesh",
+      timestamp: Date.now(),
+      expiresAt: Date.now() + 2 * 60 * 1000 // 2 minutes TTL
+    };
+    try {
+      localStorage.setItem("sg_pending_search_intent", JSON.stringify(intent));
+    } catch {}
+
+    setShowServiceDropdown(false);
+    setShowLocationDropdown(false);
+
+    // 2. If authenticated as Household, proceed straight to directory discovery
+    if (user && user.role === "Household") {
+      const params = new URLSearchParams();
+      if (query) params.set("query", query);
+      if (location) params.set("location", location);
+      navigate(`/household/find${params.toString() ? `?${params.toString()}` : ''}`);
+      return;
+    }
+
+    // 3. If guest / unauthenticated, redirect to Signup / Login to get started and activate flow
+    const params = new URLSearchParams();
+    if (query) params.set("query", query);
+    if (location) params.set("location", location);
+    navigate(`/signup?role=Household&source=search&${params.toString()}`);
+  }
 
   useEffect(() => {
     fetch(`${SERVER_URL}/api/stats`)
@@ -137,7 +327,7 @@ export default function Landing() {
       <main className="flex-grow">
 
         {/* ── HERO SECTION ── */}
-        <section className="relative z-0 pt-16 pb-20 px-6 flex flex-col items-center text-center overflow-hidden">
+        <section className="relative z-0 pt-16 pb-20 px-6 flex flex-col items-center text-center">
           {/* Dynamic 60fps Interactive Aurora Gradient & Node Mesh Background */}
           <HeroVideoBackground />
 
@@ -170,44 +360,190 @@ export default function Landing() {
             Reliable, safe, and empowering for everyone.
           </p>
 
-          {/* ── POLISHED SAAS SEARCH BAR (Sleek Continuous Pill Design) ── */}
-          <div className="w-full max-w-[760px] bg-surface rounded-2xl sm:rounded-full p-2 sm:p-2.5 border border-outline-variant/70 shadow-[0_12px_44px_rgba(0,0,0,0.09)] hover:shadow-[0_18px_56px_rgba(0,0,0,0.13)] hover:border-primary/50 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/15 transition-all duration-300 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2 mb-6">
-            {/* Service Input */}
-            <div className="w-full flex-1 flex items-center gap-2.5 px-3.5 py-2">
-              <IconSearch size={18} stroke={1.75} className="text-primary shrink-0" />
-              <input
-                className="w-full bg-transparent border-none outline-none text-[14px] font-medium text-on-surface placeholder:text-on-surface-variant/60"
-                placeholder="What service do you need? (e.g. Electrician, Tutor)"
-              />
-            </div>
-
-            {/* Subtle Divider */}
-            <div className="hidden sm:block w-[1px] h-7 bg-outline-variant/60 shrink-0" />
-
-            {/* Location Input */}
-            <div className="w-full flex-1 flex items-center gap-2.5 px-3.5 py-2">
-              <IconMapPin size={18} stroke={1.75} className="text-primary shrink-0" />
-              <input
-                className="w-full bg-transparent border-none outline-none text-[14px] font-medium text-on-surface placeholder:text-on-surface-variant/60"
-                placeholder="City or Locality"
-              />
-            </div>
-
-            {/* Voice Search Button — Official Professional Styling */}
-            <button
-              type="button"
-              onClick={() => setIsVoiceOpen(true)}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl sm:rounded-full bg-primary text-on-primary font-bold text-[13.5px] shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
+          {/* ── POLISHED SAAS SEARCH BAR WITH LIVE AUTOCOMPLETE & GPS ── */}
+          <div className="relative w-full max-w-[780px] z-30 mb-6">
+            <form
+              onSubmit={handleSearch}
+              className="w-full bg-surface/95 backdrop-blur-md rounded-2xl sm:rounded-full p-2 sm:p-2.5 border border-outline-variant/80 shadow-[0_12px_44px_rgba(0,0,0,0.09)] hover:shadow-[0_18px_56px_rgba(0,0,0,0.13)] hover:border-primary/50 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/15 transition-all duration-300 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2"
             >
-              <IconMicrophone size={16} stroke={1.75} />
-              <span>Voice Search</span>
-            </button>
+              {/* Service Input & Autocomplete Dropdown */}
+              <div className="relative w-full flex-1">
+                <div className="flex items-center gap-2.5 px-3.5 py-2">
+                  <IconSearch size={18} stroke={1.75} className="text-primary shrink-0" />
+                  <input
+                    type="text"
+                    value={serviceQuery}
+                    onFocus={() => { setShowServiceDropdown(true); setShowLocationDropdown(false); }}
+                    onChange={(e) => { setServiceQuery(e.target.value); setShowServiceDropdown(true); }}
+                    className="w-full bg-transparent border-none outline-none text-[14px] font-medium text-on-surface placeholder:text-on-surface-variant/60"
+                    placeholder="What service do you need? (e.g. Electrician, Cook)"
+                  />
+                  {serviceQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setServiceQuery("")}
+                      className="text-on-surface-variant/50 hover:text-on-surface text-xs font-bold px-1"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
 
-            {/* Search Button — App signature style */}
-            <button className="w-full sm:w-auto flex items-center justify-center gap-2 border border-primary/40 bg-primary/10 text-primary font-semibold text-[14px] px-6 py-2.5 rounded-xl sm:rounded-full hover:bg-primary hover:text-on-primary hover:border-primary hover:shadow-[0_4px_14px_rgba(30,107,101,0.25)] active:scale-[0.98] transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0">
-              <IconSearch size={16} stroke={1.75} />
-              <span>Search</span>
-            </button>
+                {/* Service Suggestions Dropdown */}
+                {showServiceDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-full sm:w-[320px] bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden z-50 text-left animate-fadeIn max-h-[320px] overflow-y-auto">
+                    <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <span>Popular Cooperative Services</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowServiceDropdown(false)}
+                        className="hover:text-slate-800"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="p-1.5 divide-y divide-slate-50">
+                      {filteredServices.map((srv) => (
+                        <button
+                          key={srv.label}
+                          type="button"
+                          onClick={() => {
+                            setServiceQuery(srv.label);
+                            setShowServiceDropdown(false);
+                          }}
+                          className="w-full px-3 py-2 text-left rounded-xl hover:bg-[#e8edff] flex items-center gap-3 transition-colors cursor-pointer group"
+                        >
+                          <span className="text-xl p-1.5 rounded-lg bg-slate-100 group-hover:bg-white shrink-0">{srv.icon}</span>
+                          <div className="min-w-0">
+                            <p className="text-[13.5px] font-bold text-slate-900 group-hover:text-[#00288e]">{srv.label}</p>
+                            <p className="text-[11.5px] text-slate-500 truncate">{srv.desc}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Subtle Divider */}
+              <div className="hidden sm:block w-[1px] h-7 bg-outline-variant/60 shrink-0" />
+
+              {/* Location Input & Indian Nominatim Geocoder Dropdown */}
+              <div className="relative w-full flex-1">
+                <div className="flex items-center gap-2.5 px-3.5 py-2">
+                  <IconMapPin size={18} stroke={1.75} className="text-primary shrink-0" />
+                  <input
+                    type="text"
+                    value={locationQuery}
+                    onFocus={() => { setShowLocationDropdown(true); setShowServiceDropdown(false); }}
+                    onChange={(e) => {
+                      setLocationQuery(e.target.value);
+                      setShowLocationDropdown(true);
+                      searchIndianLocations(e.target.value);
+                    }}
+                    className="w-full bg-transparent border-none outline-none text-[14px] font-medium text-on-surface placeholder:text-on-surface-variant/60"
+                    placeholder="City, Locality or Pincode in India"
+                  />
+                  {locationQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setLocationQuery("")}
+                      className="text-on-surface-variant/50 hover:text-on-surface text-xs font-bold px-1"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Location Suggestions Dropdown */}
+                {showLocationDropdown && (
+                  <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-[420px] bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden z-50 text-left animate-fadeIn max-h-[380px] overflow-y-auto">
+                    {/* GPS Auto-Detect Button */}
+                    <div className="p-2.5 border-b border-slate-100 bg-[#e8edff]/70">
+                      <button
+                        type="button"
+                        onClick={detectCurrentLocation}
+                        disabled={isLocating}
+                        className="w-full px-3 py-2.5 rounded-xl bg-[#00288e] text-white text-[13px] font-bold flex items-center justify-center gap-2 hover:bg-[#173bab] active:scale-98 transition-all cursor-pointer shadow-xs disabled:opacity-60"
+                      >
+                        <IconMapPin size={16} className={isLocating ? "animate-spin" : ""} />
+                        <span>{isLocating ? "Detecting GPS in India..." : "📍 Use My Current GPS Location"}</span>
+                      </button>
+                    </div>
+
+                    <div className="px-3.5 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <span>{isLoadingLocations ? "Searching Indian Geocoder..." : "Verified Localities & Cities in India"}</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowLocationDropdown(false)}
+                        className="hover:text-slate-800"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="p-1.5 divide-y divide-slate-50">
+                      {locationSuggestions.map((loc, idx) => {
+                        const title = typeof loc === 'string' ? loc : loc.title;
+                        const subtitle = typeof loc === 'string' ? '' : loc.subtitle;
+                        const stateBadge = typeof loc === 'string' ? '' : loc.state;
+                        const full = typeof loc === 'string' ? loc : (loc.full || loc.title);
+
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setLocationQuery(full);
+                              setShowLocationDropdown(false);
+                            }}
+                            className="w-full px-3 py-2.5 text-left rounded-xl hover:bg-[#e8edff] flex items-center justify-between gap-3 transition-colors cursor-pointer group"
+                          >
+                            <div className="flex items-start gap-2.5 min-w-0">
+                              <IconMapPin size={16} className="text-[#00288e] shrink-0 mt-0.5" />
+                              <div className="min-w-0">
+                                <p className="text-[13.5px] font-bold text-slate-900 group-hover:text-[#00288e]">
+                                  {title}
+                                </p>
+                                {subtitle && (
+                                  <p className="text-[11.5px] text-slate-500 truncate">
+                                    {subtitle}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            {stateBadge && (
+                              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 shrink-0 group-hover:bg-white group-hover:text-[#00288e]">
+                                {stateBadge}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Voice Search Button — Official Professional Styling */}
+              <button
+                type="button"
+                onClick={() => setIsVoiceOpen(true)}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl sm:rounded-full bg-primary text-on-primary font-bold text-[13.5px] shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
+              >
+                <IconMicrophone size={16} stroke={1.75} />
+                <span>Voice Search</span>
+              </button>
+
+              {/* Search Button */}
+              <button
+                type="submit"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 border border-primary/40 bg-primary/10 text-primary font-semibold text-[14px] px-6 py-2.5 rounded-xl sm:rounded-full hover:bg-primary hover:text-on-primary hover:border-primary hover:shadow-[0_4px_14px_rgba(0,40,142,0.25)] active:scale-[0.98] transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0"
+              >
+                <IconSearch size={16} stroke={1.75} />
+                <span>Search</span>
+              </button>
+            </form>
           </div>
 
           <AIVoiceSearchModal isOpen={isVoiceOpen} onClose={() => setIsVoiceOpen(false)} />

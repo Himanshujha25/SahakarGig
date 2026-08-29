@@ -72,8 +72,29 @@ async function listProviders(req, res) {
 }
 
 async function listCooperatives(req, res) {
-  const list = await Cooperative.find().lean();
-  res.json(list);
+  try {
+    const list = await Cooperative.find().lean();
+    const enriched = await Promise.all(list.map(async (c) => {
+      const totalWorkers = await Provider.countDocuments({ cooperativeId: c._id });
+      const providers = await Provider.find({ cooperativeId: c._id }).select('skills').lean();
+      const skillCounts = {};
+      providers.forEach((p) => {
+        (p.skills || []).forEach((s) => {
+          const k = s.toLowerCase().trim();
+          skillCounts[k] = (skillCounts[k] || 0) + 1;
+        });
+      });
+      return {
+        ...c,
+        registrationNumber: c.registrationId || c.registrationNumber || 'MSCS-REG-2024',
+        totalWorkers: totalWorkers || (c.memberProviderIds ? c.memberProviderIds.length : 0),
+        skillCounts,
+      };
+    }));
+    res.json(enriched);
+  } catch (err) {
+    res.json([]);
+  }
 }
 
 async function getProvider(req, res) {

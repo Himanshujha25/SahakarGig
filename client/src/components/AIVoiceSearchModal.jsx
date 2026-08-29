@@ -348,15 +348,27 @@ export default function AIVoiceSearchModal({ isOpen, onClose, initialQuery = "" 
               </div>
             </div>
 
-            {/* Primary Action Button */}
-            <button
-              type="button"
-              onClick={handleDispatchRedirect}
-              className="w-full h-11 rounded-xl bg-[#00288e] text-white font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-[#173bab] active:scale-[0.99] transition-all cursor-pointer shadow-sm"
-            >
-              <span>Broadcast {parsedIntent.category} Request Now</span>
-              <ArrowRight size={16} strokeWidth={2.5} />
-            </button>
+            {/* Primary Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={handleDispatchRedirect}
+                className="flex-1 h-11 rounded-xl bg-[#00288e] text-white font-bold text-[13.5px] flex items-center justify-center gap-2 hover:bg-[#173bab] active:scale-[0.99] transition-all cursor-pointer shadow-sm"
+              >
+                <span>Broadcast {parsedIntent.category} Now</span>
+                <ArrowRight size={15} strokeWidth={2.5} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  navigate(`/household/find?query=${encodeURIComponent(parsedIntent.category || '')}`);
+                }}
+                className="flex-1 h-11 rounded-xl bg-[#e8edff] text-[#00288e] border border-[#00288e]/30 font-bold text-[13.5px] flex items-center justify-center gap-1.5 hover:bg-[#d7e3ff] active:scale-[0.99] transition-all cursor-pointer"
+              >
+                <span>Find in Directory</span>
+              </button>
+            </div>
           </div>
         )}
 

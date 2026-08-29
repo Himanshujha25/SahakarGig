@@ -794,6 +794,111 @@ async function resolveGrievance(req, res) {
   res.json({ message: 'Grievance resolved successfully', grievance: g });
 }
 
+async function listRFPs(req, res) {
+  const coop = await getCoop(req);
+  const bookings = await Booking.find({
+    $and: [
+      {
+        $or: [
+          { cooperativeId: coop._id },
+          { cooperativeId: null },
+          { cooperativeId: { $exists: false } },
+        ],
+      },
+      {
+        $or: [
+          { service: { $regex: '^Bulk Crew', $options: 'i' } },
+          { notes: { $regex: 'Institutional Bulk RFP', $options: 'i' } },
+          { 'groupBooking.enabled': true, price: { $gte: 2000 } },
+        ],
+      },
+    ],
+  })
+    .populate('householdId', 'name email phone')
+    .populate('providerId')
+    .sort({ createdAt: -1 })
+    .lean();
+  res.json(bookings);
+}
+
+async function acceptRFP(req, res) {
+  const coop = await getCoop(req);
+  const notify = require('../utils/notify');
+  const { emitTo } = require('../socket');
+  const booking = await Booking.findOne({
+    _id: req.params.bookingId,
+    cooperativeId: coop._id,
+  }).populate('householdId', 'name email phone');
+
+  if (!booking) return res.status(404).json({ message: 'RFP not found' });
+  booking.status = 'accepted';
+  await booking.save();
+
+  if (booking.householdId?._id) {
+    try {
+      await notify(
+        booking.householdId._id.toString(),
+        'booking_accepted',
+        `${coop.name} has accepted and mobilized crew for your Institutional RFP!`,
+        booking._id
+      );
+    } catch (e) {
+      console.error('[notify error]', e.message);
+    }
+    emitTo(booking.householdId._id.toString(), 'booking:updated', booking);
+  }
+
+  res.json({ message: 'RFP Accepted and Crew Mobilized', booking });
+}
+
+async function updateRFPQuotation(req, res) {
+  const coop = await getCoop(req);
+  const { price, notes } = req.body;
+  const booking = await Booking.findOne({
+    _id: req.params.bookingId,
+    cooperativeId: coop._id,
+  }).populate('householdId', 'name email phone');
+
+  if (!booking) return res.status(404).json({ message: 'RFP not found' });
+  if (price && Number(price) > 0) {
+    booking.price = Number(price);
+  }
+  const chatMsg = `📑 Revised Cooperative Institutional Quotation: ₹${booking.price.toLocaleString('en-IN')}.${notes ? ` Note: ${notes}` : ''}`;
+  if (notes) {
+    booking.notes = (booking.notes ? booking.notes + '\n' : '') + `[Cooperative Quotation Note: ${notes}]`;
+  }
+  booking.chat.push({
+    sender: req.user.userId,
+    message: chatMsg,
+    at: new Date(),
+  });
+  await booking.save();
+
+  if (booking.householdId?._id) {
+    const notify = require('../utils/notify');
+    const { emitTo } = require('../socket');
+    try {
+      await notify(
+        booking.householdId._id.toString(),
+        'booking_updated',
+        `${coop.name} updated your Institutional Quotation to ₹${booking.price.toLocaleString('en-IN')}`,
+        booking._id
+      );
+    } catch (e) {}
+    emitTo(booking.householdId._id.toString(), 'booking:updated', booking);
+    emitTo(booking.householdId._id.toString(), 'booking:chat', {
+      bookingId: booking._id,
+      message: {
+        sender: req.user.userId,
+        message: chatMsg,
+        at: new Date(),
+      },
+    });
+  }
+
+  res.json({ message: 'Quotation updated successfully', booking });
+}
+
 module.exports = {
   dashboard,
   pendingVerifications,
@@ -824,4 +929,7 @@ module.exports = {
   recordAnnualReturn,
   addGrievance,
   resolveGrievance,
+  listRFPs,
+  acceptRFP,
+  updateRFPQuotation,
 };

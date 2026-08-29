@@ -24,6 +24,7 @@ import FindServices from './pages/Household/FindServices';
 import Dispatch from './pages/Household/Dispatch';
 import SavedProviders from './pages/Household/SavedProviders';
 import WalletPage from './pages/Household/Wallet';
+import BulkOrder from './pages/Household/BulkOrder';
 
 import JobQueue from './pages/Provider/JobQueue';
 import JobDetail from './pages/Provider/JobDetail';
@@ -45,6 +46,7 @@ import CooperativeFinancials from './pages/Admin/Financials';
 import CooperativeNotices from './pages/Admin/Notices';
 import CooperativeCompliance from './pages/Admin/Compliance';
 import WelfareManagement from './pages/Admin/WelfareManagement';
+import BulkRFPRequests from './pages/Admin/BulkRFPRequests';
 
 import FederationLayout from './layouts/FederationLayout';
 import FederationDashboard from './pages/Federation/Dashboard';
@@ -95,6 +97,8 @@ export default function App() {
             <Route path="dispatch" element={<Dispatch />} />
             <Route path="dispatch/:id" element={<Dispatch />} />
             <Route path="bookings" element={<Bookings />} />
+            <Route path="bulk" element={<BulkOrder />} />
+            <Route path="rfp" element={<BulkOrder />} />
             <Route path="provider/:id" element={<ProviderProfile />} />
             <Route path="book/:providerId" element={<BookingRequest />} />
             <Route path="booking/:id" element={<Tracking />} />
@@ -135,6 +139,7 @@ export default function App() {
             <Route path="earnings" element={<CooperativeFinancials />} />
             <Route path="payouts" element={<CooperativeFinancials />} />
             <Route path="commission" element={<Commission />} />
+            <Route path="rfp" element={<BulkRFPRequests />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
         </Route>

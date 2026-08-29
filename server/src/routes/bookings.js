@@ -5,6 +5,7 @@ const rbac = require('../middleware/rbac');
 const asyncHandler = require('../middleware/error');
 
 router.post('/', auth, rbac('Household'), asyncHandler(c.createBooking));
+router.post('/bulk-rfp', auth, rbac('Household'), asyncHandler(c.createBulkRFP));
 // AI Geospatial Broadcast & First-Acceptance Dispatch
 router.post('/broadcast', auth, rbac('Household'), asyncHandler(c.createBroadcastBooking));
 router.post('/:id/keepalive', auth, asyncHandler(c.keepaliveBroadcast));

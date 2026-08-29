@@ -643,27 +643,28 @@ export default function Dispatch() {
           </p>
         </div>
 
+        {/* How it works Full Width 3-Step Banner */}
+        <div className="grid gap-3.5 sm:grid-cols-3">
+          {[
+            { Icon: Radar, title: "1. Broadcast", sub: "₹0 upfront — instant alert" },
+            { Icon: Zap, title: "2. First-Accept", sub: "Nearest ready worker wins" },
+            { Icon: Lock, title: "3. Escrow Pay", sub: "Pay only after assignment" },
+          ].map(({ Icon, title, sub }) => (
+            <div key={title} className="flex items-center gap-3.5 rounded-2xl border border-outline-variant/60 bg-surface p-4 shadow-2xs">
+              <div className="w-10 h-10 rounded-xl bg-[#e8edff] text-[#00288e] flex items-center justify-center shrink-0">
+                <Icon size={18} strokeWidth={2.5} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[13.5px] font-bold text-on-surface">{title}</p>
+                <p className="text-[11.5px] text-on-surface-variant truncate">{sub}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Dispatch Form (col-span-7) */}
           <div className="lg:col-span-7 space-y-6">
-            {/* How it works */}
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                { Icon: Radar, title: "1. Broadcast", sub: "₹0 upfront — instant alert" },
-                { Icon: Zap, title: "2. First-Accept", sub: "Nearest ready worker wins" },
-                { Icon: Lock, title: "3. Escrow Pay", sub: "Pay only after assignment" },
-              ].map(({ Icon, title, sub }) => (
-                <div key={title} className="flex items-center gap-3 rounded-2xl border border-outline-variant/60 bg-surface p-4 shadow-2xs">
-                  <div className="w-10 h-10 rounded-xl icon-box-blue flex items-center justify-center shrink-0">
-                    <Icon size={18} strokeWidth={2.5} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-bold text-on-surface">{title}</p>
-                    <p className="text-[11px] text-on-surface-variant">{sub}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
 
             <form onSubmit={broadcast} className="rounded-2xl border border-outline-variant/70 bg-surface p-6 sm:p-7 space-y-5 shadow-xs">
               <div className="space-y-3">

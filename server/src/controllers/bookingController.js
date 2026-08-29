@@ -393,8 +393,12 @@ async function addChat(req, res) {
   b.chat.push(entry);
   await b.save();
   const chatPayload = { bookingId: b._id, message: entry };
-  emitTo(b.householdId._id.toString(), 'booking:chat', chatPayload);
+  if (b.householdId?._id) emitTo(b.householdId._id.toString(), 'booking:chat', chatPayload);
   if (b.providerId?.userId?._id) emitTo(b.providerId.userId._id.toString(), 'booking:chat', chatPayload);
+  if (b.cooperativeId) {
+    const coop = await Cooperative.findById(b.cooperativeId);
+    if (coop?.adminId) emitTo(coop.adminId.toString(), 'booking:chat', chatPayload);
+  }
   res.json(b);
 }
 
@@ -633,9 +637,89 @@ async function listAllBookings(req, res) {
   res.json(bookings);
 }
 
+async function createBulkRFP(req, res) {
+  const { cooperativeId, service, price, workerCount, durationDays, siteLocation, scopeOfWork } = req.body;
+  if (!service) return res.status(400).json({ message: 'Service requirement is required' });
+
+  let targetCoop = null;
+  const mongoose = require('mongoose');
+  if (cooperativeId && mongoose.isValidObjectId(cooperativeId)) {
+    targetCoop = await Cooperative.findById(cooperativeId);
+  }
+  if (!targetCoop) {
+    targetCoop = await Cooperative.findOne();
+  }
+
+  // Find a nominal provider under this cooperative if available, or null
+  let defaultProvider = null;
+  if (targetCoop?._id) {
+    defaultProvider = await Provider.findOne({ cooperativeId: targetCoop._id });
+  }
+  if (!defaultProvider) {
+    defaultProvider = await Provider.findOne();
+  }
+
+  const booking = await Booking.create({
+    householdId: req.user.userId || req.user._id,
+    providerId: defaultProvider?._id || undefined,
+    cooperativeId: targetCoop?._id || undefined,
+    service: service || 'Bulk Cooperative Crew RFP',
+    scheduledTime: new Date(Date.now() + 24 * 3600 * 1000), // Tomorrow
+    price: Number(price) || 24000,
+    isEmergency: false,
+    groupBooking: {
+      enabled: true,
+      memberCount: Number(workerCount) || 10,
+    },
+    status: 'requested',
+    notes: `[Institutional Bulk RFP - ${workerCount} Workers for ${durationDays} Days] Site: ${siteLocation || 'N/A'}. Scope: ${scopeOfWork || 'N/A'}`,
+  });
+
+  // Notify Cooperative Admin (Database notification + socket notification)
+  if (targetCoop?.adminId) {
+    const adminUserId = targetCoop.adminId.toString();
+    try {
+      await notify(
+        adminUserId,
+        'booking_request',
+        `New Institutional RFP: ${workerCount}x ${service} (${durationDays} Days) at ${siteLocation || 'Site'}`,
+        booking._id
+      );
+    } catch (nErr) {
+      console.error('[notify error]', nErr.message);
+    }
+    emitTo(adminUserId, 'rfp:new', {
+      booking,
+      cooperativeId: targetCoop._id,
+      workerCount,
+      durationDays,
+      siteLocation,
+      scopeOfWork,
+      sender: req.user.name,
+    });
+    emitTo(adminUserId, 'booking:new', booking);
+  }
+
+  if (targetCoop?._id) {
+    emitTo(`coop:${targetCoop._id}`, 'rfp:new', {
+      booking,
+      cooperativeId: targetCoop._id,
+      workerCount,
+      durationDays,
+      siteLocation,
+      scopeOfWork,
+      sender: req.user.name,
+    });
+  }
+  broadcastAll('booking:new', booking);
+
+  return res.status(201).json(booking);
+}
+
 module.exports = {
   createBooking,
   createBroadcastBooking,
+  createBulkRFP,
   keepaliveBroadcast,
   availableBroadcastBookings,
   acceptBroadcastRequest,

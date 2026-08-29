@@ -11,6 +11,7 @@ import NotificationBell from "./NotificationBell";
 
 const NAV = [
   { label: "Dashboard",              Icon: LayoutDashboard, to: "/admin",               end: true },
+  { label: "Bulk Crew RFPs",         Icon: Building2,       to: "/admin/rfp",           end: false },
   { label: "Members & Workforce",    Icon: Users,           to: "/admin/providers",     end: false },
   { label: "Verifications",          Icon: ShieldCheck,     to: "/admin/verifications", end: false },
   { label: "Earnings & Payouts",     Icon: IndianRupee,     to: "/admin/financials",    end: false },
@@ -57,26 +58,26 @@ export default function AdminSidebar() {
       </div>
 
       {/* Nav label */}
-      <div className="px-5 pt-5 pb-2">
+      <div className="px-5 pt-4 pb-1.5">
         <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-[0.12em]">Navigation</p>
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto no-scrollbar">
         {NAV.map(({ label, Icon, to, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             className={({ isActive }) =>
-              `group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 ${
+              `group relative flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] font-semibold transition-all duration-200 ${
                 isActive ? activeStyle : inactiveStyle
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <Icon size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
                 <span>{label}</span>
                 {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00288e]" />}
               </>
@@ -86,18 +87,18 @@ export default function AdminSidebar() {
       </nav>
 
       {/* Bottom section */}
-      <div className="px-3 pb-4 pt-3 border-t border-outline-variant/40 space-y-0.5">
+      <div className="px-3 pb-3 pt-2 border-t border-outline-variant/40 space-y-0.5">
         <NavLink
           to="/admin/settings"
           className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 ${
+            `flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] font-semibold transition-all duration-200 ${
               isActive ? activeStyle : inactiveStyle
             }`
           }
         >
           {({ isActive }) => (
             <>
-              <Settings size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+              <Settings size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
               <span>Settings</span>
               {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00288e]" />}
             </>
@@ -106,9 +107,9 @@ export default function AdminSidebar() {
 
         <button
           onClick={() => { logout(); navigate("/login"); }}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold text-error hover:bg-error-container/30 transition-all duration-200"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] font-semibold text-error hover:bg-error-container/30 transition-all duration-200 cursor-pointer"
         >
-          <LogOut size={17} strokeWidth={2} className="shrink-0" />
+          <LogOut size={16} strokeWidth={2} className="shrink-0" />
           <span>Sign Out</span>
         </button>
       </div>

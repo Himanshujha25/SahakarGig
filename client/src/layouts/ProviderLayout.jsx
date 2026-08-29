@@ -59,7 +59,7 @@ export default function ProviderLayout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto no-scrollbar">
           {NAV.map(({ label, Icon, to, end }) => (
             <NavLink key={label} to={to} end={end}
               className={({ isActive }) =>

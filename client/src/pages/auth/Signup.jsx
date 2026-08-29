@@ -118,7 +118,31 @@ export default function Signup() {
     try {
       const u = await signup({ ...pendingPayload, otp: code });
       setOtpOpen(false);
-      if (u.role === "Household") navigate("/household");
+
+      // Check for active 2-minute search intent
+      let searchIntent = null;
+      try {
+        const raw = localStorage.getItem("sg_pending_search_intent");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Date.now() < parsed.expiresAt) {
+            searchIntent = parsed;
+          } else {
+            localStorage.removeItem("sg_pending_search_intent");
+          }
+        }
+      } catch {}
+
+      if (u.role === "Household") {
+        if (searchIntent && (searchIntent.query || searchIntent.location)) {
+          const params = new URLSearchParams();
+          if (searchIntent.query) params.set("query", searchIntent.query);
+          if (searchIntent.location) params.set("location", searchIntent.location);
+          navigate(`/household/find?${params.toString()}`);
+          return;
+        }
+        navigate("/household");
+      }
       else if (u.role === "Provider") navigate("/provider");
       else navigate("/admin");
     } catch (e2) {

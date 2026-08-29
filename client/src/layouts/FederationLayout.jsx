@@ -39,7 +39,7 @@ export default function FederationLayout() {
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto no-scrollbar">
         <p className="px-3 mb-2 text-[10px] font-bold tracking-widest text-on-surface-variant uppercase">Governance &amp; Ops</p>
         {NAV.map(({ to, icon, label, end }) => (
           <NavLink key={to} to={to} end={end}
