@@ -9,6 +9,7 @@ import {
 } from '@tabler/icons-react';
 
 import AIVoiceSearchModal from '../components/AIVoiceSearchModal';
+import HeroVideoBackground from '../components/HeroVideoBackground';
 
 const HERO_IMG =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBQ-dpYJMEXWGjKVWEtlFNYAPrFrGMUncXsN08msvogjefS62LwnCQ1bUeItkSrlQSZYpq5JrB8qKHNifnjbW0rHcNkbQY9x_gnoxQqWcWi-cqXBPtYQcopyEOxc1pQc4HyPUfW753FHhzpHa1Q7iqyfvjr5CMRSKmil9ODYutUqHafvNbhWSptBy9GXzM09Au9PHyKYYpeMrAayssGeRytpEpRtDvUHzfHKsko5gpP7qzGC8T3jA';
@@ -136,17 +137,19 @@ export default function Landing() {
       <main className="flex-grow">
 
         {/* ── HERO SECTION ── */}
-        <section className="relative pt-18 pb-16 px-6 flex flex-col items-center text-center overflow-hidden">
-          {/* Subtle Ambient Background Lighting */}
-          <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(30,107,101,0.1),transparent)]" />
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -z-10 w-[600px] h-[300px] bg-primary/15 blur-[120px] pointer-events-none rounded-full" />
+        <section className="relative z-0 pt-16 pb-20 px-6 flex flex-col items-center text-center overflow-hidden">
+          {/* Dynamic 60fps Interactive Aurora Gradient & Node Mesh Background */}
+          <HeroVideoBackground />
+
+          {/* ── HERO FOREGROUND CONTENT (z-10) ── */}
+          <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto">
 
           {/* Official Government Institutional Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface/90 backdrop-blur-md border border-outline-variant/80 text-on-surface text-[12px] font-bold tracking-tight shadow-sm hover:border-primary/40 transition-all duration-300 mb-6 cursor-default">
-            <span className="w-2 h-2 rounded-full bg-primary" />
-            <span className="font-extrabold text-primary">Ministry of Cooperation</span>
-            <span className="w-1 h-1 rounded-full bg-outline-variant" />
-            <span className="text-on-surface-variant">Government of India Initiative</span>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 backdrop-blur-md border border-slate-200 text-slate-900 text-[12px] font-bold tracking-tight shadow-sm hover:border-[#00288e]/40 transition-all duration-300 mb-6 cursor-default">
+            <span className="w-2 h-2 rounded-full bg-[#00288e] animate-ping" />
+            <span className="font-extrabold text-[#00288e]">Ministry of Cooperation</span>
+            <span className="w-1 h-1 rounded-full bg-slate-300" />
+            <span className="text-slate-600">Government of India Initiative</span>
           </div>
 
           {/* Headline */}
@@ -225,6 +228,7 @@ export default function Landing() {
               </span>
             ))}
           </div>
+        </div>
         </section>
 
         {/* ── CATEGORY BENTO SECTION ── */}

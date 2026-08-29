@@ -38,6 +38,19 @@ const bookingSchema = new mongoose.Schema(
     issue: { type: String },
     disputeCategory: { type: String },   // reason category chosen by the household
     disputeEvidence: [String],           // evidence document URLs/keys uploaded by the household
+    disputeResolution: {
+      decision: {
+        type: String,
+        enum: ['refund_household', 'release_provider', 'penalty_provider', 'warning', 'escalated', 'none'],
+        default: 'none',
+      },
+      resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      resolvedAt: { type: Date },
+      notes: { type: String },
+      refundAmount: { type: Number, default: 0 },
+      penaltyAmount: { type: Number, default: 0 },
+      status: { type: String, enum: ['open', 'investigating', 'resolved', 'escalated'], default: 'open' },
+    },
     cancelReason: { type: String },
     chat: [{ sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, message: String, at: { type: Date, default: Date.now } }],
     // Recurring bookings (same provider, same service, auto re-booked).

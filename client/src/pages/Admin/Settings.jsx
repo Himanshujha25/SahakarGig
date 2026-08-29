@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/api";
 import {
   User, Lock, Bell, Building2, Save, CheckCircle2, Palette, ShieldCheck,
-  Mail, Phone, Shield, Sparkles, AlertCircle, RefreshCw
+  Mail, Phone, Shield, Sparkles, AlertCircle, RefreshCw, Camera, Upload, Trash2
 } from "lucide-react";
 import OtpModal from "../../components/OtpModal";
 import { EmailStatusCard, ChangePasswordSection } from "../../components/AccountSecurity";
@@ -40,15 +40,28 @@ function Field({ label, children }) {
   );
 }
 
-const inputCls = "h-11 w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 text-xs font-semibold text-slate-900 outline-none transition-all focus:border-[#1e6b65] focus:bg-white focus:ring-2 focus:ring-[#1e6b65]/20 placeholder:text-slate-400";
+const inputCls = "h-11 w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 text-xs font-semibold text-slate-900 outline-none transition-all focus:border-[#00288e] focus:bg-white focus:ring-2 focus:ring-[#00288e]/20 placeholder:text-slate-400";
 
 export default function Settings() {
   const { user, updateProfile } = useAuth();
+  const fileInputRef = useRef(null);
   const [tab, setTab] = useState("profile");
   const [saved, setSaved] = useState(false);
   const [saveErr, setSaveErr] = useState("");
 
-  const [profile, setProfile] = useState({ name: user?.name || "", email: user?.email || "", phone: "" });
+  const [profile, setProfile] = useState({
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    avatarUrl: user?.avatarUrl || "",
+    designation: user?.designation || "Cooperative Administrator & Secretary",
+    location: user?.location || "Delhi NCR, India",
+    language: user?.language || "English",
+    timezone: user?.timezone || "Asia/Kolkata (IST)",
+    contactPreference: user?.contactPreference || "Email",
+    bio: user?.bio || "Managing verified cooperative workforce and local gig dispatches.",
+  });
+
   const [notifs, setNotifs] = useState({ bookings: true, disputes: true, verifications: true, payments: false, weekly: true });
   const [coop, setCoop] = useState({ name: "", address: "", regNumber: "", contactEmail: "" });
 
@@ -56,14 +69,94 @@ export default function Settings() {
   const [emailBusy, setEmailBusy] = useState(false);
 
   useEffect(() => {
-    api.get("/admin/dashboard").then(({ data }) => {
-      if (data?.cooperative) {
-        setCoop(c => ({ ...c, name: data.cooperative.name || "", regNumber: data.cooperative.regNumber || "" }));
+    if (user) {
+      setProfile((prev) => ({
+        ...prev,
+        name: user.name || prev.name,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+        avatarUrl: user.avatarUrl || prev.avatarUrl,
+        designation: user.designation || prev.designation,
+        location: user.location || prev.location,
+        language: user.language || prev.language,
+        timezone: user.timezone || prev.timezone,
+        contactPreference: user.contactPreference || prev.contactPreference,
+        bio: user.bio || prev.bio,
+      }));
+    }
+  }, [user]);
+
+  function handleFileUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      alert("Image size should be less than 3MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target.result;
+      setProfile((p) => ({ ...p, avatarUrl: base64 }));
+      try {
+        updateProfile({ avatarUrl: base64 });
+      } catch {}
+      flash();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  useEffect(() => {
+    api.get("/admin/cooperative").then(({ data }) => {
+      if (data) {
+        setCoop({
+          name: data.name || "",
+          regNumber: data.registrationId || "",
+          contactEmail: data.contactEmail || "",
+          contactPhone: data.contactPhone || "",
+          region: data.region || "",
+          district: data.district || "",
+          welfareFundAllocation: data.welfareFundAllocation || 10,
+          commissionRate: data.commissionRate || 8,
+          registrationDoc: data.registrationDoc,
+        });
       }
     }).catch(() => {});
   }, []);
 
   function flash() { setSaved(true); setSaveErr(""); setTimeout(() => setSaved(false), 2500); }
+
+  async function saveCoop(e) {
+    e.preventDefault();
+    try {
+      await api.patch("/admin/cooperative", {
+        name: coop.name,
+        contactEmail: coop.contactEmail,
+        contactPhone: coop.contactPhone,
+        region: coop.region,
+        district: coop.district,
+        commissionRate: coop.commissionRate,
+        welfareFundAllocation: coop.welfareFundAllocation,
+      });
+      flash();
+    } catch (err) {
+      setSaveErr("Failed to save cooperative profile.");
+    }
+  }
+
+  async function handleUploadDoc() {
+    const url = prompt("Enter Registration Document URL or Cloud Storage Link:", coop.registrationDoc?.url || "https://sahakargig.gov.in/docs/coop-registration-certificate.pdf");
+    if (!url) return;
+    try {
+      await api.post("/admin/cooperative/doc", {
+        name: "Cooperative Registration Certificate",
+        url,
+      });
+      setCoop(c => ({ ...c, registrationDoc: { name: "Cooperative Registration Certificate", url, uploadedAt: new Date() } }));
+      flash();
+    } catch {
+      setSaveErr("Failed to update registration certificate.");
+    }
+  }
 
   async function saveProfile(e) {
     e.preventDefault();
@@ -151,39 +244,194 @@ export default function Settings() {
       {/* ── TAB 1: Profile ── */}
       {tab === "profile" && (
         <div className="space-y-4">
-          <Section title="Personal Information" subtitle="Update your admin display name, email, and contact details.">
-            <div className="flex items-center gap-4 pb-2">
-              <div className="w-14 h-14 rounded-2xl bg-[#1e6b65] flex items-center justify-center text-white text-xl font-extrabold shrink-0 shadow-md">
-                {(user?.name || "A").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
-              </div>
-              <div>
-                <p className="text-base font-extrabold text-slate-900">{user?.name || "Admin"}</p>
-                <p className="text-xs font-medium text-slate-500">{user?.email}</p>
-                <div className="pt-1.5">
-                  <span className="orvia-badge-lime text-[11px]">Cooperative Admin</span>
+          {/* Avatar Upload Card */}
+          <Section title="Profile Picture &amp; Identity" subtitle="Upload a photo for your cooperative administrator badge across the console.">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-5 p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
+              <div className="flex items-center gap-4">
+                <div className="relative group">
+                  {profile.avatarUrl ? (
+                    <img
+                      src={profile.avatarUrl}
+                      alt={profile.name}
+                      className="w-20 h-20 rounded-2xl object-cover ring-4 ring-[#00288e]/20 shadow-md"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-2xl bg-[#00288e] flex items-center justify-center text-white text-2xl font-extrabold shadow-md ring-4 ring-[#00288e]/20">
+                      {(profile.name || "A").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute -bottom-1.5 -right-1.5 p-2 rounded-full bg-[#00288e] text-white shadow-md hover:scale-105 transition-all cursor-pointer"
+                    title="Upload new photo"
+                  >
+                    <Camera size={14} />
+                  </button>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">{profile.name || "Cooperative Admin"}</h3>
+                  <p className="text-xs text-slate-500">{profile.email}</p>
+                  <p className="text-xs font-semibold text-[#00288e] mt-1">{profile.designation}</p>
                 </div>
               </div>
-            </div>
 
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 cursor-pointer shadow-2xs"
+                >
+                  <Upload size={14} />
+                  <span>Upload Image</span>
+                </button>
+
+                {profile.avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfile((p) => ({ ...p, avatarUrl: "" }));
+                      try { updateProfile({ avatarUrl: "" }); } catch {}
+                      flash();
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-red-200 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-1.5 cursor-pointer"
+                    title="Remove custom photo"
+                  >
+                    <Trash2 size={14} />
+                    <span>Remove</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </Section>
+
+          {/* Personal Information & Detailed Settings */}
+          <Section title="Personal Information &amp; Preferences" subtitle="Update your official contact details, regional jurisdiction, and language preference.">
             <EmailStatusCard />
 
             {saveErr && (
               <div className="rounded-2xl p-3 border bg-red-50 border-red-200 text-red-700 text-xs font-semibold">{saveErr}</div>
             )}
 
-            <form onSubmit={saveProfile} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Full Name">
-                <input className={inputCls} value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} placeholder="Your full name" />
+            <form onSubmit={saveProfile} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Full Legal Name">
+                  <input
+                    className={inputCls}
+                    value={profile.name}
+                    onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
+                    placeholder="e.g. Suresh Patel"
+                    required
+                  />
+                </Field>
+
+                <Field label="Email Address">
+                  <input
+                    className={inputCls}
+                    type="email"
+                    value={profile.email}
+                    onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
+                    placeholder="admin@coop.com"
+                    required
+                  />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Official Phone Number">
+                  <input
+                    className={inputCls}
+                    type="tel"
+                    value={profile.phone}
+                    onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))}
+                    placeholder="+91 98765 43210"
+                  />
+                </Field>
+
+                <Field label="Official Designation / Title">
+                  <input
+                    className={inputCls}
+                    value={profile.designation}
+                    onChange={(e) => setProfile((p) => ({ ...p, designation: e.target.value }))}
+                    placeholder="e.g. Cooperative Secretary / Operations Lead"
+                  />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Headquarters / Office Location">
+                  <input
+                    className={inputCls}
+                    value={profile.location}
+                    onChange={(e) => setProfile((p) => ({ ...p, location: e.target.value }))}
+                    placeholder="e.g. Karol Bagh, Central Delhi"
+                  />
+                </Field>
+
+                <Field label="Preferred Platform Language">
+                  <select
+                    className={inputCls}
+                    value={profile.language}
+                    onChange={(e) => setProfile((p) => ({ ...p, language: e.target.value }))}
+                  >
+                    <option value="English">English (Default)</option>
+                    <option value="Hindi">हिंदी (Hindi)</option>
+                    <option value="Bengali">বাংলা (Bengali)</option>
+                    <option value="Marathi">मराठी (Marathi)</option>
+                    <option value="Tamil">தமிழ் (Tamil)</option>
+                    <option value="Telugu">తెలుగు (Telugu)</option>
+                    <option value="Gujarati">ગુજરાતી (Gujarati)</option>
+                    <option value="Punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
+                  </select>
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="System Timezone">
+                  <select
+                    className={inputCls}
+                    value={profile.timezone}
+                    onChange={(e) => setProfile((p) => ({ ...p, timezone: e.target.value }))}
+                  >
+                    <option value="Asia/Kolkata (IST)">Asia/Kolkata (IST, UTC +05:30)</option>
+                    <option value="UTC">UTC (Coordinated Universal Time)</option>
+                  </select>
+                </Field>
+
+                <Field label="Primary Contact Preference">
+                  <select
+                    className={inputCls}
+                    value={profile.contactPreference}
+                    onChange={(e) => setProfile((p) => ({ ...p, contactPreference: e.target.value }))}
+                  >
+                    <option value="Email">Email Notifications</option>
+                    <option value="WhatsApp">WhatsApp Direct Alerts</option>
+                    <option value="SMS">SMS Gateway Alerts</option>
+                  </select>
+                </Field>
+              </div>
+
+              <Field label="About / Professional Bio">
+                <textarea
+                  rows={3}
+                  className="w-full p-3.5 rounded-2xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:border-[#00288e] focus:bg-white"
+                  value={profile.bio}
+                  onChange={(e) => setProfile((p) => ({ ...p, bio: e.target.value }))}
+                  placeholder="State your role and cooperative operations..."
+                />
               </Field>
-              <Field label="Email Address">
-                <input className={inputCls} type="email" value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))} placeholder="admin@coop.com" />
-              </Field>
-              <Field label="Phone Number">
-                <input className={inputCls} type="tel" value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} placeholder="+91 98765 43210" />
-              </Field>
-              <div className="sm:col-span-2 pt-2 flex items-center justify-between">
+
+              <div className="pt-2 flex items-center justify-between">
                 <p className="text-[11px] text-slate-400 font-medium">Changing email requires one-time OTP verification.</p>
-                <SaveBtn type="submit">Save Changes</SaveBtn>
+                <SaveBtn type="submit">Save Profile &amp; Photo</SaveBtn>
               </div>
             </form>
           </Section>
@@ -255,24 +503,66 @@ export default function Settings() {
 
       {/* ── TAB 5: Cooperative ── */}
       {tab === "cooperative" && (
-        <div className="space-y-4">
-          <Section title="Cooperative Details" subtitle="Basic information about your registered cooperative society.">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Cooperative Name">
-                <input className={inputCls} value={coop.name} onChange={e => setCoop(c => ({ ...c, name: e.target.value }))} placeholder="e.g. Karol Bagh Labour Cooperative" />
-              </Field>
-              <Field label="Registration Number">
-                <input className={inputCls} value={coop.regNumber} onChange={e => setCoop(c => ({ ...c, regNumber: e.target.value }))} placeholder="e.g. DL/COO/2024/001" />
-              </Field>
-              <Field label="Contact Email">
-                <input className={inputCls} type="email" value={coop.contactEmail} onChange={e => setCoop(c => ({ ...c, contactEmail: e.target.value }))} placeholder="contact@coop.com" />
-              </Field>
-              <Field label="Address">
-                <input className={inputCls} value={coop.address} onChange={e => setCoop(c => ({ ...c, address: e.target.value }))} placeholder="Ghaziabad, UP" />
-              </Field>
-            </div>
-            <div className="pt-2 flex justify-end">
-              <SaveBtn onClick={flash} />
+        <div className="space-y-6">
+          <Section title="Cooperative Details" subtitle="Official registration and contact details of your registered society.">
+            <form onSubmit={saveCoop} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Cooperative Name">
+                  <input className={inputCls} value={coop.name} onChange={e => setCoop(c => ({ ...c, name: e.target.value }))} placeholder="e.g. Karol Bagh Labour Cooperative" required />
+                </Field>
+                <Field label="Registration Number">
+                  <input className={inputCls} value={coop.regNumber} readOnly placeholder="e.g. DL-COOP-2026-001" />
+                </Field>
+                <Field label="Contact Email">
+                  <input className={inputCls} type="email" value={coop.contactEmail} onChange={e => setCoop(c => ({ ...c, contactEmail: e.target.value }))} placeholder="contact@coop.com" />
+                </Field>
+                <Field label="Contact Phone">
+                  <input className={inputCls} type="tel" value={coop.contactPhone} onChange={e => setCoop(c => ({ ...c, contactPhone: e.target.value }))} placeholder="+91 9811000004" />
+                </Field>
+                <Field label="Operational Region / State">
+                  <input className={inputCls} value={coop.region} onChange={e => setCoop(c => ({ ...c, region: e.target.value }))} placeholder="Delhi NCR" />
+                </Field>
+                <Field label="District">
+                  <input className={inputCls} value={coop.district} onChange={e => setCoop(c => ({ ...c, district: e.target.value }))} placeholder="Central Delhi" />
+                </Field>
+              </div>
+              <div className="pt-2 flex justify-end">
+                <SaveBtn type="submit">Save Cooperative Profile</SaveBtn>
+              </div>
+            </form>
+          </Section>
+
+          <Section title="Registration Certificate &amp; Compliance Document" subtitle="Statutory society registration certificate verified by Registrar.">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#00288e] text-white flex items-center justify-center font-bold">
+                  <Building2 size={20} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">{coop.registrationDoc?.name || "Cooperative Registration Certificate"}</h4>
+                  <p className="text-[11px] text-slate-400">Status: {coop.registrationDoc ? "Verified & Active ✓" : "Pending Upload"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {coop.registrationDoc?.url && (
+                  <a
+                    href={coop.registrationDoc.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-[#00288e] hover:bg-slate-50"
+                  >
+                    View Certificate
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={handleUploadDoc}
+                  className="px-4 py-2 rounded-xl bg-[#00288e] text-white text-xs font-bold hover:bg-[#001f70] cursor-pointer"
+                >
+                  {coop.registrationDoc ? "Re-upload Certificate" : "Upload Document"}
+                </button>
+              </div>
             </div>
           </Section>
 

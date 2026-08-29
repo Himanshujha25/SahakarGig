@@ -4,14 +4,15 @@ import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
 import CoopMarqueeTicker from '../components/CoopMarqueeTicker';
 import socket from '../lib/socket';
-import { Briefcase, IndianRupee, ShieldCheck, User, LogOut, Handshake, Radio, Settings, Megaphone, Receipt } from 'lucide-react';
+import { Briefcase, IndianRupee, ShieldCheck, User, LogOut, Handshake, Radio, Settings, Megaphone, Receipt, GraduationCap } from 'lucide-react';
 
 const NAV = [
-  { label: 'Job Queue',          Icon: Briefcase,    to: '/provider',               end: true  },
-  { label: 'Dispatch',           Icon: Radio,        to: '/provider/dispatch',      end: false },
-  { label: 'Announcements',      Icon: Megaphone,    to: '/provider/announcements',  end: false },
-  { label: 'Earnings & Payouts', Icon: IndianRupee,  to: '/provider/earnings',      end: false },
-  { label: 'Welfare',            Icon: ShieldCheck,  to: '/provider/welfare',       end: false },
+  { label: 'Job Queue',          Icon: Briefcase,     to: '/provider',               end: true  },
+  { label: 'Dispatch',           Icon: Radio,         to: '/provider/dispatch',      end: false },
+  { label: 'Announcements',      Icon: Megaphone,     to: '/provider/announcements',  end: false },
+  { label: 'Earnings & Payouts', Icon: IndianRupee,   to: '/provider/earnings',      end: false },
+  { label: 'Welfare',            Icon: ShieldCheck,   to: '/provider/welfare',       end: false },
+  { label: 'Skill Academy',      Icon: GraduationCap, to: '/provider/training',      end: false },
 ];
 
 const activeStyle   = 'bg-primary-container text-on-primary-container font-bold';
@@ -104,9 +105,17 @@ export default function ProviderLayout() {
 
         {/* User card */}
         <div className="mx-3 mb-4 p-3 rounded-xl bg-surface-container border border-outline-variant/40 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white text-[13px] font-bold shrink-0">
-            {initials}
-          </div>
+          {user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user.name || "Provider"}
+              className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-primary/20"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white text-[13px] font-bold shrink-0">
+              {initials}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-bold text-on-surface truncate leading-none">{user?.name || 'Provider'}</p>
             <p className="text-[11px] text-on-surface-variant mt-0.5 truncate">{user?.email}</p>

@@ -32,6 +32,7 @@ import ProviderEarnings from './pages/Provider/Earnings';
 import ProviderWelfare from './pages/Provider/Welfare';
 import ProviderOwnProfile from './pages/Provider/Profile';
 import ProviderAnnouncements from './pages/Provider/Announcements';
+import ProviderTraining from './pages/Provider/Training';
 
 import Dashboard from './pages/Admin/Dashboard';
 import Verifications from './pages/Admin/Verifications';
@@ -40,12 +41,20 @@ import Commission from './pages/Admin/Commission';
 import Providers from './pages/Admin/Providers';
 import WorkerDetail from './pages/Admin/WorkerDetail';
 import AdminSettings from './pages/Admin/Settings';
+import CooperativeFinancials from './pages/Admin/Financials';
+import CooperativeNotices from './pages/Admin/Notices';
+import CooperativeCompliance from './pages/Admin/Compliance';
+import WelfareManagement from './pages/Admin/WelfareManagement';
 
 import FederationLayout from './layouts/FederationLayout';
 import FederationDashboard from './pages/Federation/Dashboard';
 import FederationCooperatives from './pages/Federation/Cooperatives';
 import FederationCooperativeDetail from './pages/Federation/CooperativeDetail';
 import FederationEarnings from './pages/Federation/Earnings';
+import FederationVerifications from './pages/Federation/Verifications';
+import FederationDisputes from './pages/Federation/Disputes';
+import FederationAnnouncements from './pages/Federation/Announcements';
+import FederationAnalytics from './pages/Federation/Analytics';
 import FederationSignup from './pages/auth/FederationSignup';
 import FederationSettings from './pages/Federation/Settings';
 import Architecture from './pages/Architecture';
@@ -104,6 +113,8 @@ export default function App() {
             <Route path="earnings" element={<ProviderEarnings />} />
             <Route path="payouts" element={<ProviderEarnings />} />
             <Route path="welfare" element={<ProviderWelfare />} />
+            <Route path="training" element={<ProviderTraining />} />
+            <Route path="academy" element={<ProviderTraining />} />
             <Route path="announcements" element={<ProviderAnnouncements />} />
             <Route path="profile" element={<ProviderOwnProfile />} />
             <Route path="settings" element={<ProviderOwnProfile />} />
@@ -113,13 +124,17 @@ export default function App() {
         <Route element={<RoleRoute role="Cooperative Admin" />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Dashboard />} />
-            <Route path="verifications" element={<Verifications />} />
-            <Route path="disputes" element={<Disputes />} />
-            <Route path="earnings" element={<ProviderEarnings />} />
-            <Route path="payouts" element={<ProviderEarnings />} />
-            <Route path="commission" element={<Commission />} />
             <Route path="providers" element={<Providers />} />
             <Route path="providers/detail" element={<WorkerDetail />} />
+            <Route path="verifications" element={<Verifications />} />
+            <Route path="financials" element={<CooperativeFinancials />} />
+            <Route path="notices" element={<CooperativeNotices />} />
+            <Route path="welfare" element={<WelfareManagement />} />
+            <Route path="compliance" element={<WelfareManagement />} />
+            <Route path="disputes" element={<Disputes />} />
+            <Route path="earnings" element={<CooperativeFinancials />} />
+            <Route path="payouts" element={<CooperativeFinancials />} />
+            <Route path="commission" element={<Commission />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
         </Route>
@@ -129,8 +144,12 @@ export default function App() {
             <Route index element={<FederationDashboard />} />
             <Route path="cooperatives" element={<FederationCooperatives />} />
             <Route path="cooperatives/:id" element={<FederationCooperativeDetail />} />
+            <Route path="verifications" element={<FederationVerifications />} />
+            <Route path="disputes" element={<FederationDisputes />} />
+            <Route path="announcements" element={<FederationAnnouncements />} />
             <Route path="earnings" element={<FederationEarnings />} />
             <Route path="payouts" element={<FederationEarnings />} />
+            <Route path="analytics" element={<FederationAnalytics />} />
             <Route path="settings" element={<FederationSettings />} />
           </Route>
         </Route>

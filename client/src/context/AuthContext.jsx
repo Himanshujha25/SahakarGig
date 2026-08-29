@@ -31,11 +31,26 @@ export function AuthProvider({ children }) {
     return data.user;
   }
 
-  // Patch own profile (name/phone/email+OTP code) and sync local session
+  // Patch own profile (name/phone/avatar/bio/etc.) and sync local session
   async function updateProfile(payload) {
     const { data } = await api.patch('/auth/me', payload);
     const u = data.user;
-    const merged = { ...(user || {}), id: u.id, name: u.name, role: u.role, email: u.email, emailVerified: u.emailVerified };
+    const merged = {
+      ...(user || {}),
+      id: u.id || u._id,
+      name: u.name,
+      role: u.role,
+      email: u.email,
+      phone: u.phone,
+      avatarUrl: u.avatarUrl || '',
+      bio: u.bio || '',
+      designation: u.designation || '',
+      location: u.location || '',
+      timezone: u.timezone || 'Asia/Kolkata (IST)',
+      language: u.language || 'English',
+      contactPreference: u.contactPreference || 'Email',
+      emailVerified: u.emailVerified,
+    };
     localStorage.setItem('sg_user', JSON.stringify(merged));
     setUser(merged);
     return u;
@@ -50,6 +65,14 @@ export function AuthProvider({ children }) {
         name: data.name,
         role: data.role,
         email: data.email,
+        phone: data.phone,
+        avatarUrl: data.avatarUrl || '',
+        bio: data.bio || '',
+        designation: data.designation || '',
+        location: data.location || '',
+        timezone: data.timezone || 'Asia/Kolkata (IST)',
+        language: data.language || 'English',
+        contactPreference: data.contactPreference || 'Email',
         emailVerified: !!data.emailVerified,
       };
       localStorage.setItem('sg_user', JSON.stringify(u));

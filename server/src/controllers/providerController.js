@@ -127,13 +127,33 @@ async function me(req, res) {
 }
 
 async function updateProfile(req, res) {
-  const { skills, hourlyRate, availabilitySlots, geoLocation } = req.body;
+  const { skills, hourlyRate, availabilitySlots, geoLocation, avatarUrl, status } = req.body;
+  const updateData = {};
+  if (skills !== undefined) updateData.skills = skills;
+  if (hourlyRate !== undefined) updateData.hourlyRate = Number(hourlyRate);
+  if (availabilitySlots !== undefined) updateData.availabilitySlots = availabilitySlots;
+  if (geoLocation !== undefined) updateData.geoLocation = geoLocation;
+  if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+  if (status !== undefined) updateData.status = status;
+
+  let query = { _id: req.params.id };
+  if (req.user?.role !== 'CooperativeAdmin' && req.user?.role !== 'FederationAdmin') {
+    query.userId = req.user.userId;
+  }
+
   const p = await Provider.findOneAndUpdate(
-    { _id: req.params.id, userId: req.user.userId },
-    { skills, hourlyRate, availabilitySlots, geoLocation },
+    query,
+    { $set: updateData },
     { new: true }
-  );
+  ).populate('userId');
+
   if (!p) return res.status(404).json({ message: 'Provider not found' });
+
+  if (avatarUrl && p.userId) {
+    const User = require('../models/User');
+    await User.findByIdAndUpdate(p.userId._id || p.userId, { avatarUrl });
+  }
+
   res.json(p);
 }
 

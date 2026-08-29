@@ -29,13 +29,13 @@ function AvailabilityEditor({ slots, onChange }) {
             onClick={() => toggle(i)}
             className={`p-2 rounded-2xl border text-left transition-all cursor-pointer ${
               s.enabled
-                ? "border-[#1e6b65] bg-[#e6f4f1] text-[#145e58]"
+                ? "border-[#00288e] bg-blue-50 text-[#00288e]"
                 : "border-slate-200 bg-slate-50/50 text-slate-500 hover:bg-slate-100"
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold">{s.day}</span>
-              <span className={`w-2 h-2 rounded-full ${s.enabled ? "bg-[#65a30d]" : "bg-slate-300"}`} />
+              <span className={`w-2 h-2 rounded-full ${s.enabled ? "bg-[#00288e]" : "bg-slate-300"}`} />
             </div>
             <p className="text-[10px] font-semibold mt-0.5">
               {s.enabled ? `${s.from} - ${s.to}` : "Off"}

@@ -64,10 +64,10 @@ export default function Earnings() {
   const availableBalance = Math.max(0, total - totalDisbursed);
 
   const STAT_CARDS = [
-    { label: "Total Earnings", value: formatMoney(total), Icon: IndianRupee,  bg: "bg-[#e8edff]", ic: "text-[#00288e]" },
-    { label: "Days Worked",    value: days,               Icon: CalendarDays, bg: "bg-[#fff3e0]", ic: "text-[#6b4200]" },
-    { label: "Avg / Day",      value: formatMoney(avg),   Icon: TrendingUp,   bg: "bg-[#e6f9ec]", ic: "text-[#006d30]" },
-    { label: "Jobs Done",      value: completed,          Icon: CheckCircle2, bg: "bg-[#e8edff]", ic: "text-[#00288e]" },
+    { label: "Total Earnings", value: formatMoney(total), Icon: IndianRupee,  bg: "bg-blue-50", ic: "text-[#00288e]" },
+    { label: "Days Worked",    value: days,               Icon: CalendarDays, bg: "bg-blue-50", ic: "text-[#00288e]" },
+    { label: "Avg / Day",      value: formatMoney(avg),   Icon: TrendingUp,   bg: "bg-blue-50", ic: "text-[#00288e]" },
+    { label: "Jobs Done",      value: completed,          Icon: CheckCircle2, bg: "bg-blue-50", ic: "text-[#00288e]" },
   ];
 
   const completedBookings = bookings.filter(b => b.status === "completed");
@@ -99,25 +99,21 @@ export default function Earnings() {
         setPayouts((prev) => [data.payout, ...prev]);
         setSelectedReceipt(data.payout);
       }
-      setTimeout(() => {
-        setShowPayoutModal(false);
-        setPayoutMessage(null);
-      }, 2500);
     } catch (err) {
-      setPayoutError(err.response?.data?.message || "Payout request failed.");
+      setPayoutError(err.response?.data?.message || "Failed to submit payout request.");
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-6 pt-8 pb-16 space-y-6 text-slate-900">
-
-      {/* Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-4">
+    <div className="w-full max-w-7xl mx-auto px-6 pt-6 pb-20 space-y-6 text-slate-900 font-sans">
+      
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
-            Earnings & Wallet
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+            Earnings &amp; Wallet
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Track income, check withdrawable wallet balance, and request instant bank payouts.
@@ -127,12 +123,12 @@ export default function Earnings() {
         <button
           type="button"
           onClick={() => {
-            setPayoutAmount(String(availableBalance > 0 ? availableBalance : 500));
+            setPayoutAmount(String(availableBalance > 0 ? Math.round(availableBalance) : 500));
             setShowPayoutModal(true);
           }}
-          className="px-4 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+          className="px-5 py-2.5 rounded-xl bg-[#00288e] hover:bg-[#001f70] text-white font-bold text-xs shadow-md transition-all cursor-pointer"
         >
-          Withdraw Funds (₹{availableBalance})
+          Withdraw Funds (₹{Math.round(availableBalance).toLocaleString('en-IN')})
         </button>
       </div>
 

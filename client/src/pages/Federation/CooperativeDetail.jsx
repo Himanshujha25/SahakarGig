@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import { 
   ArrowLeft, Building2, Users, FileText, IndianRupee, ShieldCheck, 
-  CheckCircle2, Percent, Save, Phone, Mail, Award, Check, Download, ExternalLink
+  CheckCircle2, Percent, Save, Phone, Mail, Award, Check, Download, ExternalLink, QrCode
 } from "lucide-react";
 
 function getWorkerAvatar(w) {
@@ -223,7 +223,6 @@ export default function CooperativeDetail() {
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/80">
                   <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase">Worker Name</th>
-                  <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase">Image</th>
                   <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase">Skill Category</th>
                   <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase">Contact</th>
                   <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase">Trust Score</th>
@@ -237,28 +236,30 @@ export default function CooperativeDetail() {
                   const avatarSrc = getWorkerAvatar(p);
                   return (
                     <tr key={p._id} className="hover:bg-slate-50/60">
-                      <td className="px-6 py-3.5 text-xs font-bold text-slate-900 flex items-center gap-3">
-                        {avatarSrc ? (
-                          <img
-                            src={avatarSrc}
-                            alt={p.name || "Worker Photo"}
-                            className="w-9 h-9 rounded-full object-cover border border-slate-200 shadow-xs"
-                            onError={(e) => { e.target.style.display = 'none'; }}
-                          />
-                        ) : (
-                          <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                            {(p.name || p.userId?.name || "R")[0]}
+                      <td className="px-6 py-3.5">
+                        <div className="flex items-center gap-3">
+                          {avatarSrc ? (
+                            <img
+                              src={avatarSrc}
+                              alt={p.name || p.userId?.name || "Worker Photo"}
+                              className="w-9 h-9 rounded-full object-cover border border-slate-200 shadow-xs shrink-0"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-[#1e6b65] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                              {(p.name || p.userId?.name || "R")[0].toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-xs font-bold text-slate-900 leading-tight">
+                              {p.name || p.userId?.name || "Ramesh Kumar"}
+                            </p>
+                            <p className="text-[11px] font-normal text-slate-400 mt-0.5">
+                              {p.userId?.email || p.email || (p._id ? `ID: ${p._id.slice(-6)}` : "")}
+                            </p>
                           </div>
-                        )}
-                        <span>{p.name || p.userId?.name || "Ramesh Kumar"}</span>
-                                      </td>
-                <td className="px-6 py-3.5 text-center">
-                  <img
-                    src={avatarSrc}
-                    alt={p.name || "Worker Photo"}
-                    className="w-12 h-12 rounded-full object-cover border border-slate-200"
-                  />
-                </td>
+                        </div>
+                      </td>
                       <td className="px-6 py-3.5 text-xs text-slate-600 font-medium">
                         {Array.isArray(p.skills) ? p.skills.join(", ") : (p.skills || "Plumber")}
                       </td>
@@ -278,9 +279,30 @@ export default function CooperativeDetail() {
                         <button
                           type="button"
                           onClick={() => setSelectedQrWorker(p)}
-                          className="px-3 py-1.5 rounded bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
+                          className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 hover:border-[#00288e]/40 text-slate-800 hover:text-[#00288e] transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center active:scale-90"
+                          title="View Digital Worker ID & QR Code"
                         >
-                          <span>Profile QR 📱</span>
+                          <svg
+                            className="w-5 h-5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            {/* 4 Scanner Corner Brackets */}
+                            <path d="M3 8V5a2 2 0 0 1 2-2h3" />
+                            <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+                            <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+                            <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+                            {/* Inner QR Blocks */}
+                            <rect x="7" y="7" width="3.5" height="3.5" rx="0.75" fill="currentColor" stroke="none" />
+                            <rect x="13.5" y="7" width="3.5" height="3.5" rx="0.75" fill="currentColor" stroke="none" />
+                            <rect x="7" y="13.5" width="3.5" height="3.5" rx="0.75" fill="currentColor" stroke="none" />
+                            <circle cx="15.2" cy="14" r="1.3" fill="currentColor" stroke="none" />
+                            <rect x="13.5" y="16.5" width="3.5" height="1.6" rx="0.75" fill="currentColor" stroke="none" />
+                          </svg>
                         </button>
                       </td>
                     </tr>

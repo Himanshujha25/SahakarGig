@@ -1,8 +1,8 @@
-﻿# Federation Portal — Feature Documentation
+# Federation Portal — Feature Documentation
 
-> All features for the Cooperative Federation (role: `cooperative`) portal at `/federation/*`
+> All features for the Cooperative Federation (role: `Federation Admin`) portal at `/federation/*`
 >
-> The Federation portal is used by cooperative society admins to manage their member providers, resolve disputes, and track community earnings.
+> The Federation portal is used by apex cooperative federation administrators to oversee member cooperative societies, arbitrate disputes, audit gig worker credentials, manage tax compliance (TDS u/s 194O), configure category commissions, disburse payouts, and broadcast policy circulars.
 
 ---
 
@@ -10,73 +10,55 @@
 
 | Page | File | Route |
 |------|------|-------|
-| Dashboard | `Federation/Dashboard.jsx` | `/federation/dashboard` |
-| Cooperatives | `Federation/Cooperatives.jsx` | `/federation/cooperatives` |
+| Dashboard | `Federation/Dashboard.jsx` | `/federation` |
+| Cooperatives Directory | `Federation/Cooperatives.jsx` | `/federation/cooperatives` |
 | Cooperative Detail | `Federation/CooperativeDetail.jsx` | `/federation/cooperatives/:id` |
-| Earnings | `Federation/Earnings.jsx` | `/federation/earnings` |
+| Provider Verifications | `Federation/Verifications.jsx` | `/federation/verifications` |
+| Dispute Arbitration Tribunal | `Federation/Disputes.jsx` | `/federation/disputes` |
+| Broadcast Announcements | `Federation/Announcements.jsx` | `/federation/announcements` |
+| Earnings, Payouts & Tax | `Federation/Earnings.jsx` | `/federation/earnings` |
+| Market Analytics & Heatmap | `Federation/Analytics.jsx` | `/federation/analytics` |
 | Settings | `Federation/Settings.jsx` | `/federation/settings` |
 
 ---
 
 ## ✅ Implemented Features
 
-### Dashboard
-- [x] **Federation Dashboard** — Overview of total members, active bookings, revenue
-- [x] **Cooperative List** — View all cooperatives under the federation
-
 ### Cooperative Management
-- [x] **Cooperatives Page** — List all registered cooperatives with stats
-- [x] **Cooperative Detail** — Deep-dive into a single cooperative: members, bookings, earnings
-- [x] **Coop Marquee Ticker** — `CoopMarqueeTicker.jsx` live ticker of cooperative activity
-
-### Earnings
-- [x] **Federation Earnings Page** — Commission income, total distributed to providers
-- [x] **Payout Tracking** — View payouts issued to member providers
-
-### Settings
-- [x] **Settings Page** — Federation profile, commission rate config, appearance
-- [x] **Appearance Settings** — Integrated theme picker
-- [x] **Account Security** — Password change tab
-
----
-
-## ❌ Not Yet Implemented
-
-### Cooperative Management
-- [ ] **Register New Cooperative** — Admin creates a new cooperative from UI
-- [ ] **Cooperative Approval Flow** — Platform admin approves cooperative registration
-- [ ] **Deactivate Cooperative** — Suspend a non-compliant cooperative
-- [ ] **Member Invite** — Send invite link to provider to join cooperative
-- [ ] **Cooperative KPI Report** — Downloadable PDF report of monthly KPIs
+- [x] **Register New Cooperative** — Federation admin can register a new primary cooperative with legal name, registration ID, jurisdiction region, contact information, and initial commission %.
+- [x] **Cooperative Approval Flow** — Active, pending, and suspended status tracking with audit history.
+- [x] **Deactivate / Suspend Cooperative** — Instant suspension / reactivation action button with mandatory reason recording.
+- [x] **Member Invite** — Generate unique onboarding invite links and WhatsApp sharing integration for prospective member gig workers.
+- [x] **Cooperative KPI Report** — Downloadable JSON/PDF monthly report tracking GMV, member counts, verified ratio, dispute rates, and trust scores.
 
 ### Provider Verification (via Federation)
-- [ ] **Verification Queue** — Review and approve pending provider verification docs
-- [ ] **Document Viewer** — Preview uploaded Aadhaar / PAN / certificates in-app
-- [ ] **Re-verification Trigger** — Force a provider to re-submit documents
-- [ ] **Bulk Approve** — Bulk-verify multiple providers in one action
+- [x] **Verification Queue** — Comprehensive regulatory review table of all pending provider credentials across member cooperatives.
+- [x] **Document Viewer** — In-app encrypted preview modal for Aadhaar, e-Shram cards, PAN, and trade skill certifications.
+- [x] **Re-verification Trigger** — Instant "Request Document Re-Upload" action with custom note and automated push notification to the worker.
+- [x] **Bulk Approve** — 1-click bulk verification for multiple selected gig workers.
 
-### Dispute Resolution
-- [ ] **Dispute Queue** — View disputes raised by household or provider
-- [ ] **Dispute Detail** — Review chat log + evidence + resolution options
-- [ ] **Arbitration Decision** — Mark dispute resolved / refund issued / penalty applied
-- [ ] **Escalation to Platform Admin** — Escalate to super-admin if unresolvable
+### Dispute Resolution & Arbitration
+- [x] **Dispute Queue** — Real-time filterable queue (Open, Investigating, Resolved, Escalated) across all member cooperatives.
+- [x] **Dispute Detail** — In-depth case viewer with dispute category, complainant details, evidence links, and in-booking chat history.
+- [x] **Arbitration Decision** — Legally binding arbitration actions: Full/Partial Refund to Customer, Release Escrow to Provider, Worker Penalty Deduction, or Formal Warning.
+- [x] **Escalation to Platform Admin** — Escalate complex disputes to Ministry/Platform Super-Admin with case summary.
 
-### Announcements
-- [ ] **Create Announcement** — Federation posts an announcement to all providers
-- [ ] **Schedule Announcement** — Set a future publish date for announcement
-- [ ] **Targeted Announcement** — Send to specific cooperatives or skill categories
+### Announcements & Circulars
+- [x] **Create Announcement** — Rich circular composer with category tags (Official Notice, Govt Scheme, Safety Alert, Bonus Incentive).
+- [x] **Schedule Announcement** — Schedule announcements for future date/time publishing or instant broadcast.
+- [x] **Targeted Announcement** — Precise audience targeting (All Cooperatives, Filter by specific Society, or Filter by Worker Trade Skills).
 
-### Earnings & Finance
-- [ ] **Commission Rate Configuration** — Set per-service-category commission %
-- [ ] **Payout Initiation** — Trigger actual Razorpay payout to providers
-- [ ] **Monthly Statement** — Generate and download monthly earnings PDF
-- [ ] **Tax Compliance Report** — TDS deduction summary for IT filing
-- [ ] **Welfare Fund Allocation** — Allocate % of commission to welfare fund
+### Earnings, Payouts & Tax Compliance
+- [x] **Commission Rate Configuration** — Configurable default commission % and per-service-category commission overrides.
+- [x] **Payout Initiation** — One-click batch provider payout disbursal via Razorpay Route API integration.
+- [x] **Monthly Statement** — Printable and downloadable monthly financial statement (GMV, Commission, Coop Share, Worker Payouts).
+- [x] **Tax Compliance Report (TDS)** — Section 194O 1% TDS calculation and Form 26AS statutory deduction summary.
+- [x] **Welfare Fund Allocation** — Direct percentage allocation (10%) from federation revenue into the Cooperative Social Security & Insurance Reserve Fund.
 
-### Analytics
-- [ ] **Charts / Graphs** — Recharts dashboard with bookings over time, top services
-- [ ] **Provider Leaderboard** — Top performers by rating, completions, earnings
-- [ ] **Geographic Heatmap** — Booking density by area/PIN code
+### Market Analytics & Business Intelligence
+- [x] **Charts / Graphs** — Interactive Recharts dashboard with monthly booking volume, GMV growth trends, and service category demand distribution.
+- [x] **Provider Leaderboard** — Top 10 high-performing gig workers ranked by trust scores, completed jobs, and earnings.
+- [x] **Geographic Heatmap** — District and PIN-code demand density table with live response times and worker concentration.
 
 ---
 
@@ -84,10 +66,28 @@
 
 | Method | Route | Description |
 |--------|-------|-------------|
-| GET | `/api/federation/dashboard` | Federation dashboard stats |
-| GET | `/api/federation/cooperatives` | List cooperatives |
-| GET | `/api/federation/cooperatives/:id` | Cooperative detail |
-| GET | `/api/federation/earnings` | Earnings breakdown |
-| PUT | `/api/federation/settings` | Update federation settings |
-| GET | `/api/federation/providers/pending` | Providers awaiting verification |
-| PUT | `/api/federation/providers/:id/verify` | Approve provider |
+| GET | `/api/federation/dashboard` | Aggregated dashboard KPI stats across all cooperatives |
+| GET | `/api/federation/cooperatives` | List member cooperatives with provider counts & invite URLs |
+| POST | `/api/federation/cooperatives/register` | Register and onboard a new primary cooperative |
+| POST | `/api/federation/cooperatives/onboard` | Link existing cooperative by MongoDB ID |
+| GET | `/api/federation/cooperatives/kpi-report` | Export comprehensive monthly KPI summary report |
+| GET | `/api/federation/cooperatives/:id` | Cooperative profile with providers, payouts, and bookings |
+| PATCH | `/api/federation/cooperatives/:id/status` | Update cooperative status (active/suspended) with reason |
+| PATCH | `/api/federation/cooperatives/:id/commission` | Update cooperative commission rate |
+| GET | `/api/federation/cooperatives/:id/invite` | Generate member onboarding invite link & QR payload |
+| GET | `/api/federation/verifications` | Provider verification queue with document details |
+| POST | `/api/federation/verifications/bulk-verify` | Bulk approve selected provider verifications |
+| PATCH | `/api/federation/verifications/:id/verify` | Approve or reject single provider verification |
+| PATCH | `/api/federation/verifications/:id/re-verify` | Request document re-upload with custom reason |
+| GET | `/api/federation/disputes` | List active and historical disputed bookings |
+| GET | `/api/federation/disputes/:id` | Detailed dispute record with chat log & evidence |
+| POST | `/api/federation/disputes/:id/resolve` | Execute arbitration order (refund, payout, penalty, warning) |
+| POST | `/api/federation/disputes/:id/escalate` | Escalate dispute to Ministry Platform Super-Admin |
+| GET | `/api/federation/announcements` | List published and scheduled announcements |
+| POST | `/api/federation/announcements` | Create/schedule targeted broadcast announcement |
+| DELETE | `/api/federation/announcements/:id` | Remove/archive announcement |
+| GET | `/api/federation/finance` | Treasury summary: GMV, commission, TDS u/s 194O, welfare fund |
+| PATCH | `/api/federation/finance/settings` | Update commission rates, category overrides, welfare %, TDS % |
+| POST | `/api/federation/finance/payouts/batch` | Initiate batch Razorpay provider escrow payouts |
+| GET | `/api/federation/finance/statement` | Generate monthly structured earnings statement |
+| GET | `/api/federation/analytics` | Fetch monthly trends, category shares, leaderboard, and heatmap |

@@ -343,17 +343,17 @@ html.dark ::-webkit-scrollbar-track {
   --color-outline: #cbd5e1;
   --color-outline-variant: #e2e8f0;
 
-  /* ---- Primary (Orvia Deep Ocean Teal) ---- */
-  --color-primary: #1e6b65;
+  /* ---- Primary (SahakarGig Deep Cooperative Blue) ---- */
+  --color-primary: #00288e;
   --color-on-primary: #ffffff;
-  --color-primary-container: #e6f4f1;
-  --color-on-primary-container: #145e58;
-  --color-inverse-primary: #81e6d9;
-  --color-surface-tint: #2e7d7a;
-  --color-primary-fixed: #ccfbf1;
-  --color-primary-fixed-dim: #99f6e4;
-  --color-on-primary-fixed: #042f2e;
-  --color-on-primary-fixed-variant: #0f766e;
+  --color-primary-container: #e8edff;
+  --color-on-primary-container: #00288e;
+  --color-inverse-primary: #b8c4ff;
+  --color-surface-tint: #00288e;
+  --color-primary-fixed: #dde1ff;
+  --color-primary-fixed-dim: #b8c4ff;
+  --color-on-primary-fixed: #001453;
+  --color-on-primary-fixed-variant: #00288e;
 
   /* ---- Secondary (Active Lime / Health Green) ---- */
   --color-secondary: #65a30d;

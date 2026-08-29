@@ -17,6 +17,14 @@ const publicUser = (u) => ({
   name: u.name,
   role: u.role,
   email: u.email,
+  phone: u.phone,
+  avatarUrl: u.avatarUrl || '',
+  bio: u.bio || '',
+  designation: u.designation || '',
+  location: u.location || '',
+  timezone: u.timezone || 'Asia/Kolkata (IST)',
+  language: u.language || 'English',
+  contactPreference: u.contactPreference || 'Email',
   emailVerified: !!u.emailVerified,
 });
 
@@ -167,6 +175,13 @@ async function updateMe(req, res) {
 
   if (name !== undefined && typeof name === 'string' && name.trim()) me.name = name.trim();
   if (phone !== undefined) me.phone = phone;
+  if (req.body.avatarUrl !== undefined) me.avatarUrl = String(req.body.avatarUrl).trim();
+  if (req.body.bio !== undefined) me.bio = String(req.body.bio).trim();
+  if (req.body.designation !== undefined) me.designation = String(req.body.designation).trim();
+  if (req.body.location !== undefined) me.location = String(req.body.location).trim();
+  if (req.body.timezone !== undefined) me.timezone = String(req.body.timezone).trim();
+  if (req.body.language !== undefined) me.language = String(req.body.language).trim();
+  if (req.body.contactPreference !== undefined) me.contactPreference = String(req.body.contactPreference).trim();
 
   // Real household profile fields — persisted, no demo values.
   if (req.body.address !== undefined && typeof req.body.address === 'string') {

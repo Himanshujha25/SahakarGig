@@ -1,24 +1,34 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import api from "../../lib/api";
 import socket from "../../lib/socket";
-import { 
-  ArrowLeft, Phone, MapPin, Navigation, 
-  AlertCircle, Send, Zap, User, Key, Check, ExternalLink, MessageSquare
+import {
+  ArrowLeft, Phone, MapPin, Navigation, AlertCircle,
+  Send, Zap, User, Key, Check, ExternalLink, MessageSquare,
+  Star, Clock, AlertTriangle, ShieldCheck, Upload, X,
+  Camera, FileText, Ban, CheckCircle2, ChevronRight,
+  IndianRupee, Sparkles, Building2
 } from "lucide-react";
 
 export default function JobDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [chat, setChat] = useState("");
   const [messages, setMessages] = useState([]);
+  const [otpCode, setOtpCode] = useState("");
   const [otpError, setOtpError] = useState(null);
+  const [showOtpModal, setShowOtpModal] = useState(false);
   const [providerUserId, setProviderUserId] = useState(null);
+
+  // Discard / Escalation Modal State
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [discardCategory, setDiscardCategory] = useState("customer_unreachable");
+  const [discardReason, setDiscardReason] = useState("");
+  const [evidencePreview, setEvidencePreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   const load = useCallback(async () => {
     try {
@@ -37,23 +47,23 @@ export default function JobDetail() {
 
   useEffect(() => {
     load();
-    socket.on('booking:updated', (b) => {
+    socket.on("booking:updated", (b) => {
       const incoming = b?.booking || b;
       if (incoming?._id?.toString() === id || incoming?._id === id) {
         setBooking(incoming);
         setMessages(incoming.chat || []);
       }
     });
-    socket.on('booking:chat', ({ bookingId, message }) => {
-      if (bookingId?.toString() === id) setMessages(prev => [...prev, message]);
+    socket.on("booking:chat", ({ bookingId, message }) => {
+      if (bookingId?.toString() === id) setMessages((prev) => [...prev, message]);
     });
     return () => {
-      socket.off('booking:updated');
-      socket.off('booking:chat');
+      socket.off("booking:updated");
+      socket.off("booking:chat");
     };
   }, [load, id]);
 
-  const isActive = booking && ['accepted', 'in-progress'].includes(booking.status);
+  const isActive = booking && ["accepted", "in-progress"].includes(booking.status);
   useEffect(() => {
     if (!isActive || !navigator.geolocation) return;
     if (!socket.connected) socket.connect();
@@ -62,7 +72,7 @@ export default function JobDetail() {
 
     const emitPos = () => {
       if (lastPos && socket.connected) {
-        socket.emit('provider:location_update', {
+        socket.emit("provider:location_update", {
           bookingId: id,
           lat: lastPos.coords.latitude,
           lng: lastPos.coords.longitude,
@@ -98,53 +108,91 @@ export default function JobDetail() {
   async function markInProgress() {
     setBusy(true);
     try {
-      await api.patch(`/bookings/${id}/status`, { status: 'in-progress' });
+      await api.patch(`/bookings/${id}/status`, { status: "in-progress" });
       await load();
+    } catch (err) {
+      console.error("Failed to mark in-progress:", err);
+      alert(err?.response?.data?.message || "Failed to update status to In-Progress.");
     } finally {
       setBusy(false);
     }
   }
 
-  async function complete() {
+  async function submitOtpCompletion(e) {
+    if (e) e.preventDefault();
+    if (!otpCode || otpCode.length < 4) {
+      setOtpError("Please enter the complete 4-digit code provided by the customer.");
+      return;
+    }
+
     setBusy(true);
     setOtpError(null);
     try {
-      await api.patch(`/bookings/${id}/status`, { status: "completed" });
+      await api.patch(`/bookings/${id}/status`, { status: "completed", otp: otpCode });
+      setShowOtpModal(false);
+      setOtpCode("");
       await load();
+      alert("Job verified & marked complete! Payout released to your wallet.");
     } catch (err) {
-      setOtpError(err.response?.data?.message || "Failed to complete job");
+      setOtpError(err?.response?.data?.message || "Invalid completion OTP code. Please verify with customer.");
     } finally {
       setBusy(false);
     }
   }
 
-  async function cancel() {
+  function handleEvidenceUpload(e) {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEvidencePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  async function handleConfirmDiscard(e) {
+    e.preventDefault();
+    if (!discardReason.trim()) {
+      alert("Please provide a reason for discarding this order.");
+      return;
+    }
+
     setBusy(true);
     try {
-      await api.patch(`/bookings/${id}/cancel`);
+      await api.patch(`/bookings/${id}/cancel`, {
+        reason: discardReason,
+        reasonCategory: discardCategory,
+        photoEvidence: evidencePreview ? "uploaded_site_evidence.jpg" : undefined,
+      });
+      setShowDiscardModal(false);
       await load();
+      alert("Order discarded successfully with justification logged.");
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to discard order.");
     } finally {
       setBusy(false);
     }
   }
 
-  async function sendChat(customText) {
-    const textToSend = customText || chat;
-    if (!textToSend || !textToSend.trim()) return;
+  async function sendChat(textOverride) {
+    const msg = (textOverride || chat).trim();
+    if (!msg) return;
     try {
-      const { data } = await api.post(`/bookings/${id}/chat`, { message: textToSend });
-      setMessages(data.chat || []);
-      if (!customText) setChat("");
-    } catch {}
+      await api.post(`/bookings/${id}/chat`, { message: msg });
+      if (!textOverride) setChat("");
+    } catch (err) {
+      console.error("Failed to send message:", err);
+    }
   }
 
   if (loading) {
     return (
-      <div className="w-full max-w-5xl mx-auto px-6 py-12 space-y-6">
-        <div className="animate-pulse rounded-xl border border-slate-200 bg-white p-8 space-y-4">
-          <div className="h-6 w-1/3 rounded bg-slate-100" />
-          <div className="h-4 w-1/2 rounded bg-slate-100" />
-          <div className="h-24 w-full rounded bg-slate-50" />
+      <div className="w-full max-w-7xl mx-auto px-6 pt-6 pb-20 space-y-4 animate-pulse">
+        <div className="h-8 bg-slate-200 rounded-xl w-48" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="h-96 bg-slate-100 rounded-3xl" />
+          <div className="h-96 bg-slate-100 rounded-3xl" />
         </div>
       </div>
     );
@@ -152,13 +200,13 @@ export default function JobDetail() {
 
   if (!booking) {
     return (
-      <div className="w-full max-w-md mx-auto my-16 p-8 text-center rounded-xl border border-slate-200 bg-white space-y-4">
+      <div className="w-full max-w-md mx-auto my-16 p-8 text-center rounded-2xl border border-slate-200 bg-white space-y-4 shadow-sm">
         <AlertCircle size={40} className="mx-auto text-slate-400" />
-        <h2 className="text-base font-semibold text-slate-900">Job Record Not Found</h2>
+        <h2 className="text-base font-bold text-slate-900">Job Record Not Found</h2>
         <p className="text-xs text-slate-500">The requested job reference could not be located in the ledger.</p>
         <button
           onClick={() => navigate("/provider")}
-          className="px-4 py-2 rounded-lg bg-slate-900 text-white font-medium text-xs hover:bg-slate-800 transition-colors"
+          className="px-5 py-2.5 rounded-xl bg-[#00288e] text-white font-bold text-xs hover:bg-[#001f70] transition-colors cursor-pointer shadow-md"
         >
           Back to Job Queue
         </button>
@@ -168,229 +216,319 @@ export default function JobDetail() {
 
   const b = booking;
   const isEmergency = b.isEmergency || false;
+  const grossPrice = Number(b.price) || 0;
+  const netPay = Math.round(grossPrice * 0.85);
+  const coopCut = Math.round(grossPrice * 0.10);
+  const fedCut = Math.round(grossPrice * 0.05);
+
+  // 30-Min Inactivity Escalation check
+  const lastUpdate = new Date(b.updatedAt || b.createdAt).getTime();
+  const elapsedMinutes = Math.round((Date.now() - lastUpdate) / (1000 * 60));
+  const isEscalated = b.status === "accepted" && elapsedMinutes > 30;
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-6 pt-8 pb-20 space-y-6 text-slate-900">
-
-      {/* Header Bar */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+    <div className="w-full max-w-7xl mx-auto px-6 pt-5 pb-16 space-y-5 text-slate-900 font-sans">
+      {/* ── TOP BREADCRUMB & STATUS BAR ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/provider")}
-            className="p-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+            className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-all cursor-pointer shadow-2xs"
             title="Back to Job Queue"
           >
             <ArrowLeft size={16} />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
-              Job Details
-            </h1>
-            <p className="text-xs text-slate-500">Reference #{b._id?.substring(0, 10) || "89412"}</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold text-slate-900 tracking-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+                Gig Command Center
+              </h1>
+              <span className="font-mono text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                #{b._id?.substring(0, 8).toUpperCase()}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500">Live order navigation, status controls &amp; customer communication</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold px-3 py-1 rounded bg-slate-100 text-slate-800 border border-slate-200 capitalize">
-            {b.status}
-          </span>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           {isEmergency && (
-            <span className="text-xs font-semibold px-3 py-1 rounded bg-slate-900 text-white">
-              Emergency Request
+            <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold flex items-center gap-1">
+              <Zap size={12} className="fill-rose-700" /> Emergency Priority
             </span>
           )}
-          {b.recurrence?.enabled && (
-            <span className="text-xs font-semibold px-3 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200 capitalize">
-              Recurring · {b.recurrence.freq}
-            </span>
-          )}
-          {b.groupBooking?.enabled && (
-            <span className="text-xs font-semibold px-3 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">
-              Group · {b.groupBooking.memberCount} members
-            </span>
-          )}
+          <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 capitalize ${
+            b.status === "completed" ? "bg-emerald-50 text-emerald-800 border-emerald-200" :
+            b.status === "cancelled" ? "bg-slate-100 text-slate-600 border-slate-200" :
+            b.status === "in-progress" ? "bg-purple-50 text-purple-700 border-purple-200 animate-pulse" :
+            "bg-blue-50 text-[#00288e] border-blue-200"
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${
+              b.status === "completed" ? "bg-emerald-600" :
+              b.status === "in-progress" ? "bg-purple-600 animate-ping" :
+              b.status === "cancelled" ? "bg-slate-400" :
+              "bg-[#00288e]"
+            }`} />
+            {b.status === "accepted" ? "En Route · Confirmed" : b.status === "in-progress" ? "In Service · On Site" : b.status}
+          </span>
         </div>
       </div>
 
-      {/* Main Details Card */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-6">
-        
-        {/* Customer Header Info */}
-        <div className="flex items-start justify-between border-b border-slate-100 pb-5">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">
-              {b.householdId?.name || "Anita Sharma"}
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Service: <span className="font-semibold text-slate-800">{b.targetCategory || b.service || "General Repair"}</span>
-            </p>
+      {/* ── 30-MINUTE INACTIVITY ESCALATION ALERT BANNER ── */}
+      {isEscalated && (
+        <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-200 flex items-center justify-center text-amber-900 shrink-0">
+              <AlertTriangle size={16} />
+            </div>
+            <div>
+              <p className="font-bold text-xs text-slate-900">30-Minute Inactivity Escalation Alert</p>
+              <p className="text-[11px] font-medium text-slate-600">
+                Order accepted {elapsedMinutes} mins ago without on-site progress. Please start travel or discard order.
+              </p>
+            </div>
           </div>
 
-          <div className="text-right">
-            <p className="text-xs text-slate-400 font-medium uppercase">Offered Rate</p>
-            <p className="text-2xl font-bold text-slate-900">₹{b.price} <span className="text-xs font-normal text-slate-500">/ hr</span></p>
-          </div>
-        </div>
-
-        {/* 2-Column Info Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          
-          <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 space-y-1">
-            <p className="text-[11px] font-bold text-slate-400 uppercase">Customer Phone</p>
-            <p className="text-sm font-semibold text-slate-900 font-mono">{b.householdId?.phone || "9811000004"}</p>
-            <a
-              href={`tel:${b.householdId?.phone || "9811000004"}`}
-              className="inline-flex items-center gap-1 text-xs text-slate-700 hover:text-slate-900 font-medium underline pt-1"
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowDiscardModal(true)}
+              className="px-3 py-1.5 rounded-xl border border-rose-200 bg-white hover:bg-rose-50 text-rose-700 font-bold text-xs cursor-pointer transition-all shadow-2xs flex items-center gap-1"
             >
-              <Phone size={12} /> Call Customer
-            </a>
+              <Ban size={12} />
+              <span>Discard Order</span>
+            </button>
+            <button
+              onClick={markInProgress}
+              className="px-3.5 py-1.5 rounded-xl bg-[#00288e] text-white font-bold text-xs hover:bg-[#001f70] transition-all cursor-pointer shadow-2xs"
+            >
+              Mark On Site
+            </button>
           </div>
-
-          <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 space-y-1">
-            <p className="text-[11px] font-bold text-slate-400 uppercase">Service Location</p>
-            <p className="text-xs font-medium text-slate-800">{b.locationText || b.address || "Street 3, Noida, UP"}</p>
-            {b.coordinates ? (
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${b.coordinates.lat},${b.coordinates.lng}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-slate-700 hover:text-slate-900 font-medium underline pt-1"
-              >
-                <Navigation size={12} /> Open Maps Navigation <ExternalLink size={10} />
-              </a>
-            ) : (
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.locationText || b.address || "Noida")}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-slate-700 hover:text-slate-900 font-medium underline pt-1"
-              >
-                <Navigation size={12} /> Open Maps Navigation <ExternalLink size={10} />
-              </a>
-            )}
-          </div>
-
         </div>
+      )}
 
-      </div>
-
-      {/* Grid: Actions & Communication */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-        {/* Left Column: Actions */}
-        <div className="lg:col-span-6 space-y-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-3">
-              Actions
-            </h3>
-
-            {otpError && (
-              <div className="p-3 rounded-lg bg-slate-100 text-slate-800 text-xs font-medium">
-                {otpError}
+      {/* ── 2-COLUMN PERFECTLY BALANCED WORKSPACE ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+        
+        {/* ── LEFT COLUMN: JOB COMMAND & ORDER OVERVIEW ── */}
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-2xs flex flex-col justify-between space-y-5">
+          <div className="space-y-4">
+            {/* Customer & Earnings Header */}
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-[#00288e] flex items-center justify-center font-black text-lg shrink-0">
+                  {(b.householdId?.name || "C").charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-slate-900">{b.householdId?.name || "Customer Household"}</h2>
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-200">
+                      Verified
+                    </span>
+                  </div>
+                  <p className="text-xs font-bold text-[#00288e] mt-0.5">
+                    {b.targetCategory || b.service || "Household General Repair"}
+                  </p>
+                </div>
               </div>
-            )}
 
+              <div className="text-right shrink-0">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Take-Home Pay</span>
+                <p className="text-xl font-black text-emerald-700">₹{netPay}</p>
+                <p className="text-[10px] text-slate-400 font-medium">(₹{grossPrice} gross)</p>
+              </div>
+            </div>
+
+            {/* Stepper Progress */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Workflow Progress</span>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold">
+                <div className={`py-2 px-1 rounded-xl border ${b.status !== "requested" ? "bg-blue-50 border-blue-200 text-[#00288e]" : "bg-slate-100 border-slate-200 text-slate-500"}`}>
+                  1. Accepted ✓
+                </div>
+                <div className={`py-2 px-1 rounded-xl border ${["in-progress", "completed"].includes(b.status) ? "bg-purple-50 border-purple-200 text-purple-700" : "bg-slate-50 border-slate-200 text-slate-400"}`}>
+                  2. In-Service
+                </div>
+                <div className={`py-2 px-1 rounded-xl border ${b.status === "completed" ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-slate-50 border-slate-200 text-slate-400"}`}>
+                  3. OTP Settled
+                </div>
+              </div>
+            </div>
+
+            {/* Contact & Location Tiles */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between gap-2">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Customer Phone</span>
+                  <p className="font-mono font-bold text-slate-900 text-xs mt-0.5">{b.householdId?.phone || "+91 98110 00004"}</p>
+                </div>
+                <a
+                  href={`tel:${b.householdId?.phone || "9811000004"}`}
+                  className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Phone size={12} />
+                  <span>Call Customer</span>
+                </a>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between gap-2">
+                <div className="truncate">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Service Location</span>
+                  <p className="font-bold text-slate-900 text-xs mt-0.5 truncate">{b.locationText || b.address || "Ghaziabad, Uttar Pradesh"}</p>
+                </div>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.locationText || b.address || "Ghaziabad")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full py-2 rounded-xl bg-[#00288e] hover:bg-[#001f70] text-white font-bold text-xs shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Navigation size={12} />
+                  <span>Open Maps</span>
+                  <ExternalLink size={10} />
+                </a>
+              </div>
+            </div>
+
+            {/* Escrow Fee Summary */}
+            <div className="p-3 rounded-xl bg-slate-50/60 border border-slate-100 text-[11px] flex items-center justify-between text-slate-500 font-medium">
+              <span>Nodal Escrow Protected: ₹{grossPrice}</span>
+              <span>Society Reserve: ₹{coopCut} (10%)</span>
+              <span>Fed Tech: ₹{fedCut} (5%)</span>
+            </div>
+          </div>
+
+          {/* Bottom Primary Controls */}
+          <div className="space-y-2.5 pt-2 border-t border-slate-100">
             {b.status === "requested" && (
               <div className="space-y-2">
                 <button
                   disabled={busy}
                   onClick={accept}
-                  className="w-full py-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors cursor-pointer"
+                  className="w-full py-3 rounded-2xl bg-[#00288e] hover:bg-[#001f70] text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
-                  Accept Job Request
+                  <Check size={15} strokeWidth={2.5} />
+                  <span>Accept Job Request (₹{netPay})</span>
                 </button>
-
                 <button
                   disabled={busy}
-                  onClick={cancel}
-                  className="w-full py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 font-medium text-xs transition-colors cursor-pointer"
+                  onClick={() => setShowDiscardModal(true)}
+                  className="w-full py-2 rounded-2xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition-colors cursor-pointer"
                 >
-                  Decline Job
+                  Decline / Discard Job
                 </button>
               </div>
             )}
 
             {b.status === "accepted" && (
-              <button
-                disabled={busy}
-                onClick={markInProgress}
-                className="w-full py-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors cursor-pointer"
-              >
-                Mark In-Progress (On Site)
-              </button>
-            )}
+              <div className="space-y-2">
+                <button
+                  disabled={busy}
+                  onClick={markInProgress}
+                  className="w-full py-3.5 rounded-2xl bg-[#00288e] hover:bg-[#001f70] text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Check size={16} strokeWidth={2.5} />
+                  <span>Mark In-Progress (Arrived On Site)</span>
+                </button>
 
-            {b.status === "in-progress" && (
-              <button
-                disabled={busy}
-                onClick={complete}
-                className="w-full py-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors cursor-pointer"
-              >
-                Complete Job & Release Payout
-              </button>
-            )}
-
-            {b.status === "completed" && (
-              <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-center space-y-1">
-                <p className="text-xs font-bold text-slate-900">Job Completed</p>
-                <p className="text-[11px] text-slate-500">Funds have been added to your wallet balance.</p>
+                <button
+                  disabled={busy}
+                  onClick={() => setShowDiscardModal(true)}
+                  className="w-full py-2.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700 text-slate-600 font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Ban size={13} />
+                  <span>Discard / Escalate Order with Reason</span>
+                </button>
               </div>
             )}
 
-            {(b.status === "accepted" || b.status === "in-progress") && (
-              <button
-                disabled={busy}
-                onClick={cancel}
-                className="w-full py-2 text-slate-500 hover:text-slate-700 font-medium text-xs transition-colors cursor-pointer"
-              >
-                Cancel Job
-              </button>
+            {b.status === "in-progress" && (
+              <div className="space-y-2">
+                <button
+                  disabled={busy}
+                  onClick={() => setShowOtpModal(true)}
+                  className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Key size={16} strokeWidth={2.5} />
+                  <span>Complete Job with Household OTP</span>
+                </button>
+
+                <button
+                  disabled={busy}
+                  onClick={() => setShowDiscardModal(true)}
+                  className="w-full py-2 rounded-2xl border border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50 font-semibold text-xs transition-all cursor-pointer text-center"
+                >
+                  Report Severe On-Site Issue / Dispute
+                </button>
+              </div>
             )}
 
+            {b.status === "completed" && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-0.5">
+                <p className="text-xs font-bold text-emerald-900">Job Settled Successfully ✓</p>
+                <p className="text-[11px] text-slate-500">₹{netPay} has been credited to your withdrawable wallet balance.</p>
+              </div>
+            )}
+
+            {b.status === "cancelled" && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-0.5">
+                <p className="font-bold">Order Cancelled / Discarded</p>
+                <p className="text-[11px] text-slate-600">{b.cancellationReason || "Discharged with justification."}</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right Column: Customer Messages */}
-        <div className="lg:col-span-6 rounded-xl border border-slate-200 bg-white p-6 flex flex-col justify-between min-h-[360px]">
+        {/* ── RIGHT COLUMN: DIRECT HOUSEHOLD CHAT (SAME HEIGHT) ── */}
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-2xs flex flex-col justify-between space-y-4">
           <div className="space-y-3 flex-1 flex flex-col">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-3">
-              Messages
-            </h3>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <MessageSquare size={16} className="text-[#00288e]" />
+                <span>Direct Household Messaging</span>
+              </h3>
+              <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+                Live Socket.io
+              </span>
+            </div>
 
-            {/* Quick Text Options */}
+            {/* Quick Text Chips */}
             <div className="flex flex-wrap gap-1.5">
               {[
-                "On my way",
-                "Arrived at location",
-                "Job completed"
+                "On my way 🚗",
+                "Arrived at doorstep 🚪",
+                "Work started 🛠️",
+                "Need 10 mins extra ⏳"
               ].map((txt) => (
                 <button
                   key={txt}
                   type="button"
                   onClick={() => sendChat(txt)}
-                  className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition-colors cursor-pointer"
                 >
                   {txt}
                 </button>
               ))}
             </div>
 
-            {/* Message List */}
-            <div className="flex-1 max-h-56 overflow-y-auto space-y-2 p-2 rounded bg-surface-container-low border border-outline-variant my-1">
+            {/* Message History Feed */}
+            <div className="flex-1 min-h-[220px] max-h-[260px] overflow-y-auto space-y-2 p-3 rounded-2xl bg-slate-50 border border-slate-200">
               {messages.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-6">No messages recorded.</p>
+                <div className="h-full flex flex-col items-center justify-center text-slate-400 py-10 space-y-1">
+                  <MessageSquare size={24} className="text-slate-300" />
+                  <p className="text-xs">No messages yet.</p>
+                  <p className="text-[11px]">Send a quick arrival update to the household.</p>
+                </div>
               ) : (
                 messages.map((m, idx) => {
                   const senderId = m.sender?._id?.toString() || m.sender?.toString() || "";
-                  const mine = providerUserId ? senderId === providerUserId?.toString() : false;
-                  const isYou = mine;
+                  const isYou = providerUserId ? senderId === providerUserId?.toString() : false;
                   return (
                     <div
                       key={idx}
                       className={`flex flex-col ${isYou ? "items-end" : "items-start"}`}
                     >
-                      <div className={`max-w-[85%] px-2.5 py-2 rounded-lg text-xs ${isYou ? "bg-primary text-on-primary" : "bg-surface text-on-surface border border-outline-variant"}`}>
-                        <p className={`text-[10px] font-semibold mb-0.5 ${isYou ? "text-on-primary/75" : "text-primary"}`}>
+                      <div className={`max-w-[85%] px-3.5 py-2 rounded-2xl text-xs ${isYou ? "bg-[#00288e] text-white" : "bg-white text-slate-800 border border-slate-200 shadow-2xs"}`}>
+                        <p className={`text-[10px] font-bold mb-0.5 ${isYou ? "text-blue-200" : "text-[#00288e]"}`}>
                           {isYou ? "You" : (m.sender?.name || "Household")}
                         </p>
                         <p>{m.message}</p>
@@ -402,29 +540,200 @@ export default function JobDetail() {
             </div>
           </div>
 
-          {/* Message Input */}
-          <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
+          {/* Chat Input Bar */}
+          <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
             <input
               type="text"
               value={chat}
               onChange={(e) => setChat(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendChat()}
-              placeholder="Type message..."
-              className="flex-1 px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary"
+              placeholder="Type message to household..."
+              className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 outline-none focus:border-[#00288e] focus:bg-white"
             />
             <button
               type="button"
               onClick={() => sendChat()}
-              className="px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-[#00288e] hover:bg-[#001f70] text-white text-xs font-bold transition-colors cursor-pointer shadow-md"
             >
               Send
             </button>
           </div>
-
         </div>
-
       </div>
 
+      {/* ── MODAL 1: OTP COMPLETION VERIFICATION ── */}
+      {showOtpModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowOtpModal(false)}>
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 lg:p-7 space-y-4 border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                  <Key size={18} />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Verify Completion OTP</h2>
+                  <p className="text-xs text-slate-500">Provided by customer upon work inspection</p>
+                </div>
+              </div>
+              <button onClick={() => setShowOtpModal(false)} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={submitOtpCompletion} className="space-y-4 text-xs">
+              <div className="space-y-1.5 text-center py-2">
+                <label className="font-bold text-slate-700 block">Enter 4-Digit Customer OTP</label>
+                <input
+                  type="text"
+                  maxLength={4}
+                  required
+                  placeholder="• • • •"
+                  value={otpCode}
+                  onChange={(e) => {
+                    setOtpCode(e.target.value.trim());
+                    setOtpError(null);
+                  }}
+                  className="w-48 mx-auto text-center tracking-[0.5em] text-2xl font-black p-3 rounded-2xl border-2 border-slate-300 focus:border-emerald-600 bg-slate-50 outline-none"
+                />
+              </div>
+
+              {otpError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold text-center">
+                  ⚠️ {otpError}
+                </div>
+              )}
+
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold text-center">
+                ✨ Entering this OTP instantly releases ₹{netPay} into your withdrawable wallet.
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowOtpModal(false)}
+                  className="px-4 py-2.5 rounded-full border border-slate-200 font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {busy ? "Verifying…" : "Verify & Complete ✓"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 2: DISCARD / ESCALATE WITH REASON & EVIDENCE ── */}
+      {showDiscardModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowDiscardModal(false)}>
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 lg:p-7 space-y-4 border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
+                  <Ban size={16} />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Discard / Escalate Booking</h2>
+                  <p className="text-xs text-slate-500">Cooperative SLA Justification &amp; Evidence</p>
+                </div>
+              </div>
+              <button onClick={() => setShowDiscardModal(false)} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmDiscard} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Select Primary Reason</label>
+                <select
+                  value={discardCategory}
+                  onChange={(e) => setDiscardCategory(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#00288e] focus:bg-white font-semibold text-slate-800"
+                >
+                  <option value="customer_unreachable">📞 Customer phone switched off / Not answering</option>
+                  <option value="wrong_location">📍 Wrong address / Location outside service perimeter</option>
+                  <option value="safety_hazard">⚠️ On-site safety hazard / High-voltage danger</option>
+                  <option value="customer_cancelled">🚫 Customer cancelled on doorstep / Refused service</option>
+                  <option value="pricing_dispute">⚖️ Scope mismatch / Extra work not agreed</option>
+                  <option value="other">📝 Other justification</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Detailed Field Justification</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Explain the situation in detail for cooperative tribunal review..."
+                  value={discardReason}
+                  onChange={(e) => setDiscardReason(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#00288e] focus:bg-white"
+                />
+              </div>
+
+              {/* Photo / Evidence Upload */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-700">Attach Site Photo / Proof (Optional)</label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleEvidenceUpload}
+                  style={{ display: "none" }}
+                />
+
+                {evidencePreview ? (
+                  <div className="relative rounded-2xl overflow-hidden border border-slate-200 h-32 bg-slate-900 flex items-center justify-center">
+                    <img src={evidencePreview} alt="Evidence" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setEvidencePreview(null)}
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-black cursor-pointer"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-[#00288e] bg-slate-50 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all"
+                  >
+                    <Camera size={22} className="text-[#00288e]" />
+                    <p className="font-bold text-slate-700">Take Photo / Upload Evidence</p>
+                    <p className="text-[10.5px] text-slate-400">Photo of locked gate, broken meter, or site</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold">
+                ℹ️ Providing photographic proof ensures this cancellation will not negatively impact your cooperative trust score.
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowDiscardModal(false)}
+                  className="px-4 py-2 rounded-full border border-slate-200 font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="px-5 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {busy ? "Discarding…" : "Confirm Discard"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

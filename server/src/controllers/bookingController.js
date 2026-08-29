@@ -619,9 +619,36 @@ async function acceptBroadcastRequest(req, res) {
   res.json({ booking: updatedBooking, providerDetails });
 }
 
+async function listAllBookings(req, res) {
+  const query = {};
+  if (req.user?.role === 'CooperativeAdmin' && req.user?.cooperativeId) {
+    query.cooperativeId = req.user.cooperativeId;
+  }
+  const bookings = await Booking.find(query)
+    .populate('providerId')
+    .populate('householdId')
+    .populate('cooperativeId')
+    .sort({ createdAt: -1 })
+    .lean();
+  res.json(bookings);
+}
+
 module.exports = {
-  createBooking, getBooking, householdBookings, providerBookings,
-  acceptBooking, updateStatus, cancelBooking, disputeBooking, withdrawDispute, rescheduleBooking, addChat,
-  createBroadcastBooking, keepaliveBroadcast, availableBroadcastBookings, acceptBroadcastRequest,
+  createBooking,
+  createBroadcastBooking,
+  keepaliveBroadcast,
+  availableBroadcastBookings,
+  acceptBroadcastRequest,
+  getBooking,
+  householdBookings,
+  providerBookings,
+  listAllBookings,
+  acceptBooking,
+  updateStatus,
+  cancelBooking,
+  disputeBooking,
+  withdrawDispute,
+  rescheduleBooking,
+  addChat,
   spawnNextOccurrence,
 };

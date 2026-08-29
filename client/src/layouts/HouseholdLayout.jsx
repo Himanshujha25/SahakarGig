@@ -104,9 +104,17 @@ export default function HouseholdLayout() {
 
         {/* User card */}
         <div className="mx-3 mb-4 p-3 rounded-xl bg-surface-container border border-outline-variant/40 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white text-[13px] font-bold shrink-0">
-            {initials}
-          </div>
+          {user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user.name || "Household"}
+              className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-primary/20"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white text-[13px] font-bold shrink-0">
+              {initials}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-bold text-on-surface truncate leading-none">{user?.name || 'Household'}</p>
             <p className="text-[11px] text-on-surface-variant mt-0.5 truncate">{user?.email}</p>

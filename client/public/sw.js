@@ -52,6 +52,17 @@ self.addEventListener('fetch', (event) => {
   // Only intercept same-origin GET requests
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) return;
 
+  // Bypass any Vite dev server / HMR / node_modules chunk requests
+  if (
+    url.pathname.includes('@vite') ||
+    url.pathname.includes('@fs') ||
+    url.pathname.includes('node_modules') ||
+    url.pathname.includes('src/') ||
+    url.search.includes('?v=')
+  ) {
+    return;
+  }
+
   // ① API calls — Network-first, fall back to cached response
   if (url.pathname.startsWith('/api') || url.hostname !== self.location.hostname) {
     event.respondWith(

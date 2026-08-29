@@ -8,7 +8,11 @@ import socket from '../lib/socket';
 const NAV = [
   { to: '/federation', icon: 'dashboard', label: 'Dashboard', end: true },
   { to: '/federation/cooperatives', icon: 'corporate_fare', label: 'Cooperatives' },
+  { to: '/federation/verifications', icon: 'verified_user', label: 'Verifications' },
+  { to: '/federation/disputes', icon: 'gavel', label: 'Disputes' },
+  { to: '/federation/announcements', icon: 'campaign', label: 'Announcements' },
   { to: '/federation/earnings', icon: 'payments', label: 'Earnings & Payouts' },
+  { to: '/federation/analytics', icon: 'analytics', label: 'Market Analytics' },
 ];
 
 export default function FederationLayout() {
@@ -31,12 +35,12 @@ export default function FederationLayout() {
         </div>
         <div>
           <p className="font-heading text-sm font-bold text-primary leading-tight">SahakarGig</p>
-          <p className="text-[11px] text-on-surface-variant font-medium">Federation Portal</p>
+          <p className="text-[11px] text-on-surface-variant font-medium">Federation Apex Portal</p>
         </div>
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        <p className="px-3 mb-2 text-[10px] font-bold tracking-widest text-on-surface-variant uppercase">Navigation</p>
+        <p className="px-3 mb-2 text-[10px] font-bold tracking-widest text-on-surface-variant uppercase">Governance &amp; Ops</p>
         {NAV.map(({ to, icon, label, end }) => (
           <NavLink key={to} to={to} end={end}
             className={({ isActive }) =>
@@ -78,17 +82,25 @@ export default function FederationLayout() {
         </NavLink>
 
         <button onClick={signOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-error hover:bg-error-container transition-colors">
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-error hover:bg-error-container transition-colors cursor-pointer">
           <Icon name="logout" className="text-[20px]" />
           Sign Out
         </button>
         <div className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-container">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
-            {user?.name?.[0]?.toUpperCase() || "F"}
-          </div>
+          {user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user.name || "User"}
+              className="w-8 h-8 rounded-full object-cover shrink-0 ring-2 ring-primary/20"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
+              {user?.name?.[0]?.toUpperCase() || "F"}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-on-surface truncate">{user?.name || "Neeta Joshi"}</p>
-            <p className="text-[10px] text-on-surface-variant truncate">Federation Admin</p>
+            <p className="text-[10px] text-on-surface-variant truncate">{user?.designation || user?.email || "Federation Admin"}</p>
           </div>
           <NotificationBell />
         </div>
@@ -106,10 +118,10 @@ export default function FederationLayout() {
       {mobileOpen && (
         <div className="lg:hidden fixed top-0 left-0 bottom-0 w-[260px] bg-surface-container-low z-50 flex flex-col shadow-2xl">
           <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant">
-            <p className="font-heading text-sm font-bold text-primary">Federation Portal</p>
+            <p className="font-heading text-sm font-bold text-primary">Federation Apex Portal</p>
             <button onClick={() => setMobileOpen(false)}><Icon name="close" /></button>
           </div>
-          <nav className="flex-1 px-3 py-4 space-y-1">
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {NAV.map(({ to, icon, label, end }) => (
               <NavLink key={to} to={to} end={end} onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
@@ -121,6 +133,15 @@ export default function FederationLayout() {
                 <Icon name={icon} className="text-[20px]" />{label}
               </NavLink>
             ))}
+            <NavLink to="/federation/settings" onClick={() => setMobileOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold ${
+                  isActive ? 'bg-[#e8edff] text-[#00288e]' : 'text-on-surface-variant hover:bg-surface-container'
+                }`
+              }
+            >
+              <Icon name="settings" className="text-[20px]" />Settings
+            </NavLink>
           </nav>
           <div className="px-3 pb-4 border-t border-outline-variant pt-3">
             <button onClick={signOut} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-error hover:bg-error-container">
@@ -147,14 +168,14 @@ export default function FederationLayout() {
         </div>
       </main>
 
-      <nav className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around bg-surface border-t border-outline-variant px-4 py-3 rounded-t-xl">
-        {NAV.map(({ to, icon, label, end }) => (
+      <nav className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around bg-surface border-t border-outline-variant px-2 py-2 rounded-t-xl overflow-x-auto">
+        {NAV.slice(0, 5).map(({ to, icon, label, end }) => (
           <NavLink key={to} to={to} end={end}
             className={({ isActive }) =>
-              `flex flex-col items-center text-[10px] font-semibold ${isActive ? 'text-primary' : 'text-on-surface-variant'}`
+              `flex flex-col items-center text-[9.5px] font-semibold px-1 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`
             }
           >
-            <Icon name={icon} /><span className="mt-1">{label}</span>
+            <Icon name={icon} /><span className="mt-0.5 whitespace-nowrap">{label}</span>
           </NavLink>
         ))}
       </nav>
