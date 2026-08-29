@@ -3,13 +3,15 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
 import socket from '../lib/socket';
-import { Home, CalendarDays, User, LogOut, Handshake, Search, Radar, Settings } from 'lucide-react';
+import { Home, CalendarDays, User, LogOut, Handshake, Search, Radar, Settings, Heart, Wallet } from 'lucide-react';
 
 const NAV = [
-  { label: 'Home',          Icon: Home,         to: '/household',       end: true  },
-  { label: 'Dispatch',      Icon: Radar,        to: '/household/dispatch', end: false },
-  { label: 'Find Services', Icon: Search,        to: '/household/find',  end: false },
-  { label: 'My Bookings',   Icon: CalendarDays,  to: '/household/bookings', end: false },
+  { label: 'Home',          Icon: Home,            to: '/household',            end: true  },
+  { label: 'Dispatch',      Icon: Radar,           to: '/household/dispatch',   end: false },
+  { label: 'Find Services', Icon: Search,          to: '/household/find',       end: false },
+  { label: 'Saved',         Icon: Heart,           to: '/household/saved',      end: false },
+  { label: 'My Bookings',   Icon: CalendarDays,    to: '/household/bookings',   end: false },
+  { label: 'Wallet',        Icon: Wallet,          to: '/household/wallet',     end: false },
 ];
 
 const activeStyle   = 'bg-primary-container text-on-primary-container font-bold';

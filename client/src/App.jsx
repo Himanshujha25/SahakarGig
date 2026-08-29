@@ -22,6 +22,8 @@ import Invoice from './pages/Household/Invoice';
 import HouseholdProfile from './pages/Household/Profile';
 import FindServices from './pages/Household/FindServices';
 import Dispatch from './pages/Household/Dispatch';
+import SavedProviders from './pages/Household/SavedProviders';
+import WalletPage from './pages/Household/Wallet';
 
 import JobQueue from './pages/Provider/JobQueue';
 import JobDetail from './pages/Provider/JobDetail';
@@ -80,6 +82,7 @@ export default function App() {
           <Route path="/household" element={<HouseholdLayout />}>
             <Route index element={<Home />} />
             <Route path="find" element={<FindServices />} />
+            <Route path="saved" element={<SavedProviders />} />
             <Route path="dispatch" element={<Dispatch />} />
             <Route path="dispatch/:id" element={<Dispatch />} />
             <Route path="bookings" element={<Bookings />} />
@@ -88,6 +91,7 @@ export default function App() {
             <Route path="booking/:id" element={<Tracking />} />
             <Route path="pay/:bookingId" element={<Payment />} />
             <Route path="invoice/:bookingId" element={<Invoice />} />
+            <Route path="wallet" element={<WalletPage />} />
             <Route path="profile" element={<HouseholdProfile />} />
           </Route>
         </Route>

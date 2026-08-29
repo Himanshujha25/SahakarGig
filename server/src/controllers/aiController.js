@@ -464,5 +464,61 @@ async function chatWithGroq(req, res) {
   return res.json({ reply, actionCategory, isEmergency, via });
 }
 
-module.exports = { demandForecast, nudgeProviders, chatWithGroq };
+async function recommendProviders(req, res) {
+  const householdId = req.user?.userId;
+
+  // 1) Understand the household's service interests from their own bookings
+  //    (skip cancelled/disputed so we only learn from real demand).
+  const bookings = await Booking.find({ householdId }).select('service status').lean();
+  const svcCount = {};
+  for (const b of bookings) {
+    if (['cancelled', 'disputed'].includes(b.status)) continue;
+    svcCount[b.service] = (svcCount[b.service] || 0) + 1;
+  }
+  const topServices = Object.entries(svcCount)
+    .sort((a, b) => b[1] - a[1])
+    .map(([svc]) => svc)
+    .slice(0, 3);
+  const hasHistory = topServices.length > 0;
+
+  // 2) Pull verified providers to score.
+  const providers = await Provider.find({ verified: true })
+    .populate('cooperativeId', 'name district state')
+    .populate('userId', 'name email phone')
+    .lean();
+
+  // 3) Score each provider for this household.
+  const scored = providers.map((p) => {
+    const skills = p.skills || [];
+    const overlap = skills.filter((s) =>
+      topServices.some((t) =>
+        s.toLowerCase().includes(t.toLowerCase()) ||
+        t.toLowerCase().includes(s.toLowerCase())
+      )
+    ).length;
+
+    let score = 0;
+    if (overlap > 0) score += 50 * overlap;      // matches their history
+    if (p.verified) score += 15;
+    if ((p.rating || 0) >= 4.5) score += 15;     // top-rated
+    if ((p.completedJobs || 0) >= 10) score += 10;
+    if ((p.trustScore || 0) >= 70) score += 10;
+
+    const reason = hasHistory && overlap > 0
+      ? `Matches your past ${topServices[0]} bookings`
+      : p.rating >= 4.5
+        ? 'Top-rated verified provider'
+        : 'Highly trusted & verified';
+    return { ...p, matchScore: score, overlap, reason };
+  });
+
+  const recommendations = scored
+    .filter((p) => p.matchScore > 0)
+    .sort((a, b) => b.matchScore - a.matchScore)
+    .slice(0, 6);
+
+  res.json({ recommendations, topServices, hasHistory });
+}
+
+module.exports = { demandForecast, nudgeProviders, chatWithGroq, recommendProviders };
 

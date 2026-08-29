@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import socket from "../../lib/socket";
-import { Plus, CheckCircle2, Zap } from "lucide-react";
+import { Plus, CheckCircle2, Zap, Repeat, Users } from "lucide-react";
 
 const STATUS_STYLE = {
   requested:    { bg: "badge-pending",    dot: "bg-amber-600 dark:bg-amber-400",  label: "Pending"     },
@@ -160,6 +160,16 @@ export default function Bookings() {
                               <Zap size={10} /> Emergency
                             </span>
                           )}
+                          {b.recurrence?.enabled && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full badge-accepted text-[10px] font-bold capitalize">
+                              <Repeat size={10} /> {b.recurrence.freq}
+                            </span>
+                          )}
+                          {b.groupBooking?.enabled && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full badge-pending text-[10px] font-bold">
+                              <Users size={10} /> Group · {b.groupBooking.memberCount}
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-3.5 text-[13px] text-on-surface-variant">
@@ -184,7 +194,7 @@ export default function Bookings() {
                                 e.stopPropagation();
                                 navigate(`/household/pay/${b._id}`);
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#e8edff] text-[#00288e] text-[11px] font-bold border border-primary/25 hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_3px_10px_rgba(0,40,142,0.18)] transition-all duration-200"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary-container text-on-primary-container text-[11px] font-bold border border-primary/25 hover:border-primary hover:bg-primary hover:text-on-primary hover:shadow-[0_3px_10px_rgba(0,40,142,0.18)] transition-all duration-200"
                             >
                               Pay Razorpay
                             </button>

@@ -31,9 +31,13 @@ initSocket(io);
 
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/providers', require('./src/routes/providers'));
+app.use('/api/favorites', require('./src/routes/favorites'));
 app.use('/api/bookings', require('./src/routes/bookings'));
 app.use('/api/reviews', require('./src/routes/reviews'));
 app.use('/api/payments', require('./src/routes/payments'));
+app.use('/api/wallet', require('./src/routes/wallet'));
+app.use('/api/analytics', require('./src/routes/analytics'));
+app.use('/api/subscriptions', require('./src/routes/subscriptions'));
 app.use('/api/admin', require('./src/routes/admin'));
 app.use('/api/federation', require('./src/routes/federation'));
 app.use('/api/ai', require('./src/routes/ai'));
@@ -90,5 +94,13 @@ setInterval(() => {
 
 const PORT = process.env.PORT || 5000;
 connectDB(process.env.MONGODB_URI)
-  .then(() => server.listen(PORT, () => console.log(`[server] SahakarGig API running on ${PORT}`)))
+  .then(() => {
+    // Recurring subscription renewals (wallet auto-debit / expiry) — every 30 min.
+    setInterval(() => {
+      const { processRenewals } = require('./src/controllers/subscriptionController');
+      processRenewals().catch((e) => console.error('[subscription renewals]', e.message));
+    }, 30 * 60 * 1000);
+
+    return server.listen(PORT, () => console.log(`[server] SahakarGig API running on ${PORT}`));
+  })
   .catch((err) => console.error('[server] DB connection failed:', err.message));

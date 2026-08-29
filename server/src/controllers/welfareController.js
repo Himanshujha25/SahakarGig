@@ -6,15 +6,13 @@ const Review = require('../models/Review');
 const QRCode = require('qrcode');
 const axios = require('axios');
 
-// Adapter pattern: real govt API when configured, mock fallback for dev
+// Real govt e-Shram verification (no mock fallback — never fabricate a result).
 // Returns: { verified: bool, name: string, dob: string, state: string, error?: string }
 async function callEShramAPI(eShramId) {
-  // If real API configured, use it
-  if (process.env.ESHRAM_API_ENABLED === 'true' && process.env.ESHRAM_API_URL && process.env.ESHRAM_API_KEY) {
-    return callRealEShramAPI(eShramId);
+  if (!process.env.ESHRAM_API_ENABLED || !process.env.ESHRAM_API_URL || !process.env.ESHRAM_API_KEY) {
+    return { verified: false, error: 'e-Shram API is not configured on the server.' };
   }
-  // Otherwise use mock for development
-  return mockEShramVerification(eShramId);
+  return callRealEShramAPI(eShramId);
 }
 
 // Real govt API call (DigiLocker/UMANG)
@@ -47,21 +45,6 @@ async function callRealEShramAPI(eShramId) {
   }
 }
 
-// Mock verification for development (no real govt API)
-function mockEShramVerification(eShramId) {
-  // Simulate 80% success rate for demo
-  const isSuccess = Math.random() > 0.2;
-  if (!isSuccess) {
-    return { verified: false, error: 'Mock: ID not found in records' };
-  }
-  return {
-    verified: true,
-    name: 'Rajesh Kumar',
-    dob: '1990-05-15',
-    state: 'Maharashtra',
-  };
-}
-
 function calcWelfareScore(w) {
   const days = Math.min((w.daysWorked || 0) / 100, 1) * 40;
   const ins = (w.insuranceOptIn ? 1 : 0) * 20;
@@ -86,15 +69,25 @@ async function getWelfare(req, res) {
   const completedBookings = allProviderBookings.filter(b => /^completed$/i.test(b.status || ''));
   const reviews = provider ? await Review.find({ providerId: provider._id }).catch(() => []) : [];
 
+  // Net take-home payouts (after cooperative/federation commission) — never gross.
+  const payments = await Payment.find({ status: 'released' }).select('bookingId providerPayout').lean();
+  const payoutByBooking = new Map(payments.map((p) => [String(p.bookingId), p.providerPayout]));
+
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   const jobsCompleted = completedBookings.length;
   const daysWorked = Math.max(jobsCompleted > 0 ? 1 : 0, Math.ceil(jobsCompleted * 0.8));
-  
-  const totalEarnings = completedBookings.reduce((sum, b) => sum + (Number(b.price) || 250), 0);
-  const completedThisMonth = completedBookings.filter(b => new Date(b.updatedAt || b.createdAt) >= monthStart);
-  const monthlyEarnings = completedThisMonth.reduce((sum, b) => sum + (Number(b.price) || 250), 0);
 
-  const avgRating = reviews.length ? Number((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)) : 4.8;
+  const totalEarnings = completedBookings.reduce((sum, b) => {
+    const net = payoutByBooking.get(String(b._id));
+    return sum + (net != null ? Number(net) : Number(b.price) || 0);
+  }, 0);
+  const completedThisMonth = completedBookings.filter(b => new Date(b.updatedAt || b.createdAt) >= monthStart);
+  const monthlyEarnings = completedThisMonth.reduce((sum, b) => {
+    const net = payoutByBooking.get(String(b._id));
+    return sum + (net != null ? Number(net) : Number(b.price) || 0);
+  }, 0);
+
+  const avgRating = reviews.length ? Number((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)) : 0;
   const reviewCount = reviews.length;
 
   // Compute dynamic Welfare Score (0 to 100)
@@ -144,7 +137,14 @@ async function getWelfare(req, res) {
 
 async function upsertWelfare(req, res) {
   const existing = await Welfare.findOne({ providerId: req.params.providerId });
-  const body = { ...req.body };
+
+  // Strict whitelist — financial counters (totalEarnings, daysWorked) can only
+  // ever change via the payment webhook, never via the public API.
+  const allowed = ['eShramId', 'insuranceOptIn', 'insuranceProvider'];
+  const body = {};
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) body[key] = req.body[key];
+  }
 
   // If eShramId changed, reset verification to self_declared
   if (body.eShramId && body.eShramId !== existing?.eShramId) {

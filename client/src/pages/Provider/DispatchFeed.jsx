@@ -124,6 +124,27 @@ async function pushNotify(title, body) {
 // TTL per job card in seconds before auto-escalation/removal
 const JOB_EXPIRY_SEC = 60; // 1 minute auto-escalation
 
+// ── Per-provider job declines (remembered for the broadcast TTL) ──────────
+const DECLINE_KEY = "sg_declined_broadcast_jobs";
+
+function loadDeclined() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DECLINE_KEY) || "{}");
+    const now = Date.now();
+    const clean = {};
+    for (const [id, ts] of Object.entries(raw)) {
+      if (now - Number(ts) < JOB_EXPIRY_SEC * 1000) clean[id] = Number(ts);
+    }
+    return clean;
+  } catch { return {}; }
+}
+
+function isDeclined(id, declinedMap) {
+  if (!id || !declinedMap) return false;
+  const ts = declinedMap[id];
+  return !!ts && Date.now() - Number(ts) < JOB_EXPIRY_SEC * 1000;
+}
+
 export default function DispatchFeed() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
@@ -139,6 +160,9 @@ export default function DispatchFeed() {
   );
   const alertTimerRef = useRef(null);
   const [nowTimestamp, setNowTimestamp] = useState(Date.now());
+  const [declined, setDeclined] = useState(loadDeclined);
+  const declinedRef = useRef(declined);
+  declinedRef.current = declined;
 
   // Update clock every second for live countdown & auto-expiry
   useEffect(() => {
@@ -151,7 +175,7 @@ export default function DispatchFeed() {
         const filtered = prev.filter((j) => {
           const created = new Date(j.createdAt || current).getTime();
           const elapsedSec = (current - created) / 1000;
-          return elapsedSec < JOB_EXPIRY_SEC;
+          return elapsedSec < JOB_EXPIRY_SEC && !isDeclined(j._id, declinedRef.current);
         });
         return filtered.length !== prev.length ? filtered : prev;
       });
@@ -168,7 +192,7 @@ export default function DispatchFeed() {
       seen.add(j._id);
       // Only keep jobs newer than 60 seconds
       const created = new Date(j.createdAt || current).getTime();
-      return (current - created) / 1000 < JOB_EXPIRY_SEC;
+      return (current - created) / 1000 < JOB_EXPIRY_SEC && !isDeclined(j._id, declinedRef.current);
     });
   }
 
@@ -184,6 +208,8 @@ export default function DispatchFeed() {
     load();
 
     function onNew(job) {
+      if (isDeclined(job.bookingId || job._id, declinedRef.current)) return;
+
       // 1. Play 15-second Loud Siren Alarm Sound if not muted
       if (!alarmMuted) {
         setIsSirenPlaying(true);
@@ -325,6 +351,19 @@ export default function DispatchFeed() {
     }
   }
 
+  function declineJob(job) {
+    const id = job._id;
+    stopAlarmSound();
+    setIsSirenPlaying(false);
+    setDeclined((prev) => {
+      const next = { ...prev, [id]: Date.now() };
+      try { localStorage.setItem(DECLINE_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+    setJobs((prev) => prev.filter((j) => j._id !== id));
+    if (latestJobAlert?._id === id) setNewAlert(false);
+  }
+
   return (
     <div className="w-full px-4 sm:px-6 pt-8 pb-10 space-y-6 max-w-7xl mx-auto">
 
@@ -376,6 +415,12 @@ export default function DispatchFeed() {
               className="flex-1 sm:flex-initial h-9 px-4 rounded-xl bg-[#00288e] text-white text-[12.5px] font-bold hover:bg-[#173bab] transition-all cursor-pointer"
             >
               {busy === latestJobAlert._id ? "Accepting…" : "Accept Now"}
+            </button>
+            <button
+              onClick={() => declineJob(latestJobAlert)}
+              className="h-9 px-3 rounded-xl border border-outline-variant bg-surface-container text-on-surface-variant text-[12.5px] font-bold hover:bg-error-container/40 hover:text-error hover:border-error/40 transition-all cursor-pointer"
+            >
+              Reject
             </button>
             <button
               onClick={() => { setNewAlert(false); stopAlarmSound(); setIsSirenPlaying(false); }}
@@ -577,14 +622,23 @@ export default function DispatchFeed() {
                   </div>
                 </div>
 
-                <button
-                  disabled={busy === j._id}
-                  onClick={() => accept(j)}
-                  className="h-11 w-full flex items-center justify-center gap-2 rounded-xl bg-[#00288e] text-white text-[13.5px] font-bold hover:bg-[#173bab] hover:shadow-md active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer"
-                >
-                  <Check size={16} strokeWidth={2.5} />
-                  {busy === j._id ? "Accepting Job…" : "Accept & Claim Job"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={busy === j._id}
+                    onClick={() => accept(j)}
+                    className="h-11 flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#00288e] text-white text-[13.5px] font-bold hover:bg-[#173bab] hover:shadow-md active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer"
+                  >
+                    <Check size={16} strokeWidth={2.5} />
+                    {busy === j._id ? "Accepting Job…" : "Accept & Claim Job"}
+                  </button>
+                  <button
+                    onClick={() => declineJob(j)}
+                    title="Reject this job"
+                    className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border border-outline-variant bg-surface-container text-on-surface-variant hover:bg-error-container/40 hover:text-error hover:border-error/40 active:scale-[0.98] transition-all duration-200 cursor-pointer"
+                  >
+                    <X size={17} strokeWidth={2.5} />
+                  </button>
+                </div>
               </div>
             );
           })}

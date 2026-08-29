@@ -16,7 +16,7 @@ const ROLES = [
   { value: "Cooperative Admin", label: "Cooperative",      icon: "domain" },
 ];
 
-const inputCls = "block w-full px-3 py-2 border border-outline-variant rounded-lg bg-white text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none";
+const inputCls = "block w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-low text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none";
 
 export default function Signup() {
   const { signup } = useAuth();
@@ -168,8 +168,8 @@ export default function Signup() {
             onClick={() => set("role", r.value)}
             className={`flex flex-col items-center text-center py-3 px-2 rounded-xl border transition-all duration-200 cursor-pointer active:scale-[0.97] ${
               form.role === r.value
-                ? "border-primary bg-surface-container-low shadow-xs"
-                : "border-outline-variant bg-white hover:border-primary/50"
+                ? "border-primary bg-surface-container-high shadow-xs"
+                : "border-outline-variant bg-surface-container-low hover:border-primary/50"
             }`}
           >
             <Icon
@@ -292,9 +292,9 @@ export default function Signup() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-[13.5px] font-semibold border border-primary/30 bg-[#e8edff] text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
+              className="w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-[13.5px] font-semibold bg-primary text-on-primary shadow-[0_2px_10px_rgba(30,107,101,0.25)] hover:opacity-90 hover:shadow-[0_6px_18px_rgba(30,107,101,0.4)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
             >
-              {loading && <span className="h-4 w-4 border-2 border-[#00288e]/30 border-t-[#00288e] rounded-full animate-spin" />}
+              {loading && <span className="h-4 w-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />}
               {loading ? "Verifying & Creating..." : "Create Account"}
               {!loading && <Icon name="arrow_forward" className="text-[17px]" />}
             </button>
@@ -308,7 +308,7 @@ export default function Signup() {
 
       <p className="mt-4 text-center font-body-md text-xs text-on-surface-variant">
         Already have an account?{" "}
-        <Link to="/login" className="font-semibold text-primary hover:text-primary-container transition-colors">
+        <Link to="/login" className="font-semibold text-primary hover:opacity-80 transition-opacity">
           Sign in
         </Link>
       </p>

@@ -36,8 +36,24 @@ const bookingSchema = new mongoose.Schema(
     isEmergency: { type: Boolean, default: false },
     priority: { type: Number, default: 0 },
     issue: { type: String },
+    disputeCategory: { type: String },   // reason category chosen by the household
+    disputeEvidence: [String],           // evidence document URLs/keys uploaded by the household
     cancelReason: { type: String },
     chat: [{ sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, message: String, at: { type: Date, default: Date.now } }],
+    // Recurring bookings (same provider, same service, auto re-booked).
+    recurrence: {
+      enabled: { type: Boolean, default: false },
+      freq: { type: String, enum: ['daily', 'weekly', 'biweekly', 'monthly', 'none'], default: 'none' },
+      repeats: { type: Number, default: 1 },   // total occurrences including this one
+      nextRunAt: { type: Date },
+      seriesId: { type: String },              // shared across the whole series
+    },
+    // Group / community booking (e.g. entire building society).
+    groupBooking: {
+      enabled: { type: Boolean, default: false },
+      groupName: { type: String },
+      memberCount: { type: Number, default: 1 },
+    },
   },
   { timestamps: true }
 );

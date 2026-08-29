@@ -115,11 +115,39 @@ async function disputes(req, res) {
 
 async function resolveDispute(req, res) {
   const { outcome } = req.body; // 'refund' | 'provider'
-  const b = await Booking.findById(req.params.bookingId);
+  // Cooperative-scoped: an admin may only resolve disputes of their own society.
+  const coop = await getCoop(req);
+  const b = await Booking.findOne({ _id: req.params.bookingId, cooperativeId: coop._id });
+  if (!b) return res.status(404).json({ message: 'Dispute not found in your cooperative' });
   if (outcome === 'refund') {
     b.paymentStatus = 'refunded';
     const pay = await Payment.findOne({ bookingId: b._id });
-    if (pay) { pay.status = 'refunded'; await pay.save(); }
+    if (pay) {
+      pay.status = 'refunded';
+      pay.refundedAt = new Date();
+      await pay.save();
+      // Real refund: credit the household's wallet ledger + notify them.
+      const refundAmount = Number(pay.amount) || 0;
+      if (refundAmount > 0) {
+        const User = require('../models/User');
+        const WalletTransaction = require('../models/WalletTransaction');
+        const user = await User.findById(b.householdId);
+        if (user) {
+          user.walletBalance = Number(user.walletBalance || 0) + refundAmount;
+          await user.save();
+          await WalletTransaction.create({
+            userId: user._id,
+            type: 'credit',
+            amount: refundAmount,
+            method: 'refund',
+            bookingId: b._id,
+            note: `Refund for disputed ${b.service} booking`,
+          });
+          const notify = require('../utils/notify');
+          await notify(b.householdId.toString(), 'payment_released', `₹${refundAmount} refunded to your wallet for the disputed booking`, b._id);
+        }
+      }
+    }
   }
   b.status = 'completed';
   await b.save();
@@ -188,11 +216,11 @@ async function listProviders(req, res) {
   const result = providers.map((p) => {
     const obj = p.toObject ? p.toObject() : p;
     const st = statsMap[p._id.toString()] || {};
-    obj.completedJobs = st.completedJobs || 18;
-    obj.totalEarnings = st.totalEarnings || 12450;
-    obj.eshramCardNo = p.eshramCardNo || "IN-ES-0000000123";
-    obj.licenseNo = p.licenseNo || "DL/COO/2024/001";
-    obj.trustScore = p.trustScore || 4.9;
+    obj.completedJobs = st.completedJobs || 0;
+    obj.totalEarnings = st.totalEarnings || 0;
+    obj.eshramCardNo = p.eshramCardNo || null;
+    obj.licenseNo = p.licenseNo || null;
+    obj.trustScore = p.trustScore || 0;
     return obj;
   });
 

@@ -25,15 +25,35 @@ const TYPE_SUBJECT = {
 
 async function notify(userId, type, message, bookingId) {
   try {
+    // Respect per-channel prefs (promotional types can be muted globally).
+    const User = require('../models/User');
+    const user = await User.findById(userId).select('email name notificationPrefs');
+    if (!user) return null;
+    const prefs = user.notificationPrefs || {};
+    if (prefs.promotional === false && ['announcement', 'promo'].includes(type)) return null;
+    if (prefs.inApp === false) {
+      if (prefs.email !== false && user.email) {
+        const transporter = getTransporter();
+        if (transporter) {
+          transporter.sendMail({
+            from: `"SahakarGig" <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: TYPE_SUBJECT[type] || 'Notification — SahakarGig',
+            text: `Hi ${user.name},\n\n${message}\n\n— SahakarGig Team`,
+            html: `<p>Hi <strong>${user.name}</strong>,</p><p>${message}</p><p>— SahakarGig Team</p>`,
+          }).catch((e) => console.error('[email] send failed:', e.message));
+        }
+      }
+      return null;
+    }
+
     const n = await Notification.create({ userId, type, message, bookingId });
     emitTo(userId.toString(), 'notification', n);
 
     // Email — fire-and-forget, never block the main flow
-    const transporter = getTransporter();
-    if (transporter) {
-      const User = require('../models/User');
-      const user = await User.findById(userId).select('email name');
-      if (user?.email) {
+    if (prefs.email !== false && user.email) {
+      const transporter = getTransporter();
+      if (transporter) {
         transporter.sendMail({
           from: `"SahakarGig" <${process.env.EMAIL_USER}>`,
           to: user.email,

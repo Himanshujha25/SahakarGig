@@ -5,6 +5,12 @@ import api from "../../lib/api";
 import Icon from "../../components/Icon";
 
 const DAY_KEYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const FREQ_OPTIONS = [
+  { value: "daily", label: "Every day", hint: "Daily" },
+  { value: "weekly", label: "Every week", hint: "Weekly" },
+  { value: "biweekly", label: "Every 2 weeks", hint: "Fornightly" },
+  { value: "monthly", label: "Every month", hint: "Monthly" },
+];
 
 export default function BookingRequest() {
   const { providerId } = useParams();
@@ -16,6 +22,14 @@ export default function BookingRequest() {
   const [selectedDay, setSelectedDay] = useState(0);
   const [selectedHour, setSelectedHour] = useState(null);
   const [isEmergency, setIsEmergency] = useState(false);
+  // Recurring booking (auto re-scheduled after each completion)
+  const [recurEnabled, setRecurEnabled] = useState(false);
+  const [recurFreq, setRecurFreq] = useState("weekly");
+  const [recurRepeats, setRecurRepeats] = useState(12);
+  // Group / community booking
+  const [groupEnabled, setGroupEnabled] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupMemberCount, setGroupMemberCount] = useState(2);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -96,7 +110,13 @@ export default function BookingRequest() {
         service,
         scheduledTime,
         isEmergency,
-        price: provider?.hourlyRate && provider.hourlyRate > 0 ? provider.hourlyRate : 200,
+        price: provider?.hourlyRate && provider.hourlyRate > 0 ? provider.hourlyRate : 0,
+        recurrence: recurEnabled
+          ? { enabled: true, freq: recurFreq, repeats: recurRepeats }
+          : { enabled: false },
+        groupBooking: groupEnabled
+          ? { enabled: true, groupName, memberCount: groupMemberCount }
+          : { enabled: false },
       });
       navigate(`/household/pay/${data._id}`);
     } catch (err) {
@@ -229,6 +249,109 @@ export default function BookingRequest() {
             required
           />
         </label>
+
+        {/* ── Recurring / subscription booking ── */}
+        <div className={`rounded-xl border p-4 transition-all ${recurEnabled ? "border-primary/40 bg-primary-container/20" : "border-outline-variant/60 bg-surface-container-lowest"}`}>
+          <label className="flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p className="flex items-center gap-2 font-heading text-sm font-bold text-on-surface">
+                <Icon name="repeat" className=" text-[18px] text-primary" />
+                Recurring booking
+              </p>
+              <p className="mt-0.5 font-body-md text-xs text-on-surface-variant">
+                Auto-schedules the next visit after each completion. Great for weekly cleaning, tiffin, homecare.
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={recurEnabled}
+              onChange={(e) => setRecurEnabled(e.target.checked)}
+              className="h-5 w-5 accent-[#00288e] cursor-pointer"
+            />
+          </label>
+          {recurEnabled && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <span className="mb-1.5 block font-heading text-xs font-semibold text-on-surface-variant">Repeat every</span>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {FREQ_OPTIONS.map((f) => (
+                    <button
+                      key={f.value}
+                      type="button"
+                      onClick={() => setRecurFreq(f.value)}
+                      title={f.hint}
+                      className={`rounded-lg border px-1 py-2 text-center text-[11px] font-bold transition-all ${
+                        recurFreq === f.value
+                          ? "border-[#00288e] bg-[#00288e] text-white"
+                          : "border-outline-variant/60 bg-surface text-on-surface hover:border-primary/40"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span className="mb-1.5 block font-heading text-xs font-semibold text-on-surface-variant">Total visits</span>
+                <select
+                  value={recurRepeats}
+                  onChange={(e) => setRecurRepeats(Number(e.target.value))}
+                  className="h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm font-semibold text-on-surface outline-none focus:border-primary cursor-pointer"
+                >
+                  {[2, 4, 6, 8, 12, 16, 24].map((n) => (
+                    <option key={n} value={n}>{n} visits</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Group / community booking ── */}
+        <div className={`rounded-xl border p-4 transition-all ${groupEnabled ? "border-primary/40 bg-primary-container/20" : "border-outline-variant/60 bg-surface-container-lowest"}`}>
+          <label className="flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p className="flex items-center gap-2 font-heading text-sm font-bold text-on-surface">
+                <Icon name="people" className=" text-[18px] text-primary" />
+                Group / community booking
+              </p>
+              <p className="mt-0.5 font-body-md text-xs text-on-surface-variant">
+                Book for a whole group (society residents, family). Bill scales with member count.
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={groupEnabled}
+              onChange={(e) => setGroupEnabled(e.target.checked)}
+              className="h-5 w-5 accent-[#00288e] cursor-pointer"
+            />
+          </label>
+          {groupEnabled && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1.5 block font-heading text-xs font-semibold text-on-surface-variant">Group name</span>
+                <input
+                  className="h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm text-on-surface outline-none focus:border-primary"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  placeholder="e.g. Tower-A Residents"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block font-heading text-xs font-semibold text-on-surface-variant">Members</span>
+                <select
+                  value={groupMemberCount}
+                  onChange={(e) => setGroupMemberCount(Number(e.target.value))}
+                  className="h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm font-semibold text-on-surface outline-none focus:border-primary cursor-pointer"
+                >
+                  {[2, 3, 4, 5, 6, 8, 10].map((n) => (
+                    <option key={n} value={n}>{n} members</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
+        </div>
 
         <label className="flex items-center gap-3 rounded-lg bg-error-container/40 px-4 py-3 cursor-pointer">
           <input

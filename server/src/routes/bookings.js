@@ -17,6 +17,8 @@ router.patch('/:id/accept', auth, rbac('Provider'), asyncHandler(c.acceptBooking
 router.patch('/:id/status', auth, rbac('Provider'), asyncHandler(c.updateStatus));
 router.patch('/:id/cancel', auth, asyncHandler(c.cancelBooking));
 router.patch('/:id/dispute', auth, asyncHandler(c.disputeBooking));
+router.patch('/:id/withdraw-dispute', auth, asyncHandler(c.withdrawDispute));
+router.patch('/:id/reschedule', auth, asyncHandler(c.rescheduleBooking));
 router.post('/:id/chat', auth, asyncHandler(c.addChat));
 
 module.exports = router;

@@ -16,6 +16,8 @@ import {
   MailCheck,
   RefreshCw,
   ShieldAlert,
+  Repeat,
+  Users,
 } from "lucide-react";
 
 import { AIIcon, AIChipIcon } from './AIIcon';
@@ -103,6 +105,8 @@ const MAP = {
   mark_email_read: MailCheck,
   refresh: RefreshCw,
   gpp_maybe: ShieldAlert,
+  repeat: Repeat,
+  people: Users,
 };
 
 export default function Icon({ name, className = "", strokeWidth = 2, ...rest }) {

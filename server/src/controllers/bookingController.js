@@ -7,6 +7,25 @@ const { emitTo, broadcastAll } = require('../socket');
 const { haversine } = require('../utils/helpers');
 const notify = require('../utils/notify');
 
+const BROADCAST_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Next scheduled occurrence for a recurring booking series.
+function nextOccurrence(date, freq) {
+  const d = new Date(date);
+  if (freq === 'daily') { d.setDate(d.getDate() + 1); return d; }
+  if (freq === 'weekly') { d.setDate(d.getDate() + 7); return d; }
+  if (freq === 'biweekly') { d.setDate(d.getDate() + 14); return d; }
+  if (freq === 'monthly') {
+    const day = d.getDate();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + 1);
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    d.setDate(Math.min(day, lastDay));
+    return d;
+  }
+  return null;
+}
+
 // Weekday + local time (IST +05:30) of a stored instant, used to validate
 // against the provider's weekly availability slots (Mon–Sun, HH:MM).
 function slotParts(d) {
@@ -24,7 +43,7 @@ const inRange = (time, from, to) => {
 };
 
 async function createBooking(req, res) {
-  const { providerId, service, scheduledTime, isEmergency, price } = req.body;
+  const { providerId, service, scheduledTime, isEmergency, price, recurrence, groupBooking } = req.body;
   if (!providerId || !service) return res.status(400).json({ message: 'providerId and service are required' });
 
   const provider = await Provider.findById(providerId).populate('userId');
@@ -63,6 +82,28 @@ async function createBooking(req, res) {
     ? Number(price)
     : ((provider.hourlyRate && provider.hourlyRate > 0) ? provider.hourlyRate : 250);
 
+  // Group / community booking: total price scales with the member count.
+  let groupInfo = {};
+  let totalPrice = effectivePrice;
+  if (groupBooking && groupBooking.enabled) {
+    const memberCount = Math.max(2, Math.floor(Number(groupBooking.memberCount) || 2));
+    groupInfo = {
+      enabled: true,
+      groupName: String(groupBooking.groupName || 'Community Group').trim().slice(0, 80),
+      memberCount,
+    };
+    totalPrice = effectivePrice * memberCount;
+  }
+
+  // Recurring series: validate + compute the next run automatically.
+  let recurrenceInfo = { enabled: false, freq: 'none', repeats: 1, nextRunAt: null, seriesId: null };
+  if (recurrence && recurrence.enabled) {
+    const freq = ['daily', 'weekly', 'biweekly', 'monthly'].includes(recurrence.freq) ? recurrence.freq : 'weekly';
+    const repeats = Math.max(2, Math.min(52, Math.floor(Number(recurrence.repeats) || 12)));
+    const nextRunAt = nextOccurrence(start, freq);
+    recurrenceInfo = { enabled: true, freq, repeats, nextRunAt, seriesId: require('crypto').randomUUID() };
+  }
+
   const booking = await Booking.create({
     householdId: req.user.userId,
     providerId,
@@ -71,7 +112,9 @@ async function createBooking(req, res) {
     scheduledTime: start,
     isEmergency: !!isEmergency,
     priority: isEmergency ? 1 : 0,
-    price: effectivePrice,
+    price: totalPrice,
+    recurrence: recurrenceInfo,
+    groupBooking: groupInfo,
   });
 
   const provUserId = provider.userId._id.toString();
@@ -80,11 +123,62 @@ async function createBooking(req, res) {
   res.status(201).json(booking);
 }
 
+// Reschedule an existing booking to a new time slot the provider is free for.
+// Only allowed while the booking is still plannable (requested/accepted).
+async function rescheduleBooking(req, res) {
+  const { scheduledTime } = req.body;
+  if (!scheduledTime) return res.status(400).json({ message: 'Please choose a new time slot.' });
+
+  const b = await Booking.findById(req.params.id).populate('householdId', 'name phone');
+  if (!b) return res.status(404).json({ message: 'Not found' });
+  if (b.householdId?._id?.toString() !== req.user.userId)
+    return res.status(403).json({ message: 'Only the household can reschedule this booking' });
+  if (!['requested', 'accepted'].includes(b.status))
+    return res.status(400).json({ message: 'This booking can no longer be rescheduled.' });
+
+  const start = new Date(scheduledTime);
+  if (isNaN(start.getTime())) return res.status(400).json({ message: 'Please choose a valid time slot.' });
+  if (start.getTime() < Date.now()) return res.status(400).json({ message: 'Please pick a future time slot.' });
+
+  const provider = await Provider.findById(b.providerId).populate('userId');
+  if (!provider) return res.status(404).json({ message: 'Provider not found' });
+
+  const { day: dayName, time } = slotParts(start);
+  const slot = (provider.availabilitySlots || []).find((s) => s.day === dayName);
+  if (!slot || !inRange(time, slot.from || '', slot.to || '')) {
+    return res.status(400).json({
+      message: `The provider is not available at ${time} on ${dayName}. Please pick from their open slots.`,
+    });
+  }
+
+  // Atomic conflict guard: no other active booking may overlap this hour.
+  const end = new Date(start.getTime() + 3600 * 1000);
+  const existing = await Booking.findOne({
+    providerId: provider._id,
+    scheduledTime: { $gte: start, $lt: end },
+    _id: { $ne: b._id },
+    status: { $nin: ['cancelled', 'disputed'] },
+  });
+  if (existing) {
+    return res.status(409).json({ message: 'That time slot is already booked. Please choose another.' });
+  }
+
+  b.scheduledTime = start;
+  await b.save();
+  if (b.providerId?.userId?._id) {
+    await notify(b.providerId.userId._id.toString(), 'booking_updated', `Booking rescheduled to ${start.toLocaleString()}`, b._id);
+    emitTo(b.providerId.userId._id.toString(), 'booking:updated', b);
+  }
+  emitTo(b.householdId._id.toString(), 'booking:updated', b);
+  res.json(b);
+}
+
 async function getBooking(req, res) {
   const b = await Booking.findById(req.params.id)
     .populate('householdId', 'name phone')
     .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } })
-    .populate('cooperativeId', 'name');
+    .populate('cooperativeId', 'name')
+    .populate('chat.sender', 'name phone');
   if (!b) return res.status(404).json({ message: 'Not found' });
 
   // Ownership check — only the household, the provider, or an admin can read
@@ -153,7 +247,66 @@ async function updateStatus(req, res) {
   await notify(b.householdId._id.toString(), 'booking_status', `Booking status: ${status}`, b._id);
   emitTo(b.householdId._id.toString(), 'booking:updated', b);
   emitTo(req.user.userId, 'booking:updated', b);
+
+  // Recurring series — auto-create the next occurrence after this one completes.
+  if (status === 'completed' && b.recurrence?.enabled && b.providerId) {
+    await spawnNextOccurrence(b);
+  }
+
   res.json(b);
+}
+
+// Creates the next booking of a recurring series (same provider + service).
+async function spawnNextOccurrence(b) {
+  try {
+    if (b.recurrence?.freq === 'none' || !b.recurrence?.nextRunAt) return null;
+
+    // Stop when the series has produced all planned occurrences.
+    const done = await Booking.countDocuments({ 'recurrence.seriesId': b.recurrence.seriesId });
+    if (done >= b.recurrence.repeats) return null;
+
+    const provider = await Provider.findById(b.providerId);
+    if (!provider) return null;
+
+    const nextSlot = new Date(b.recurrence.nextRunAt);
+    const { day: dayName, time } = slotParts(nextSlot);
+    const slot = (provider.availabilitySlots || []).find((s) => s.day === dayName);
+    if (!slot || !inRange(time, slot.from || '', slot.to || '')) return null; // series pauses if provider full
+
+    const afterThat = nextOccurrence(nextSlot, b.recurrence.freq) || nextSlot;
+    const copy = await Booking.create({
+      householdId: b.householdId,
+      providerId: b.providerId,
+      cooperativeId: b.cooperativeId,
+      service: b.service,
+      scheduledTime: nextSlot,
+      isEmergency: b.isEmergency,
+      priority: b.priority,
+      price: b.price,
+      issue: undefined,
+      dispatchMode: 'direct',
+      recurrence: {
+        enabled: true,
+        freq: b.recurrence.freq,
+        repeats: b.recurrence.repeats,
+        nextRunAt: afterThat,
+        seriesId: b.recurrence.seriesId,
+      },
+      groupBooking: b.groupBooking,
+    });
+
+    const provUserId = provider.userId;
+    if (provUserId) {
+      await notify(provUserId.toString(), 'booking_request', `Recurring ${b.service} booking for ${nextSlot.toLocaleString('en-IN')}`, copy._id);
+      emitTo(provUserId.toString(), 'booking:new', copy);
+    }
+    const hhId = b.householdId?._id ? b.householdId._id.toString() : b.householdId.toString();
+    emitTo(hhId, 'booking:new', copy);
+    return copy;
+  } catch (e) {
+    console.error('[spawnNextOccurrence error]', e.message);
+    return null;
+  }
 }
 
 async function cancelBooking(req, res) {
@@ -187,7 +340,7 @@ async function cancelBooking(req, res) {
 }
 
 async function disputeBooking(req, res) {
-  const { reason } = req.body;
+  const { reason, category, evidence } = req.body;
   if (!reason?.trim()) return res.status(400).json({ message: 'Dispute reason is required' });
   const b = await Booking.findById(req.params.id)
     .populate('householdId', 'name phone')
@@ -195,8 +348,12 @@ async function disputeBooking(req, res) {
   if (!b) return res.status(404).json({ message: 'Not found' });
   if (b.householdId._id.toString() !== req.user.userId)
     return res.status(403).json({ message: 'Only the household can raise a dispute' });
+  if (['cancelled', 'disputed'].includes(b.status))
+    return res.status(400).json({ message: `Cannot raise a dispute on a ${b.status} booking` });
   b.status = 'disputed';
   b.issue = reason;
+  if (category) b.disputeCategory = category;
+  if (Array.isArray(evidence) && evidence.length) b.disputeEvidence = evidence.map((e) => String(e).slice(0, 2000));
   await b.save();
   const coop = await Cooperative.findById(b.cooperativeId);
   if (coop?.adminId) await notify(coop.adminId.toString(), 'dispute', 'A booking was disputed', b._id);
@@ -204,6 +361,23 @@ async function disputeBooking(req, res) {
     await notify(b.providerId.userId._id.toString(), 'dispute', 'Booking disputed', b._id);
     emitTo(b.providerId.userId._id.toString(), 'booking:updated', b);
   }
+  emitTo(b.householdId._id.toString(), 'booking:updated', b);
+  res.json(b);
+}
+
+// Allow the household to withdraw an open dispute (revert to 'completed').
+async function withdrawDispute(req, res) {
+  const b = await Booking.findById(req.params.id).populate('householdId', 'name');
+  if (!b) return res.status(404).json({ message: 'Not found' });
+  if (b.householdId._id.toString() !== req.user.userId)
+    return res.status(403).json({ message: 'Only the household can withdraw this dispute' });
+  if (b.status !== 'disputed')
+    return res.status(400).json({ message: 'Booking is not disputed' });
+  b.status = 'completed';
+  b.issue = undefined;
+  b.disputeCategory = undefined;
+  await b.save();
+  if (b.providerId?.userId?._id) emitTo(b.providerId.userId._id.toString(), 'booking:updated', b);
   emitTo(b.householdId._id.toString(), 'booking:updated', b);
   res.json(b);
 }
@@ -307,12 +481,9 @@ async function keepaliveBroadcast(req, res) {
 }
 
 // Live broadcast feed for a provider — only jobs matching their skills,
-// within range, and still awaiting first-acceptance.
-// Live broadcast feed for a provider — only jobs matching their skills,
 // within range, and still awaiting first-acceptance. A household keeps a job
 // alive with keepalive pings while it watches the radar page; leaving the page
 // stops the pings and the job silently expires, so ghosts never linger.
-const BROADCAST_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 async function availableBroadcastBookings(req, res) {
   try {
@@ -450,6 +621,7 @@ async function acceptBroadcastRequest(req, res) {
 
 module.exports = {
   createBooking, getBooking, householdBookings, providerBookings,
-  acceptBooking, updateStatus, cancelBooking, disputeBooking, addChat,
+  acceptBooking, updateStatus, cancelBooking, disputeBooking, withdrawDispute, rescheduleBooking, addChat,
   createBroadcastBooking, keepaliveBroadcast, availableBroadcastBookings, acceptBroadcastRequest,
+  spawnNextOccurrence,
 };

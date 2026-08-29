@@ -5,10 +5,9 @@ import api from "../../lib/api";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import {
   CalendarDays, Search, Star, IndianRupee, ArrowRight,
-  CheckCircle2, Clock, AlertTriangle, MapPin, Zap, Mic
+  CheckCircle2, Clock, AlertTriangle, MapPin, Zap, Mic, Heart, Sparkles
 } from "lucide-react";
 import AIVoiceSearchModal from "../../components/AIVoiceSearchModal";
-import ThemeToggle from "../../components/ThemeToggle";
 
 function formatMoney(v) {
   const n = Number(v) || 0;
@@ -30,20 +29,30 @@ export default function Home() {
   const navigate = useNavigate();
   const [bookings, setBookings]   = useState([]);
   const [providers, setProviders] = useState([]);
+  const [recs, setRecs]           = useState([]);
+  const [recReason, setRecReason] = useState("");
   const [loading, setLoading]     = useState(true);
   const [service, setService]     = useState("");
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(null);
 
   const load = useCallback(async () => {
     try {
-      const [{ data: bk }, { data: pv }] = await Promise.all([
+      const [{ data: bk }, { data: pv }, recRes, wRes] = await Promise.all([
         api.get("/bookings/household/mine"),
         api.get("/providers"),
+        api.get("/ai/recommend").catch(() => null),
+        api.get("/wallet").catch(() => null),
       ]);
       setBookings(Array.isArray(bk) ? bk : (bk?.bookings ?? []));
       // Backend responds with { providers, total, page, pages }
       const list = Array.isArray(pv) ? pv : (pv?.providers ?? []);
       setProviders(list.slice(0, 6));
+      if (recRes?.data?.recommendations) {
+        setRecs(recRes.data.recommendations);
+        setRecReason(recRes.data.hasHistory ? "" : "Getting started — here are top verified experts");
+      }
+      if (wRes?.data && typeof wRes.data.balance === "number") setWalletBalance(wRes.data.balance);
     } catch {} finally { setLoading(false); }
   }, []);
 
@@ -97,8 +106,6 @@ export default function Home() {
 
         {/* Orvia Pill Search & Actions */}
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          <ThemeToggle />
-
           <button
             type="button"
             onClick={() => setIsVoiceOpen(true)}
@@ -108,7 +115,15 @@ export default function Home() {
             <span>Voice AI</span>
           </button>
 
-          <form onSubmit={goSearch} className="flex items-center gap-2 h-10 px-4 rounded-full border border-slate-200 bg-white shadow-sm hover:border-[#1e6b65]/40 transition-all">
+          {walletBalance !== null && (
+            <Link to="/household/wallet"
+              className="h-10 inline-flex items-center gap-2 px-4 rounded-full border border-outline-variant bg-surface shadow-sm text-xs font-bold text-on-surface-variant hover:border-[#1e6b65]/40 hover:text-[#1e6b65] transition-all">
+              <IndianRupee size={14} className="text-[#1e6b65]" strokeWidth={2.5} />
+              <span>Wallet {formatMoney(walletBalance)}</span>
+            </Link>
+          )}
+
+          <form onSubmit={goSearch} className="flex items-center gap-2 h-10 px-4 rounded-full border border-outline-variant bg-surface shadow-sm hover:border-[#1e6b65]/40 transition-all">
             <Search size={14} className="text-slate-400 shrink-0" strokeWidth={2} />
             <input
               className="w-36 bg-transparent text-xs font-medium text-slate-800 outline-none placeholder:text-slate-400"
@@ -122,6 +137,13 @@ export default function Home() {
             className="orvia-pill-selected inline-flex items-center gap-2">
             <CalendarDays size={14} strokeWidth={2} />
             <span>My Bookings</span>
+          </Link>
+
+          <Link to="/household/saved"
+            className="orvia-pill-unselected inline-flex items-center gap-2"
+            title="Saved Providers">
+            <Heart size={14} strokeWidth={2} />
+            <span>Saved</span>
           </Link>
         </div>
         <AIVoiceSearchModal isOpen={isVoiceOpen} onClose={() => setIsVoiceOpen(false)} />
@@ -150,7 +172,7 @@ export default function Home() {
       {/* ── Orvia Stat Cards ── */}
       {loading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[0,1,2,3].map(i => <div key={i} className="animate-pulse rounded-[28px] border border-slate-200 bg-white h-28" />)}
+          {[0,1,2,3].map(i => <div key={i} className="animate-pulse rounded-[28px] border border-outline-variant bg-surface-container-low h-28" />)}
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -172,6 +194,71 @@ export default function Home() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* ── AI Recommended for You ── */}
+      {!loading && recs.length > 0 && (
+        <section className="orvia-card p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-full bg-[#e8edff] text-[#00288e] flex items-center justify-center shrink-0">
+                <Sparkles size={17} strokeWidth={2} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Recommended for You</h3>
+                <p className="text-xs text-slate-400 font-medium">
+                  {recReason || "Personalised picks from your booking history"}
+                </p>
+              </div>
+            </div>
+            <Link to="/household/find" className="text-xs font-bold text-[#1e6b65] hover:underline shrink-0">
+              Browse all
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {recs.slice(0, 3).map((p) => {
+              let trust = p.trustScore || 50;
+              if (p.verified) trust += 20;
+              if (p.rating >= 4.5) trust += 15;
+              if (p.completedJobs >= 10) trust += 15;
+              trust = Math.min(100, trust);
+              return (
+                <div key={p._id}
+                  className="flex flex-col gap-3 rounded-2xl border border-outline-variant bg-surface-container-low p-4 hover:bg-surface-high hover:border-[#1e6b65]/40 hover:shadow-sm transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full bg-[#1e6b65] text-white flex items-center justify-center text-sm font-extrabold shrink-0 shadow-sm">
+                      {(p.userId?.name || "?").charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[13px] font-bold text-slate-900 truncate">{p.userId?.name ?? "Provider"}</p>
+                        {p.verified && <VerifiedBadge />}
+                      </div>
+                      <p className="text-[11px] font-medium text-slate-500 truncate">
+                        {(p.skills || [])[0] || "Service"} · ₹{p.hourlyRate}/hr
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] font-semibold">
+                    <span className="inline-flex items-center gap-1 text-amber-600">
+                      <Star size={12} fill="currentColor" /> {trust}
+                    </span>
+                    <span className="text-slate-500 font-medium truncate ml-2" title={p.reason}>
+                      {p.reason}
+                    </span>
+                  </div>
+
+                  <Link to={`/household/book/${p._id}`}
+                    className="w-full h-9 flex items-center justify-center rounded-full text-xs font-bold text-white bg-[#1e6b65] hover:bg-[#145e58] transition-colors">
+                    Book
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {/* ── Main Grid ── */}
@@ -304,7 +391,7 @@ export default function Home() {
               <div className="space-y-3 pt-3">
                 {providers.map(p => (
                   <div key={p._id}
-                    className="flex items-center gap-3 rounded-2xl border border-slate-100 p-3 bg-slate-50/60 hover:bg-white hover:border-[#1e6b65]/30 hover:shadow-sm transition-all">
+                    className="flex items-center gap-3 rounded-2xl border border-outline-variant p-3 bg-surface-container-low hover:bg-surface-high hover:border-[#1e6b65]/30 hover:shadow-sm transition-all">
                     <div className="w-10 h-10 rounded-full bg-[#1e6b65] text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-sm">
                       {(p.userId?.name || "?").charAt(0)}
                     </div>

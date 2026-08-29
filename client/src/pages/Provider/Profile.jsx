@@ -100,8 +100,6 @@ export default function ProviderProfile() {
       try {
         const formData = new FormData();
         formData.append("avatar", rawSelectedFile);
-        formData.append("email", form.email || "plumber.test@gmail.com");
-        formData.append("name", form.name || "Ramesh Kumar");
 
         const res = await api.post("/providers/upload-avatar-file", formData, {
           headers: { "Content-Type": "multipart/form-data" }
@@ -136,16 +134,17 @@ export default function ProviderProfile() {
     );
   }
 
+  const coopInfo = provider?.cooperativeId || {};
   const qrPayload = JSON.stringify({
-    workerId: provider?._id || "PROV-2026-GHZ-8841",
-    name: form.name || "Ramesh Kumar",
-    email: form.email || "plumber.test@gmail.com",
-    phone: form.phone || "+91 98112 33445",
-    skills: form.skills || "Plumber",
-    hourlyRate: `₹${form.hourlyRate || 300}/hr`,
-    cooperative: provider?.cooperativeId?.name || "Karol Bagh Labour Cooperative",
-    regNo: "DL/COO/2024/001",
-    eShramId: "IN-ES-0000000123",
+    workerId: provider?._id || "",
+    name: form.name || "",
+    email: form.email || "",
+    phone: form.phone || user?.phone || "",
+    skills: form.skills || "",
+    hourlyRate: form.hourlyRate ? `₹${form.hourlyRate}/hr` : "",
+    cooperative: coopInfo.name || "",
+    regNo: coopInfo.registrationId || "",
+    eShramId: provider?.welfare?.eShramId || "",
     verified: true
   });
 
@@ -168,10 +167,10 @@ export default function ProviderProfile() {
         setForm({
           name: p.userId?.name || user?.name || "",
           email: p.userId?.email || user?.email || "",
-          phone: p.userId?.phone || user?.phone || "+91 98112 33445",
-          skills: (p.skills || ["Plumber", "Electrician"]).join(", "),
+          phone: p.userId?.phone || user?.phone || "",
+          skills: (p.skills || []).join(", "),
           hourlyRate: p.hourlyRate ?? 350,
-          bio: p.bio || "Certified master technician backed by Karol Bagh Labour Cooperative.",
+          bio: p.bio || "",
         });
         if (p.avatar) setAvatarUrl(p.avatar.startsWith('http') ? p.avatar : `http://localhost:5000${p.avatar}`);
         setSlots(DAYS.map((day) => {
@@ -396,12 +395,12 @@ export default function ProviderProfile() {
             <div className="space-y-1">
               <div className="flex items-center justify-center gap-1.5 flex-wrap">
                 <h2 className="text-xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                  {form.name || "Ramesh Kumar"}
+                  {form.name || "Provider"}
                 </h2>
                 <CheckCircle2 size={18} className="text-[#1e6b65] fill-[#e6f4f1]" />
               </div>
               <p className="text-xs font-semibold text-slate-500 truncate max-w-[220px] mx-auto">{form.email}</p>
-              <p className="text-[11px] font-medium text-slate-400">{form.phone || "+91 98112 33445"}</p>
+              <p className="text-[11px] font-medium text-slate-400">{form.phone || "Add your phone number"}</p>
             </div>
 
             {/* 3-Stat Metric Grid */}
@@ -557,7 +556,7 @@ export default function ProviderProfile() {
                         type="tel"
                         value={form.phone}
                         onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))}
-                        placeholder="+91 98112 33445"
+                        placeholder="Your phone number"
                         className="w-full h-9 pl-9 pr-3 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-semibold text-slate-900 outline-none focus:border-[#1e6b65] focus:bg-white transition-all"
                       />
                     </div>
@@ -742,11 +741,11 @@ export default function ProviderProfile() {
             {/* Provider Verification Info Badge */}
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-left space-y-1.5 text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-extrabold text-slate-900">{form.name || "Ramesh Kumar"}</span>
+                <span className="font-extrabold text-slate-900">{form.name || "Your name"}</span>
                 <span className="orvia-badge-lime text-[10px]">Verified Member ✓</span>
               </div>
               <p className="text-slate-500 font-medium text-[11px]">
-                Cooperative: <strong className="text-slate-800">{provider?.cooperativeId?.name || "Karol Bagh Labour Coop"}</strong>
+                Cooperative: <strong className="text-slate-800">{provider?.cooperativeId?.name || "Your cooperative"}</strong>
               </p>
               <p className="text-slate-500 font-medium text-[11px]">
                 e-Shram UAN: <strong className="text-[#1e6b65]">IN-ES-0000000123</strong>

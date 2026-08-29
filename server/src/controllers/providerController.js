@@ -32,7 +32,7 @@ async function listProviders(req, res) {
   if (isVerified === 'true') filter.verified = true;
   if (minRating) filter.rating = { $gte: parseFloat(minRating) };
 
-  const list = await Provider.find(filter).populate('cooperativeId', 'name').lean();
+  const list = await Provider.find(filter).populate('cooperativeId', 'name').populate('userId', 'name email phone').lean();
   const qLat = lat == null ? null : Number(lat);
   const qLng = lng == null ? null : Number(lng);
   const rad = Math.max(1, Number(radius) || 25);
@@ -82,9 +82,9 @@ async function getProvider(req, res) {
     return res.status(404).json({ message: 'Provider profile not found' });
   }
 
-  const p = await Provider.findById(req.params.id).populate('cooperativeId', 'name district state registrationNumber');
+  const p = await Provider.findById(req.params.id).populate('cooperativeId', 'name district state registrationNumber').populate('userId', 'name email phone');
   if (!p) {
-    const userProv = await Provider.findOne({ userId: req.params.id }).populate('cooperativeId', 'name district state registrationNumber');
+    const userProv = await Provider.findOne({ userId: req.params.id }).populate('cooperativeId', 'name district state registrationNumber').populate('userId', 'name email phone');
     if (!userProv) return res.status(404).json({ message: 'Provider profile not found' });
     const score = await computeTrustScore(userProv._id);
     const bookings = await Booking.find({
@@ -162,25 +162,19 @@ async function uploadAvatar(req, res) {
 }
 
 async function uploadAvatarBase64(req, res) {
-  const { avatar, name, email } = req.body;
+  const { avatar } = req.body;
   if (!avatar || avatar.length < 50) {
     return res.status(400).json({ message: 'Invalid or empty image payload' });
   }
 
   const User = require('../models/User');
-  const targetEmail = email || 'plumber.test@gmail.com';
+  const user = await User.findById(req.user.userId);
+  if (!user) return res.status(404).json({ message: 'User not found' });
 
-  const user = await User.findOneAndUpdate(
-    { email: targetEmail },
-    { avatarUrl: avatar, profileImage: avatar },
-    { new: true }
-  );
-
-  if (user) {
-    await Provider.findOneAndUpdate({ userId: user._id }, { avatar, avatarUrl: avatar }, { new: true });
-  } else {
-    await Provider.findOneAndUpdate({ email: targetEmail }, { avatar, avatarUrl: avatar }, { new: true });
-  }
+  user.avatarUrl = avatar;
+  user.profileImage = avatar;
+  await user.save();
+  await Provider.findOneAndUpdate({ userId: user._id }, { avatar, avatarUrl: avatar }, { new: true });
 
   res.json({ success: true, avatarUrl: avatar, message: 'Photo saved successfully.' });
 }
@@ -189,20 +183,15 @@ async function uploadAvatarFile(req, res) {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
   const avatarUrl = `http://localhost:5000/uploads/${req.file.filename}`;
-  const email = req.body.email || 'plumber.test@gmail.com';
 
   const User = require('../models/User');
-  const user = await User.findOneAndUpdate(
-    { email },
-    { avatarUrl, profileImage: avatarUrl },
-    { new: true }
-  );
+  const user = await User.findById(req.user.userId);
+  if (!user) return res.status(404).json({ message: 'User not found' });
 
-  if (user) {
-    await Provider.findOneAndUpdate({ userId: user._id }, { avatar: avatarUrl, avatarUrl }, { new: true });
-  } else {
-    await Provider.findOneAndUpdate({ email }, { avatar: avatarUrl, avatarUrl }, { new: true });
-  }
+  user.avatarUrl = avatarUrl;
+  user.profileImage = avatarUrl;
+  await user.save();
+  await Provider.findOneAndUpdate({ userId: user._id }, { avatar: avatarUrl, avatarUrl }, { new: true });
 
   res.json({ success: true, avatarUrl, message: 'Image uploaded to disk via Multer successfully.' });
 }
@@ -277,12 +266,17 @@ async function requestPayout(req, res) {
     const { sendPayoutReceiptEmail } = require('../utils/email');
 
     const providerId = req.user?.userId;
-    const providerEmail = req.user?.email || 'plumber.test@gmail.com';
-    const providerName = req.user?.name || 'Ramesh Kumar';
+    const user = providerId ? await require('../models/User').findById(providerId) : null;
+    if (!user) return res.status(401).json({ message: 'You must be signed in to request a payout.' });
+    const providerEmail = user.email;
+    const providerName = user.name || 'Provider';
 
     const { amount, bankAccountOrUpi } = req.body;
-    const withdrawAmount = Number(amount) || 500;
+    const withdrawAmount = Number(amount) || 0;
 
+    if (!bankAccountOrUpi || !bankAccountOrUpi.trim()) {
+      return res.status(400).json({ message: "Bank account or UPI ID is required for payout." });
+    }
     if (withdrawAmount < 100) {
       return res.status(400).json({ message: "Minimum payout request is ₹100." });
     }
@@ -296,12 +290,12 @@ async function requestPayout(req, res) {
 
     const newPayout = await Payout.create({
       payoutId,
-      providerId: providerId || '65a9f1b2c3d4e5f678901234',
+      providerId,
       providerName,
       providerEmail,
       amount: withdrawAmount,
-      paymentMethod: bankAccountOrUpi ? `Direct Transfer (${bankAccountOrUpi})` : "Razorpay Cooperative Escrow (UPI)",
-      bankAccountOrUpi: bankAccountOrUpi || "sahakar.worker@upi",
+      paymentMethod: "Razorpay Cooperative Escrow (UPI)",
+      bankAccountOrUpi: bankAccountOrUpi.trim(),
       transactionRef,
       cooperativeStampId: stampId,
       status: "Completed",
@@ -335,14 +329,9 @@ async function requestPayout(req, res) {
 async function getMyPayouts(req, res) {
   try {
     const providerId = req.user?.userId;
-    const providerEmail = req.user?.email || 'plumber.test@gmail.com';
-
     let payouts = [];
     if (providerId) {
       payouts = await Payout.find({ providerId }).sort({ createdAt: -1 });
-    }
-    if (payouts.length === 0) {
-      payouts = await Payout.find({ providerEmail }).sort({ createdAt: -1 });
     }
     res.json(payouts);
   } catch (err) {

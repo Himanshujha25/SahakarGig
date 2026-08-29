@@ -18,18 +18,22 @@ export default function JobDetail() {
   const [chat, setChat] = useState("");
   const [messages, setMessages] = useState([]);
   const [otpError, setOtpError] = useState(null);
+  const [providerUserId, setProviderUserId] = useState(null);
 
   const load = useCallback(async () => {
     try {
       const { data } = await api.get(`/bookings/${id}`);
       setBooking(data);
       setMessages(data.chat || []);
+      if (!providerUserId) {
+        api.get("/providers/me").then((r) => setProviderUserId(r.data.userId?._id ?? r.data.userId)).catch(() => {});
+      }
     } catch (err) {
       console.error("Failed to load booking details:", err);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, providerUserId]);
 
   useEffect(() => {
     load();
@@ -193,6 +197,16 @@ export default function JobDetail() {
           {isEmergency && (
             <span className="text-xs font-semibold px-3 py-1 rounded bg-slate-900 text-white">
               Emergency Request
+            </span>
+          )}
+          {b.recurrence?.enabled && (
+            <span className="text-xs font-semibold px-3 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200 capitalize">
+              Recurring · {b.recurrence.freq}
+            </span>
+          )}
+          {b.groupBooking?.enabled && (
+            <span className="text-xs font-semibold px-3 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">
+              Group · {b.groupBooking.memberCount} members
             </span>
           )}
         </div>
@@ -362,20 +376,28 @@ export default function JobDetail() {
             </div>
 
             {/* Message List */}
-            <div className="flex-1 max-h-56 overflow-y-auto space-y-2 p-2 rounded bg-slate-50 border border-slate-100 my-1">
+            <div className="flex-1 max-h-56 overflow-y-auto space-y-2 p-2 rounded bg-surface-container-low border border-outline-variant my-1">
               {messages.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-6">No messages recorded.</p>
               ) : (
-                messages.map((m, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex flex-col ${m.from === "provider" || m.from === "You" ? "items-end" : "items-start"}`}
-                  >
-                    <div className={`p-2.5 rounded-lg max-w-[85%] text-xs ${m.from === "provider" || m.from === "You" ? "bg-slate-900 text-white" : "bg-white text-slate-800 border border-slate-200"}`}>
-                      <p>{m.message}</p>
+                messages.map((m, idx) => {
+                  const senderId = m.sender?._id?.toString() || m.sender?.toString() || "";
+                  const mine = providerUserId ? senderId === providerUserId?.toString() : false;
+                  const isYou = mine;
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex flex-col ${isYou ? "items-end" : "items-start"}`}
+                    >
+                      <div className={`max-w-[85%] px-2.5 py-2 rounded-lg text-xs ${isYou ? "bg-primary text-on-primary" : "bg-surface text-on-surface border border-outline-variant"}`}>
+                        <p className={`text-[10px] font-semibold mb-0.5 ${isYou ? "text-on-primary/75" : "text-primary"}`}>
+                          {isYou ? "You" : (m.sender?.name || "Household")}
+                        </p>
+                        <p>{m.message}</p>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -388,7 +410,7 @@ export default function JobDetail() {
               onChange={(e) => setChat(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendChat()}
               placeholder="Type message..."
-              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-800 outline-none"
+              className="flex-1 px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary"
             />
             <button
               type="button"

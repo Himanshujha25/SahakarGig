@@ -549,8 +549,8 @@ html.dark {
   /* ---- Primary (Cooperative Blue — inverted for dark) ---- */
   --color-primary: #b8c4ff;
   --color-on-primary: #002584;
-  --color-primary-container: #1e40af;
-  --color-on-primary-container: #a8b8ff;
+  --color-primary-container: #2b3577;
+  --color-on-primary-container: #c6d0ff;
   --color-inverse-primary: #3755c3;
   --color-surface-tint: #b8c4ff;
   --color-primary-fixed: #dde1ff;

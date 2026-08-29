@@ -43,12 +43,12 @@ export default function WorkerDetail() {
   const navigate = useNavigate();
 
   // Extract complex URL query parameters
-  const workerId = searchParams.get("id") || "prov_ramesh_001";
-  const rawName = searchParams.get("name") || "Ramesh Kumar";
-  const rawEmail = searchParams.get("email") || "plumber.test@gmail.com";
-  const rawPhone = searchParams.get("phone") || "+91 98112 33445";
-  const skill = searchParams.get("skill") || "Plumber";
-  const coopName = searchParams.get("coopId") || "Karol Bagh Labour Cooperative";
+  const workerId = searchParams.get("id") || "";
+  const rawName = searchParams.get("name") || "";
+  const rawEmail = searchParams.get("email") || "";
+  const rawPhone = searchParams.get("phone") || "";
+  const skill = searchParams.get("skill") || "Provider";
+  const coopName = searchParams.get("coopName") || "";
   const role = searchParams.get("role") || "Provider";
 
   // Check localStorage for uploaded custom avatar & live profile edits
@@ -75,10 +75,10 @@ export default function WorkerDetail() {
   const [showQrModal, setShowQrModal] = useState(false);
   const [historyFilter, setHistoryFilter] = useState("all");
   const [documentsState, setDocumentsState] = useState({
-    aadhaar: { name: "Aadhaar_Card_Verified.pdf", verified: true, date: "2024-01-15", size: "1.2 MB" },
-    eshram: { name: "eShram_National_Registration.pdf", verified: true, date: "2024-02-10", size: "850 KB" },
-    police: { name: "Police_Clearance_Certificate.pdf", verified: true, date: "2024-03-01", size: "2.1 MB" },
-    qualification: { name: "Trade_Skill_Qualification.pdf", verified: true, date: "2024-01-20", size: "1.5 MB" }
+    aadhaar: { name: "", verified: false, date: "", size: "" },
+    eshram: { name: "", verified: false, date: "", size: "" },
+    police: { name: "", verified: false, date: "", size: "" },
+    qualification: { name: "", verified: false, date: "", size: "" }
   });
 
   const [loading, setLoading] = useState(true);
@@ -133,10 +133,12 @@ export default function WorkerDetail() {
   const phone = providerData?.userId?.phone || providerData?.phone || savedProfile.phone || rawPhone;
   const avatarUrl = providerData?.userId?.avatarUrl || providerData?.avatarUrl || providerData?.avatar || savedAvatar || null;
   const skillCategory = (providerData?.skills || [skill])[0] || skill;
-  const trustScore = providerData?.trustScore ? Number(providerData.trustScore).toFixed(1) : "4.9";
-  const eShramNo = providerData?.eshramCardNo || `IN-ES-${String(workerId).slice(-6).toUpperCase()}`;
-  const coopLicenseNo = providerData?.licenseNo || `DL/COO/2024/${String(workerId).slice(-3).toUpperCase()}`;
-  const linkedUpi = `${name.toLowerCase().replace(/\s+/g, '.')}@okhdfcbank`;
+  const trustScore = providerData?.trustScore ? Number(providerData.trustScore).toFixed(1) : "—";
+  const emergencyName = providerData?.userId?.emergencyContact?.name || "";
+  const emergencyPhone = providerData?.userId?.emergencyContact?.phone || "";
+  const eShramNo = providerData?.eshramCardNo || providerData?.eShramId || "";
+  const coopLicenseNo = providerData?.licenseNo || providerData?.cooperativeId?.registrationId || "";
+  const linkedUpi = providerData?.upiId || "";
 
   // Compute live booking stats directly from MongoDB
   const completedBookings = bookingHistory.filter(b => (b.status || "").toLowerCase() === 'completed');
@@ -310,10 +312,17 @@ export default function WorkerDetail() {
               <Phone size={13} className="text-[#1e6b65]" />
               {phone}
             </span>
-            <span className="flex items-center gap-1.5 font-bold text-amber-900 dark:text-amber-200 bg-amber-50/80 dark:bg-amber-950/60 px-2.5 py-1 rounded-xl border border-amber-200/80 dark:border-amber-800/60">
-              <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400 shrink-0" />
-              <span>Emergency: <strong>Sunita Kumar (Spouse)</strong> • +91 98765 43210</span>
-            </span>
+            {emergencyName || emergencyPhone ? (
+              <span className="flex items-center gap-1.5 font-bold text-amber-900 dark:text-amber-200 bg-amber-50/80 dark:bg-amber-950/60 px-2.5 py-1 rounded-xl border border-amber-200/80 dark:border-amber-800/60">
+                <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Emergency: <strong>{emergencyName || "Contact"}</strong>{emergencyPhone ? ` • ${emergencyPhone}` : ""}</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 font-bold text-slate-500 dark:text-slate-400 bg-surface px-2.5 py-1 rounded-xl border border-outline-variant">
+                <AlertTriangle size={13} className="shrink-0" />
+                No emergency contact on record
+              </span>
+            )}
           </div>
         </div>
 
@@ -959,19 +968,23 @@ export default function WorkerDetail() {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="orvia-badge-lime text-xs">
-                  <ShieldCheck size={14} /> 100% KYC Verified ✓
-                </span>
+                {providerData?.verified ? (
+                  <span className="orvia-badge-lime text-xs">
+                    <ShieldCheck size={14} /> Verified Provider ✓
+                  </span>
+                ) : (
+                  <span className="orvia-badge-pending text-xs">Verification pending</span>
+                )}
               </div>
             </div>
 
             {/* 4 Document Upload Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {[
-                { key: "aadhaar", title: "Aadhaar Card (Front/Back)", id: "Aadhaar: XXXX-8841", state: documentsState.aadhaar },
-                { key: "eshram", title: "e-Shram National Card", id: `UAN: ${eShramNo}`, state: documentsState.eshram },
-                { key: "police", title: "Police Clearance Certificate", id: "Cert: DL-POL-2024-9982", state: documentsState.police },
-                { key: "qualification", title: "Trade Skill Qualification Certificate", id: `Skill: ${skillCategory} Trade Cert`, state: documentsState.qualification },
+                { key: "aadhaar", title: "Aadhaar Card (Front/Back)", id: (providerData?.documents || [])[0] || "Not uploaded yet", state: documentsState.aadhaar },
+                { key: "eshram", title: "e-Shram National Card", id: eShramNo || "Not linked yet", state: documentsState.eshram },
+                { key: "police", title: "Police Clearance Certificate", id: (providerData?.documents || [])[1] || "Not uploaded yet", state: documentsState.police },
+                { key: "qualification", title: "Trade Skill Qualification Certificate", id: (providerData?.documents || [])[2] || "Not uploaded yet", state: documentsState.qualification },
               ].map((doc) => (
                 <div key={doc.key} className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3 flex flex-col justify-between">
                   <div className="space-y-2">
@@ -980,18 +993,22 @@ export default function WorkerDetail() {
                         <FileText size={15} className="text-[#1e6b65]" />
                         {doc.title}
                       </h4>
-                      <span className="orvia-badge-lime text-[10px]">Verified ✓</span>
+                      {doc.id === "Not uploaded yet" || (doc.id && doc.id.startsWith("Not ")) ? (
+                        <span className="orvia-badge-pending text-[10px]">Pending</span>
+                      ) : (
+                        <span className="orvia-badge-lime text-[10px]">On record</span>
+                      )}
                     </div>
 
                     <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400">{doc.id}</p>
 
                     <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/50 flex items-center justify-between text-xs">
                       <div className="min-w-0 pr-2">
-                        <p className="font-bold text-slate-800 dark:text-slate-200 truncate text-[11.5px]">{doc.state.name}</p>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500">Uploaded {doc.state.date} • {doc.state.size}</p>
+                        <p className="font-bold text-slate-800 dark:text-slate-200 truncate text-[11.5px]">{doc.state.name || "No document uploaded"}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500">{doc.state.date ? `Uploaded ${doc.state.date} • ${doc.state.size}` : "Awaiting provider submission"}</p>
                       </div>
                       <button
-                        onClick={() => showToast(`Opening preview for ${doc.state.name}`)}
+                        onClick={() => showToast(doc.state.name ? `Opening preview for ${doc.state.name}` : "No document to preview yet")}
                         className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-extrabold hover:bg-slate-100 dark:hover:bg-slate-700 transition shrink-0 cursor-pointer flex items-center gap-1"
                       >
                         <Eye size={12} /> View

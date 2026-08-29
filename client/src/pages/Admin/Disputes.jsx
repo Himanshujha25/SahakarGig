@@ -89,6 +89,34 @@ export default function Disputes() {
                 {d.issue || "A dispute has been raised on this booking."}
               </div>
 
+              {/* Category + evidence */}
+              {d.disputeCategory && (
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 rounded-full bg-error-container/40 text-on-error-container text-[11px] font-bold">
+                    {d.disputeCategory}
+                  </span>
+                </div>
+              )}
+              {d.disputeEvidence && d.disputeEvidence.length > 0 && (
+                <div className="rounded-xl bg-surface-container-low px-4 py-3 border border-outline-variant/30">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-2">Evidence ({d.disputeEvidence.length})</p>
+                  <div className="flex flex-wrap gap-2">
+                    {d.disputeEvidence.map((src, i) => (
+                      src?.startsWith("data:image") ? (
+                        <a key={i} href={src} target="_blank" rel="noreferrer">
+                          <img src={src} alt={`Evidence ${i + 1}`} className="h-16 w-16 rounded-lg object-cover border border-outline-variant" />
+                        </a>
+                      ) : (
+                        <a key={i} href={src} target="_blank" rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-outline-variant bg-surface px-3 py-1.5 text-[12px] font-semibold text-primary hover:border-primary/50">
+                          File {i + 1}
+                        </a>
+                      )
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Amount */}
               <div className="flex items-center justify-between rounded-xl bg-surface-container-low px-4 py-3 border border-outline-variant/30">
                 <span className="text-[13px] text-on-surface-variant">Booking Amount</span>
@@ -98,14 +126,14 @@ export default function Disputes() {
               {/* Actions */}
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  className="h-11 flex items-center justify-center gap-2 rounded-xl border-2 border-primary text-primary text-[13px] font-bold hover:bg-[#e8edff] transition-all duration-200 disabled:opacity-60"
+                  className="h-11 flex items-center justify-center gap-2 rounded-xl border-2 border-primary text-primary text-[13px] font-bold hover:bg-primary-container transition-all duration-200 disabled:opacity-60"
                   disabled={busy === d._id}
                   onClick={() => resolve(d._id, "refund")}
                 >
                   <Undo2 size={15} strokeWidth={2.5} /> Refund
                 </button>
                 <button
-                  className="h-11 flex items-center justify-center gap-2 rounded-xl border border-primary/25 bg-[#e8edff] text-[#00288e] text-[13px] font-bold hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
+                  className="h-11 flex items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary-container text-on-primary-container text-[13px] font-bold hover:border-primary hover:bg-primary hover:text-on-primary hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
                   disabled={busy === d._id}
                   onClick={() => resolve(d._id, "provider")}
                 >
