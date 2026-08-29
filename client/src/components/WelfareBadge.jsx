@@ -1,4 +1,5 @@
 import { ShieldCheck, Award, Clock, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
+import { AIIcon, AIBadge } from './AIIcon';
 
 export default function WelfareBadge({ eshramId, welfareScore, insuranceOptIn, insuranceProvider, verificationStatus, verifiedAt, verifiedName }) {
   const vs = verificationStatus || (eshramId ? 'self_declared' : 'unregistered');
@@ -38,8 +39,13 @@ export default function WelfareBadge({ eshramId, welfareScore, insuranceOptIn, i
             <ShieldCheck size={22} strokeWidth={2.5} />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[14px] font-bold text-on-surface">e-Shram Welfare Proof</span>
+              {vs === 'govt_verified' && (
+                <span className="px-2 py-0.5 rounded-full bg-[#00288e] text-white text-[10px] font-bold">
+                  Govt. Verified ✓
+                </span>
+              )}
               {config.icon}
             </div>
             <p className="text-[11px] text-on-surface-variant">{config.sub}</p>

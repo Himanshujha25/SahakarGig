@@ -3,17 +3,19 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
 import socket from '../lib/socket';
-import { Home, CalendarDays, User, LogOut, Handshake, Search, Radar } from 'lucide-react';
+import { Home, CalendarDays, User, LogOut, Handshake, Search, Radar, Settings, Heart, Wallet, Building2 } from 'lucide-react';
 
 const NAV = [
-  { label: 'Home',          Icon: Home,         to: '/household',       end: true  },
-  { label: 'Dispatch',      Icon: Radar,        to: '/household/dispatch', end: false },
-  { label: 'Find Services', Icon: Search,        to: '/household/find',  end: false },
-  { label: 'My Bookings',   Icon: CalendarDays,  to: '/household/bookings', end: false },
-  { label: 'Profile',       Icon: User,          to: '/household/profile',  end: false },
+  { label: 'Home',          Icon: Home,            to: '/household',            end: true  },
+  { label: 'Dispatch',      Icon: Radar,           to: '/household/dispatch',   end: false },
+  { label: 'Find Services', Icon: Search,          to: '/household/find',       end: false },
+  { label: 'Bulk RFP Crew', Icon: Building2,       to: '/household/bulk',       end: false },
+  { label: 'Saved',         Icon: Heart,           to: '/household/saved',      end: false },
+  { label: 'My Bookings',   Icon: CalendarDays,    to: '/household/bookings',   end: false },
+  { label: 'Wallet',        Icon: Wallet,          to: '/household/wallet',     end: false },
 ];
 
-const activeStyle   = 'bg-[#e8edff] text-[#00288e]';
+const activeStyle   = 'bg-primary-container text-on-primary-container font-bold';
 const inactiveStyle = 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface';
 
 export default function HouseholdLayout() {
@@ -24,8 +26,7 @@ export default function HouseholdLayout() {
     : 'HH';
 
   useEffect(() => {
-    socket.connect();
-    return () => { socket.disconnect(); };
+    if (!socket.connected) socket.connect();
   }, []);
 
   function signOut() { logout(); navigate('/login'); }
@@ -58,7 +59,7 @@ export default function HouseholdLayout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto no-scrollbar">
           {NAV.map(({ label, Icon, to, end }) => (
             <NavLink key={label} to={to} end={end}
               className={({ isActive }) =>
@@ -69,15 +70,32 @@ export default function HouseholdLayout() {
                 <>
                   <Icon size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
                   <span>{label}</span>
-                  {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00288e]" />}
+                  {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-on-primary-container" />}
                 </>
               )}
             </NavLink>
           ))}
         </nav>
 
-        {/* Sign out */}
-        <div className="px-3 pb-4 pt-3 border-t border-outline-variant/40">
+        {/* Bottom section: Settings + Sign out */}
+        <div className="px-3 pb-4 pt-3 border-t border-outline-variant/40 space-y-0.5">
+          <NavLink
+            to="/household/profile"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 ${
+                isActive ? activeStyle : inactiveStyle
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Settings size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                <span>Settings</span>
+                {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-on-primary-container" />}
+              </>
+            )}
+          </NavLink>
+
           <button onClick={signOut}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold text-error hover:bg-error-container/30 transition-all duration-200">
             <LogOut size={17} strokeWidth={2} className="shrink-0" />
@@ -87,9 +105,17 @@ export default function HouseholdLayout() {
 
         {/* User card */}
         <div className="mx-3 mb-4 p-3 rounded-xl bg-surface-container border border-outline-variant/40 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white text-[13px] font-bold shrink-0">
-            {initials}
-          </div>
+          {user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user.name || "Household"}
+              className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-primary/20"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white text-[13px] font-bold shrink-0">
+              {initials}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-bold text-on-surface truncate leading-none">{user?.name || 'Household'}</p>
             <p className="text-[11px] text-on-surface-variant mt-0.5 truncate">{user?.email}</p>
@@ -116,7 +142,9 @@ export default function HouseholdLayout() {
 
       {/* ── Page content ── */}
       <main className="flex-1 lg:ml-[260px] pt-14 lg:pt-0 pb-20 lg:pb-0 min-h-screen">
-        <Outlet />
+        <div className="w-full max-w-7xl mx-auto">
+          <Outlet />
+        </div>
       </main>
 
       {/* ── Mobile bottom nav ── */}

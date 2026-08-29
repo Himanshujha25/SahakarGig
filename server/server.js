@@ -12,39 +12,32 @@ const connectDB = require('./src/config/db');
 const dns = require("dns");
 const app = express();
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, server-to-server)
-    if (!origin) return callback(null, true);
-    // If CLIENT_ORIGIN is explicitly defined in env and not '*', enforce it
-    if (process.env.CLIENT_ORIGIN && process.env.CLIENT_ORIGIN !== '*') {
-      const allowed = process.env.CLIENT_ORIGIN.split(',').map((s) => s.trim());
-      if (allowed.includes(origin)) return callback(null, true);
-    }
-    // Dynamic origin reflection (allows Vercel deployments, localhost, etc. cleanly)
-    return callback(null, origin);
-  },
+app.use(cors({
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-};
-
-app.use(cors(corsOptions));
-app.use(express.json());
+}));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 // Serve uploaded provider documents as static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const server = http.createServer(app);
-const io = new Server(server, { cors: corsOptions });
+const io = new Server(server, { cors: { origin: true, credentials: true } });
 initSocket(io);
 
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/providers', require('./src/routes/providers'));
+app.use('/api/favorites', require('./src/routes/favorites'));
 app.use('/api/bookings', require('./src/routes/bookings'));
 app.use('/api/reviews', require('./src/routes/reviews'));
 app.use('/api/payments', require('./src/routes/payments'));
+app.use('/api/wallet', require('./src/routes/wallet'));
+app.use('/api/analytics', require('./src/routes/analytics'));
+app.use('/api/subscriptions', require('./src/routes/subscriptions'));
 app.use('/api/admin', require('./src/routes/admin'));
 app.use('/api/federation', require('./src/routes/federation'));
 app.use('/api/ai', require('./src/routes/ai'));
@@ -101,5 +94,13 @@ setInterval(() => {
 
 const PORT = process.env.PORT || 5000;
 connectDB(process.env.MONGODB_URI)
-  .then(() => server.listen(PORT, () => console.log(`[server] SahakarGig API running on ${PORT}`)))
+  .then(() => {
+    // Recurring subscription renewals (wallet auto-debit / expiry) — every 30 min.
+    setInterval(() => {
+      const { processRenewals } = require('./src/controllers/subscriptionController');
+      processRenewals().catch((e) => console.error('[subscription renewals]', e.message));
+    }, 30 * 60 * 1000);
+
+    return server.listen(PORT, () => console.log(`[server] SahakarGig API running on ${PORT}`));
+  })
   .catch((err) => console.error('[server] DB connection failed:', err.message));

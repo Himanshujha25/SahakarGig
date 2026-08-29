@@ -270,9 +270,9 @@ export default function FederationSignup() {
         <button
           type="submit"
           disabled={busy}
-          className="w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-[13.5px] font-semibold border border-primary/30 bg-[#e8edff] text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
+          className="w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-[13.5px] font-semibold bg-primary text-on-primary shadow-[0_2px_10px_rgba(30,107,101,0.25)] hover:opacity-90 hover:shadow-[0_6px_18px_rgba(30,107,101,0.4)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
         >
-          {busy && <span className="h-4 w-4 border-2 border-[#00288e]/30 border-t-[#00288e] rounded-full animate-spin" />}
+          {busy && <span className="h-4 w-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />}
           {busy ? "Registering Federation..." : "Register Federation"}
           {!busy && <Icon name="arrow_forward" className="text-[17px]" />}
         </button>
@@ -280,7 +280,7 @@ export default function FederationSignup() {
 
       <p className="mt-4 text-center font-body-md text-xs text-on-surface-variant">
         Already have an account?{' '}
-        <Link to="/login" className="font-semibold text-primary hover:text-primary-container transition-colors">
+        <Link to="/login" className="font-semibold text-primary hover:opacity-80 transition-opacity">
           Sign in
         </Link>
       </p>

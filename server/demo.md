@@ -1,10 +1,5 @@
-nitinprakash268@gmail.com(cooperative)
-123456789
-nitin268@gmail.com(hosuehold)
-123456789
-nitin@gmail.com(gigworker)
-123456789
-coder268@gmail.com (fedration)
-123456789
-naklwudfnulwe@gmail.com(gig worker)
-123456789
+Role	Email	Password
+Plumber (Provider)	plumber.test@gmail.com	123456789
+Household	household.test@gmail.com	123456789
+Cooperative Admin	coop.test@gmail.com	123456789
+Federation Admin	federation.test@gmail.com	123456789

@@ -53,7 +53,7 @@ export default function FederationDashboard() {
     );
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="w-full max-w-7xl mx-auto p-6 lg:p-8 space-y-6">
       {/* Header */}
       <div>
         <h1 className="font-heading text-2xl font-bold text-on-surface">{data?.federationName || 'Federation'}</h1>

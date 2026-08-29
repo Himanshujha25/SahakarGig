@@ -11,4 +11,16 @@ api.interceptors.request.use((cfg) => {
   return cfg;
 });
 
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err?.response?.status === 401) {
+      localStorage.removeItem('sg_token');
+      localStorage.removeItem('sg_user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(err);
+  }
+);
+
 export default api;

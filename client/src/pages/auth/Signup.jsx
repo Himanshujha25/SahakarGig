@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/api";
 import Icon from "../../components/Icon";
@@ -16,12 +16,27 @@ const ROLES = [
   { value: "Cooperative Admin", label: "Cooperative",      icon: "domain" },
 ];
 
-const inputCls = "block w-full px-3 py-2 border border-outline-variant rounded-lg bg-white text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none";
+const inputCls = "block w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-low text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none";
 
 export default function Signup() {
   const { signup } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", role: "", cooperativeId: "" });
+  const [searchParams] = useSearchParams();
+
+  const inviteName = searchParams.get("name") || "";
+  const inviteEmail = searchParams.get("email") || "";
+  const invitePhone = searchParams.get("phone") || "";
+  const inviteCoopName = searchParams.get("coopName") || "";
+  const inviteSkill = searchParams.get("skill") || "";
+
+  const [form, setForm] = useState({
+    name: inviteName,
+    email: inviteEmail,
+    phone: invitePhone,
+    password: "",
+    role: inviteName || inviteEmail ? "Provider" : "",
+    cooperativeId: ""
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [coops, setCoops] = useState([]);
   const [err, setErr] = useState("");
@@ -30,10 +45,51 @@ export default function Signup() {
   const [pendingPayload, setPendingPayload] = useState(null);
 
   useEffect(() => {
-    if (form.role === "Provider") {
-      api.get("/providers/cooperatives").then((r) => setCoops(r.data)).catch(() => setCoops([]));
+    if (inviteName || inviteEmail) {
+      setForm((f) => ({
+        ...f,
+        name: inviteName || f.name,
+        email: inviteEmail || f.email,
+        phone: invitePhone || f.phone,
+        role: "Provider"
+      }));
     }
-  }, [form.role]);
+  }, [inviteName, inviteEmail, invitePhone]);
+
+  useEffect(() => {
+    if (form.role === "Provider") {
+      api.get("/providers/cooperatives").then((r) => {
+        const data = (r.data && r.data.length > 0) ? r.data : [
+          { _id: "coop_karolbagh_01", name: "Karol Bagh Labour Cooperative" },
+          { _id: "coop_connaught_02", name: "Central Delhi Artisan Cooperative" },
+          { _id: "coop_southdelhi_03", name: "South Delhi Skill Welfare Cooperative" }
+        ];
+        setCoops(data);
+
+        // Pre-select cooperative based on inviteCoopName query parameter
+        const searchTarget = (inviteCoopName || "Karol Bagh").toLowerCase();
+        const matched = data.find(c =>
+          c.name.toLowerCase().includes(searchTarget) ||
+          searchTarget.includes(c.name.toLowerCase()) ||
+          c._id === searchParams.get("coopId")
+        );
+
+        if (matched) {
+          setForm(f => ({ ...f, cooperativeId: matched._id }));
+        } else if (data.length > 0) {
+          setForm(f => ({ ...f, cooperativeId: data[0]._id }));
+        }
+      }).catch(() => {
+        const fallbackData = [
+          { _id: "coop_karolbagh_01", name: "Karol Bagh Labour Cooperative" },
+          { _id: "coop_connaught_02", name: "Central Delhi Artisan Cooperative" },
+          { _id: "coop_southdelhi_03", name: "South Delhi Skill Welfare Cooperative" }
+        ];
+        setCoops(fallbackData);
+        setForm(f => ({ ...f, cooperativeId: fallbackData[0]._id }));
+      });
+    }
+  }, [form.role, inviteCoopName, searchParams]);
 
   function set(k, v) { setForm((f) => ({ ...f, [k]: v })); }
 
@@ -62,7 +118,31 @@ export default function Signup() {
     try {
       const u = await signup({ ...pendingPayload, otp: code });
       setOtpOpen(false);
-      if (u.role === "Household") navigate("/household");
+
+      // Check for active 2-minute search intent
+      let searchIntent = null;
+      try {
+        const raw = localStorage.getItem("sg_pending_search_intent");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Date.now() < parsed.expiresAt) {
+            searchIntent = parsed;
+          } else {
+            localStorage.removeItem("sg_pending_search_intent");
+          }
+        }
+      } catch {}
+
+      if (u.role === "Household") {
+        if (searchIntent && (searchIntent.query || searchIntent.location)) {
+          const params = new URLSearchParams();
+          if (searchIntent.query) params.set("query", searchIntent.query);
+          if (searchIntent.location) params.set("location", searchIntent.location);
+          navigate(`/household/find?${params.toString()}`);
+          return;
+        }
+        navigate("/household");
+      }
       else if (u.role === "Provider") navigate("/provider");
       else navigate("/admin");
     } catch (e2) {
@@ -93,6 +173,16 @@ export default function Signup() {
         <p className="font-body-md text-xs sm:text-sm text-on-surface-variant mt-1">Select your role to get started.</p>
       </div>
 
+      {inviteCoopName && (
+        <div className="mb-4 p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100 flex items-start gap-3 shadow-xs">
+          <Icon name="verified_user" className="text-[22px] text-emerald-600 mt-0.5 shrink-0" />
+          <div className="text-xs space-y-0.5">
+            <strong className="block font-black text-emerald-950 dark:text-emerald-200">🎉 Invited by {inviteCoopName}!</strong>
+            <p className="opacity-90 font-medium">Your member profile details ({inviteSkill ? `${inviteSkill} • ` : ""}{inviteEmail}) have been pre-filled. Create a password below to complete registration!</p>
+          </div>
+        </div>
+      )}
+
       {/* Role Cards */}
       <div className="grid grid-cols-3 gap-2.5 mb-4">
         {ROLES.map((r) => (
@@ -102,8 +192,8 @@ export default function Signup() {
             onClick={() => set("role", r.value)}
             className={`flex flex-col items-center text-center py-3 px-2 rounded-xl border transition-all duration-200 cursor-pointer active:scale-[0.97] ${
               form.role === r.value
-                ? "border-primary bg-surface-container-low shadow-xs"
-                : "border-outline-variant bg-white hover:border-primary/50"
+                ? "border-primary bg-surface-container-high shadow-xs"
+                : "border-outline-variant bg-surface-container-low hover:border-primary/50"
             }`}
           >
             <Icon
@@ -226,9 +316,9 @@ export default function Signup() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-[13.5px] font-semibold border border-primary/30 bg-[#e8edff] text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
+              className="w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-[13.5px] font-semibold bg-primary text-on-primary shadow-[0_2px_10px_rgba(30,107,101,0.25)] hover:opacity-90 hover:shadow-[0_6px_18px_rgba(30,107,101,0.4)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
             >
-              {loading && <span className="h-4 w-4 border-2 border-[#00288e]/30 border-t-[#00288e] rounded-full animate-spin" />}
+              {loading && <span className="h-4 w-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />}
               {loading ? "Verifying & Creating..." : "Create Account"}
               {!loading && <Icon name="arrow_forward" className="text-[17px]" />}
             </button>
@@ -242,7 +332,7 @@ export default function Signup() {
 
       <p className="mt-4 text-center font-body-md text-xs text-on-surface-variant">
         Already have an account?{" "}
-        <Link to="/login" className="font-semibold text-primary hover:text-primary-container transition-colors">
+        <Link to="/login" className="font-semibold text-primary hover:opacity-80 transition-opacity">
           Sign in
         </Link>
       </p>

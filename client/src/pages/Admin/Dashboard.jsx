@@ -83,18 +83,20 @@ export default function Dashboard() {
   const [disputes, setDisputes] = useState([]);
   const [verifications, setVerifications] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [rfps, setRfps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [demand, setDemand] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [{ data: ds }, { data: dp }, { data: vf }, { data: lb }, { data: dm }] = await Promise.all([
+      const [{ data: ds }, { data: dp }, { data: vf }, { data: lb }, { data: dm }, { data: rf }] = await Promise.all([
         api.get(`/admin/dashboard?range=${timeframe}`),
         api.get("/admin/disputes"),
         api.get("/admin/verifications"),
         api.get("/admin/leaderboard"),
         api.get("/ai/demand?range=7"),
+        api.get("/admin/rfp").catch(() => ({ data: [] })),
       ]);
       setStats(ds);
       if (ds?.cooperativeName) setCoopName(ds.cooperativeName);
@@ -102,6 +104,7 @@ export default function Dashboard() {
       setVerifications(vf || []);
       setLeaderboard(lb || []);
       setDemand(dm || null);
+      setRfps(rf || []);
     } catch {
       setStats(null);
     } finally {
@@ -128,7 +131,7 @@ export default function Dashboard() {
   const maxRevenue = Math.max(1, ...series.map((s) => s.value));
 
   return (
-    <div className="w-full px-6 pt-8 pb-24 lg:pb-10 space-y-6">
+    <div className="w-full max-w-7xl mx-auto px-6 pt-8 pb-24 lg:pb-10 space-y-6">
 
       {/* ── Page header ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -172,6 +175,41 @@ export default function Dashboard() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Pending Institutional Bulk RFPs Banner ── */}
+      {rfps.some((r) => r.status === "requested") && (
+        <div className="rounded-2xl border border-[#00288e]/30 bg-gradient-to-r from-[#e8edff]/90 via-blue-50/80 to-white p-5 sm:p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-[#00288e] text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Users size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-[#00288e]">
+                  ● New Institutional RFP Action Required
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[10.5px] font-bold">
+                  {rfps.filter((r) => r.status === "requested").length} Pending
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-slate-900 mt-0.5">
+                Bulk Workforce Crew Requested by Verified Employer
+              </h3>
+              <p className="text-xs text-slate-600">
+                A household or commercial client has submitted an institutional RFP specifically to your cooperative society.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navigate("/admin/rfp")}
+            className="px-5 h-10 rounded-xl bg-[#00288e] hover:bg-[#173bab] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition shrink-0 cursor-pointer"
+          >
+            Review & Mobilize Crew <ArrowRight size={14} />
+          </button>
         </div>
       )}
 

@@ -17,6 +17,14 @@ const publicUser = (u) => ({
   name: u.name,
   role: u.role,
   email: u.email,
+  phone: u.phone,
+  avatarUrl: u.avatarUrl || '',
+  bio: u.bio || '',
+  designation: u.designation || '',
+  location: u.location || '',
+  timezone: u.timezone || 'Asia/Kolkata (IST)',
+  language: u.language || 'English',
+  contactPreference: u.contactPreference || 'Email',
   emailVerified: !!u.emailVerified,
 });
 
@@ -167,6 +175,81 @@ async function updateMe(req, res) {
 
   if (name !== undefined && typeof name === 'string' && name.trim()) me.name = name.trim();
   if (phone !== undefined) me.phone = phone;
+  if (req.body.avatarUrl !== undefined) me.avatarUrl = String(req.body.avatarUrl).trim();
+  if (req.body.bio !== undefined) me.bio = String(req.body.bio).trim();
+  if (req.body.designation !== undefined) me.designation = String(req.body.designation).trim();
+  if (req.body.location !== undefined) me.location = String(req.body.location).trim();
+  if (req.body.timezone !== undefined) me.timezone = String(req.body.timezone).trim();
+  if (req.body.language !== undefined) me.language = String(req.body.language).trim();
+  if (req.body.contactPreference !== undefined) me.contactPreference = String(req.body.contactPreference).trim();
+
+  // Real household profile fields — persisted, no demo values.
+  if (req.body.address !== undefined && typeof req.body.address === 'string') {
+    me.address = req.body.address.trim() || undefined;
+  }
+  if (req.body.geoLocation !== undefined) {
+    const lat = Number(req.body.geoLocation?.lat);
+    const lng = Number(req.body.geoLocation?.lng);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) me.geoLocation = { lat, lng };
+  }
+  if (req.body.emergencyContact !== undefined) {
+    const ecName = String(req.body.emergencyContact?.name || '').trim();
+    const ecPhone = String(req.body.emergencyContact?.phone || '').trim();
+    if (ecName || ecPhone) me.emergencyContact = { name: ecName || undefined, phone: ecPhone || undefined };
+  }
+  if (req.body.householdSize !== undefined) {
+    const sz = Number(req.body.householdSize);
+    me.householdSize = (Number.isFinite(sz) && sz > 0) ? Math.floor(sz) : undefined;
+  }
+  if (req.body.specialInstructions !== undefined) {
+    me.specialInstructions = String(req.body.specialInstructions).trim() || undefined;
+  }
+  if (req.body.prefLang !== undefined) {
+    me.prefLang = String(req.body.prefLang).trim() || undefined;
+  }
+
+  // Notification preferences — whitelisted channel toggles only.
+  if (req.body.notificationPrefs !== undefined && req.body.notificationPrefs !== null) {
+    const prefs = req.body.notificationPrefs;
+    if (typeof prefs === 'object') {
+      const next = Object.assign({}, me.notificationPrefs || {}, {
+        inApp: prefs.inApp !== undefined ? !!prefs.inApp : me.notificationPrefs?.inApp,
+        email: prefs.email !== undefined ? !!prefs.email : me.notificationPrefs?.email,
+        promotional: prefs.promotional !== undefined ? !!prefs.promotional : me.notificationPrefs?.promotional,
+      });
+      me.notificationPrefs = next;
+    }
+  }
+
+  // Replace the whole address book (addresses are also managed granularly below).
+  if (Array.isArray(req.body.addresses)) {
+    me.addresses = req.body.addresses
+      .filter((a) => a && typeof a.address === 'string' && a.address.trim())
+      .map((a, i) => ({
+        label: String(a.label || (i === 0 ? 'Home' : `Address ${i + 1}`)).trim() || 'Address',
+        address: a.address.trim(),
+        geoLocation: Number.isFinite(Number(a.geoLocation?.lat)) && Number.isFinite(Number(a.geoLocation?.lng))
+          ? { lat: Number(a.geoLocation.lat), lng: Number(a.geoLocation.lng) }
+          : undefined,
+        isPrimary: i === 0 ? true : !!a.isPrimary,
+      }));
+    const hasPrimary = me.addresses.some((a) => a.isPrimary);
+    if (me.addresses.length && !hasPrimary) me.addresses[0].isPrimary = true;
+    else if (me.addresses.length > 1 && me.addresses.filter((a) => a.isPrimary).length > 1) {
+      me.addresses.forEach((a, i) => { a.isPrimary = i === 0; });
+    }
+  }
+
+  if (Array.isArray(req.body.familyMembers)) {
+    me.familyMembers = req.body.familyMembers
+      .filter((f) => f && typeof f.name === 'string' && f.name.trim())
+      .map((f) => ({
+        name: f.name.trim(),
+        relation: String(f.relation || 'Family').trim() || 'Family',
+        phone: String(f.phone || '').trim() || undefined,
+        age: Number.isFinite(Number(f.age)) ? Number(f.age) : undefined,
+      }));
+  }
 
   if (email !== undefined) {
     const normalized = String(email).trim().toLowerCase();
@@ -339,8 +422,123 @@ async function verifyEmail(req, res) {
   res.json({ message: 'Email verified successfully.', emailVerified: true });
 }
 
+/* -------------------- Address book (saved addresses) -------------------- */
+
+async function ensureHousehold(req, res) {
+  const me = await User.findById(req.user.userId);
+  if (!me) return res.status(401).json({ message: 'Account not found.' });
+  if (me.role !== 'Household') return res.status(403).json({ message: 'Household feature' });
+  return me;
+}
+
+async function listAddresses(req, res) {
+  const me = await ensureHousehold(req, res);
+  if (!me) return;
+  res.json({ addresses: me.addresses, primary: me.addresses.find((a) => a.isPrimary) || me.addresses[0] || null, address: me.address });
+}
+
+async function addAddress(req, res) {
+  const me = await ensureHousehold(req, res);
+  if (!me) return;
+  const { label, address, geoLocation } = req.body;
+  if (!address?.trim()) return res.status(400).json({ message: 'Address is required.' });
+  const isFirst = me.addresses.length === 0;
+  const addr = me.addresses.create({
+    label: String(label || (isFirst ? 'Home' : `Address ${me.addresses.length + 1}`)).trim(),
+    address: address.trim(),
+    geoLocation: (Number.isFinite(Number(geoLocation?.lat)) && Number.isFinite(Number(geoLocation?.lng)))
+      ? { lat: Number(geoLocation.lat), lng: Number(geoLocation.lng) }
+      : undefined,
+    isPrimary: isFirst || !!req.body.isPrimary,
+  });
+  me.addresses.push(addr);
+  // Exactly one primary.
+  if (addr.isPrimary) me.addresses.forEach((a) => { if (String(a._id) !== String(addr._id)) a.isPrimary = false; });
+  await me.save();
+  res.status(201).json({ addresses: me.addresses });
+}
+
+async function updateAddress(req, res) {
+  const me = await ensureHousehold(req, res);
+  if (!me) return;
+  const sub = me.addresses.id(req.params.id);
+  if (!sub) return res.status(404).json({ message: 'Address not found.' });
+  const { label, address, geoLocation, isPrimary } = req.body;
+  if (label !== undefined) sub.label = String(label).trim() || sub.label;
+  if (address !== undefined && address.trim()) sub.address = address.trim();
+  if (geoLocation !== undefined) {
+    if (Number.isFinite(Number(geoLocation?.lat)) && Number.isFinite(Number(geoLocation?.lng))) {
+      sub.geoLocation = { lat: Number(geoLocation.lat), lng: Number(geoLocation.lng) };
+    }
+  }
+  if (isPrimary === true) me.addresses.forEach((a) => { a.isPrimary = String(a._id) === String(sub._id); });
+  await me.save();
+  res.json({ addresses: me.addresses });
+}
+
+async function deleteAddress(req, res) {
+  const me = await ensureHousehold(req, res);
+  if (!me) return;
+  const sub = me.addresses.id(req.params.id);
+  if (!sub) return res.status(404).json({ message: 'Address not found.' });
+  const wasPrimary = !!sub.isPrimary;
+  sub.deleteOne();
+  if (wasPrimary && me.addresses.length) me.addresses[0].isPrimary = true;
+  await me.save();
+  res.json({ addresses: me.addresses });
+}
+
+/* -------------------- Family members -------------------- */
+
+async function listFamily(req, res) {
+  const me = await ensureHousehold(req, res);
+  if (!me) return;
+  res.json({ familyMembers: me.familyMembers });
+}
+
+async function addFamily(req, res) {
+  const me = await ensureHousehold(req, res);
+  if (!me) return;
+  const { name, relation, phone, age } = req.body;
+  if (!name?.trim()) return res.status(400).json({ message: 'Member name is required.' });
+  me.familyMembers.push({
+    name: name.trim(),
+    relation: String(relation || 'Family').trim() || 'Family',
+    phone: String(phone || '').trim() || undefined,
+    age: Number.isFinite(Number(age)) ? Number(age) : undefined,
+  });
+  await me.save();
+  res.status(201).json({ familyMembers: me.familyMembers });
+}
+
+async function updateFamily(req, res) {
+  const me = await ensureHousehold(req, res);
+  if (!me) return;
+  const sub = me.familyMembers.id(req.params.id);
+  if (!sub) return res.status(404).json({ message: 'Family member not found.' });
+  const { name, relation, phone, age } = req.body;
+  if (name !== undefined && name.trim()) sub.name = name.trim();
+  if (relation !== undefined) sub.relation = String(relation).trim() || sub.relation;
+  if (phone !== undefined) sub.phone = String(phone).trim() || undefined;
+  if (age !== undefined) sub.age = Number.isFinite(Number(age)) ? Number(age) : undefined;
+  await me.save();
+  res.json({ familyMembers: me.familyMembers });
+}
+
+async function deleteFamily(req, res) {
+  const me = await ensureHousehold(req, res);
+  if (!me) return;
+  const sub = me.familyMembers.id(req.params.id);
+  if (!sub) return res.status(404).json({ message: 'Family member not found.' });
+  sub.deleteOne();
+  await me.save();
+  res.json({ familyMembers: me.familyMembers });
+}
+
 module.exports = {
   signup, login, me, updateMe,
   sendOtp, resetPassword, changePassword, verifyEmail,
   forgotPasswordInitiate,
+  listAddresses, addAddress, updateAddress, deleteAddress,
+  listFamily, addFamily, updateFamily, deleteFamily,
 };

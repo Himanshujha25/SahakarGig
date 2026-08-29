@@ -4,16 +4,21 @@ import { useEffect, useState } from "react";
 import api from "../lib/api";
 import {
   LayoutDashboard, ShieldCheck, AlertTriangle, BarChart2,
-  Trophy, Settings, LogOut, Handshake
+  Trophy, Settings, LogOut, Handshake, Users, IndianRupee, Receipt,
+  Megaphone, FileCheck2, Building2, HeartHandshake
 } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 
 const NAV = [
-  { label: "Dashboard",     Icon: LayoutDashboard, to: "/admin",               end: true },
-  { label: "Verifications", Icon: ShieldCheck,     to: "/admin/verifications", end: false },
-  { label: "Disputes",      Icon: AlertTriangle,   to: "/admin/disputes",      end: false },
-  { label: "Analytics",     Icon: BarChart2,       to: "/admin/commission",    end: false },
-  { label: "Leaderboard",   Icon: Trophy,          to: "/admin/providers",     end: false },
+  { label: "Dashboard",              Icon: LayoutDashboard, to: "/admin",               end: true },
+  { label: "Bulk Crew RFPs",         Icon: Building2,       to: "/admin/rfp",           end: false },
+  { label: "Members & Workforce",    Icon: Users,           to: "/admin/providers",     end: false },
+  { label: "Verifications",          Icon: ShieldCheck,     to: "/admin/verifications", end: false },
+  { label: "Earnings & Payouts",     Icon: IndianRupee,     to: "/admin/financials",    end: false },
+  { label: "Notice Board",           Icon: Megaphone,       to: "/admin/notices",       end: false },
+  { label: "Welfare & Schemes",      Icon: HeartHandshake,  to: "/admin/welfare",       end: false },
+  { label: "Disputes",               Icon: AlertTriangle,   to: "/admin/disputes",      end: false },
+  { label: "Performance",            Icon: BarChart2,       to: "/admin/commission",    end: false },
 ];
 
 const activeStyle = "bg-[#e8edff] text-[#00288e]";
@@ -53,26 +58,26 @@ export default function AdminSidebar() {
       </div>
 
       {/* Nav label */}
-      <div className="px-5 pt-5 pb-2">
+      <div className="px-5 pt-4 pb-1.5">
         <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-[0.12em]">Navigation</p>
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto no-scrollbar">
         {NAV.map(({ label, Icon, to, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             className={({ isActive }) =>
-              `group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 ${
+              `group relative flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] font-semibold transition-all duration-200 ${
                 isActive ? activeStyle : inactiveStyle
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <Icon size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
                 <span>{label}</span>
                 {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00288e]" />}
               </>
@@ -82,18 +87,18 @@ export default function AdminSidebar() {
       </nav>
 
       {/* Bottom section */}
-      <div className="px-3 pb-4 pt-3 border-t border-outline-variant/40 space-y-0.5">
+      <div className="px-3 pb-3 pt-2 border-t border-outline-variant/40 space-y-0.5">
         <NavLink
           to="/admin/settings"
           className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 ${
+            `flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] font-semibold transition-all duration-200 ${
               isActive ? activeStyle : inactiveStyle
             }`
           }
         >
           {({ isActive }) => (
             <>
-              <Settings size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+              <Settings size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
               <span>Settings</span>
               {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00288e]" />}
             </>
@@ -102,18 +107,26 @@ export default function AdminSidebar() {
 
         <button
           onClick={() => { logout(); navigate("/login"); }}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold text-error hover:bg-error-container/30 transition-all duration-200"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] font-semibold text-error hover:bg-error-container/30 transition-all duration-200 cursor-pointer"
         >
-          <LogOut size={17} strokeWidth={2} className="shrink-0" />
+          <LogOut size={16} strokeWidth={2} className="shrink-0" />
           <span>Sign Out</span>
         </button>
       </div>
 
       {/* User card */}
       <div className="mx-3 mb-4 p-3 rounded-xl bg-surface-container border border-outline-variant/40 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white text-[13px] font-bold shrink-0">
-          {initials}
-        </div>
+        {user?.avatarUrl ? (
+          <img
+            src={user.avatarUrl}
+            alt={user.name || "Admin"}
+            className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-primary/20"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white text-[13px] font-bold shrink-0">
+            {initials}
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-bold text-on-surface truncate leading-none">{user?.name || "Admin"}</p>
           <p className="text-[11px] text-on-surface-variant mt-0.5 truncate">{user?.email || "admin@coops.com"}</p>

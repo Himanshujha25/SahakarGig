@@ -16,9 +16,19 @@ import {
   MailCheck,
   RefreshCw,
   ShieldAlert,
+  Repeat,
+  Users,
 } from "lucide-react";
 
+import { AIIcon, AIChipIcon } from './AIIcon';
+
 const MAP = {
+  ai: AIIcon,
+  auto_awesome: AIIcon,
+  smart_toy: AIIcon,
+  psychology: AIIcon,
+  brain: AIIcon,
+  chip: AIChipIcon,
   account_balance_wallet: Wallet,
   add: Plus,
   admin_panel_settings: ShieldCheck,
@@ -95,6 +105,8 @@ const MAP = {
   mark_email_read: MailCheck,
   refresh: RefreshCw,
   gpp_maybe: ShieldAlert,
+  repeat: Repeat,
+  people: Users,
 };
 
 export default function Icon({ name, className = "", strokeWidth = 2, ...rest }) {

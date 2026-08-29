@@ -7,10 +7,34 @@ const providerSchema = new mongoose.Schema(
     skills: [String],
     hourlyRate: { type: Number, default: 0 },
     verified: { type: Boolean, default: false },
+    verificationStatus: {
+      type: String,
+      enum: ['pending', 'verified', 'rejected', 're_verification_requested'],
+      default: 'pending',
+    },
+    reVerificationReason: { type: String, default: '' },
     availabilitySlots: [{ day: String, from: String, to: String }],
     documents: [String],
+    documentDetails: [
+      {
+        docType: { type: String }, // 'Aadhaar Card', 'PAN Card', 'Skill Certificate', 'Trade License', 'e-Shram Card'
+        docNumber: { type: String },
+        docUrl: { type: String },
+        uploadedAt: { type: Date, default: Date.now },
+        status: { type: String, default: 'pending' },
+      },
+    ],
+    avatar: { type: String, default: '' },
     geoLocation: { lat: Number, lng: Number },
     trustScore: { type: Number, default: 0 },
+    verificationHistory: [
+      {
+        action: { type: String }, // 'Approved', 'Rejected', 'Re-verification Requested'
+        date: { type: Date, default: Date.now },
+        adminName: { type: String },
+        notes: { type: String },
+      },
+    ],
   },
   { timestamps: true }
 );

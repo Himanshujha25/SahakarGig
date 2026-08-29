@@ -23,7 +23,31 @@ export default function Login() {
     setLoading(true);
     try {
       const u = await login(identifier, password);
-      if (u.role === "Household") navigate("/household");
+      
+      // Check for active 2-minute search intent
+      let searchIntent = null;
+      try {
+        const raw = localStorage.getItem("sg_pending_search_intent");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Date.now() < parsed.expiresAt) {
+            searchIntent = parsed;
+          } else {
+            localStorage.removeItem("sg_pending_search_intent");
+          }
+        }
+      } catch {}
+
+      if (u.role === "Household") {
+        if (searchIntent && (searchIntent.query || searchIntent.location)) {
+          const params = new URLSearchParams();
+          if (searchIntent.query) params.set("query", searchIntent.query);
+          if (searchIntent.location) params.set("location", searchIntent.location);
+          navigate(`/household/find?${params.toString()}`);
+          return;
+        }
+        navigate("/household");
+      }
       else if (u.role === 'Provider') navigate('/provider');
       else if (u.role === 'Federation Admin') navigate('/federation');
       else navigate('/admin');
@@ -53,16 +77,16 @@ export default function Login() {
       <div className="mb-4 flex flex-wrap items-center gap-1.5">
         <span className="text-[10.5px] font-bold tracking-widest text-outline uppercase">Demo:</span>
         {[
-          ["nitinprakash268@gmail.com", "Coop Admin"],
-          ["nitin268@gmail.com", "Household"],
-          ["nitin@gmail.com", "Gig Worker"],
-          ["coder268@gmail.com", "Federation"],
+          ["coop.test@gmail.com", "Coop Admin"],
+          ["household.test@gmail.com", "Household"],
+          ["plumber.test@gmail.com", "Gig Worker"],
+          ["federation.test@gmail.com", "Federation"],
         ].map(([email, label]) => (
           <button
             key={label}
             type="button"
             onClick={() => fillDemo(email)}
-            className="px-2.5 py-0.5 rounded-full border border-outline-variant bg-surface-container-low text-[11px] font-semibold hover:bg-primary hover:text-white hover:border-primary transition cursor-pointer"
+            className="px-2.5 py-0.5 rounded-full border border-outline-variant bg-surface-container-low text-[11px] font-semibold hover:bg-primary hover:text-on-primary hover:border-primary transition cursor-pointer"
           >
             {label}
           </button>
@@ -93,7 +117,7 @@ export default function Login() {
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               placeholder="Enter your credentials"
-              className="block w-full pl-9 pr-3 py-2 border border-outline-variant rounded-lg bg-white text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none"
+              className="block w-full pl-9 pr-3 py-2 border border-outline-variant rounded-lg bg-surface-container-low text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none"
             />
           </div>
         </div>
@@ -114,7 +138,7 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="block w-full pl-9 pr-9 py-2 border border-outline-variant rounded-lg bg-white text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none"
+              className="block w-full pl-9 pr-9 py-2 border border-outline-variant rounded-lg bg-surface-container-low text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none"
             />
             <button
               type="button"
@@ -137,7 +161,7 @@ export default function Login() {
             />
             <span className="text-[12.5px] text-on-surface-variant">Remember me</span>
           </label>
-          <Link to="/forgot-password" className="text-[12.5px] font-semibold text-primary hover:text-primary-container transition-colors">
+          <Link to="/forgot-password" className="text-[12.5px] font-semibold text-primary hover:opacity-80 transition-opacity">
             Forgot password?
           </Link>
         </div>
@@ -146,9 +170,9 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-[13.5px] font-semibold border border-primary/30 bg-[#e8edff] text-[#00288e] hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
+          className="w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-[13.5px] font-semibold bg-primary text-on-primary shadow-[0_2px_10px_rgba(30,107,101,0.25)] hover:opacity-90 hover:shadow-[0_6px_18px_rgba(30,107,101,0.4)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
         >
-          {loading && <span className="h-4 w-4 border-2 border-[#00288e]/30 border-t-[#00288e] rounded-full animate-spin" />}
+          {loading && <span className="h-4 w-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />}
           {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
@@ -168,7 +192,7 @@ export default function Login() {
         <button
           type="button"
           onClick={() => alert("Connecting with e-Pramaan…")}
-          className="inline-flex justify-center items-center gap-2 py-2 px-3 border border-outline-variant rounded-lg bg-white text-[12.5px] font-semibold text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer"
+          className="inline-flex justify-center items-center gap-2 py-2 px-3 border border-outline-variant rounded-lg bg-surface-container-low text-[12.5px] font-semibold text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
         >
           <Icon name="assured_workload" className="text-[17px] text-primary" />
           e-Pramaan
@@ -176,7 +200,7 @@ export default function Login() {
         <button
           type="button"
           onClick={() => alert("Connecting with Aadhaar…")}
-          className="inline-flex justify-center items-center gap-2 py-2 px-3 border border-outline-variant rounded-lg bg-white text-[12.5px] font-semibold text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer"
+          className="inline-flex justify-center items-center gap-2 py-2 px-3 border border-outline-variant rounded-lg bg-surface-container-low text-[12.5px] font-semibold text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
         >
           <Icon name="fingerprint" className="text-[17px] text-primary" />
           Aadhaar
@@ -185,11 +209,11 @@ export default function Login() {
 
       <p className="mt-4 text-center font-body-md text-xs text-on-surface-variant">
         Not part of a cooperative yet?{" "}
-        <Link to="/signup" className="font-semibold text-primary hover:text-primary-container transition-colors">
+        <Link to="/signup" className="font-semibold text-primary hover:opacity-80 transition-opacity">
           Register Society
         </Link>
         {" · "}
-        <Link to="/federation-signup" className="font-semibold text-primary hover:text-primary-container transition-colors">
+        <Link to="/federation-signup" className="font-semibold text-primary hover:opacity-80 transition-opacity">
           Register Federation
         </Link>
       </p>

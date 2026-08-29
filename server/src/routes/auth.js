@@ -1,12 +1,13 @@
-const router = require('express').Router();
+﻿const router = require('express').Router();
 const rateLimit = require('express-rate-limit');
 const c = require('../controllers/authController');
 const auth = require('../middleware/auth');
+const rbac = require('../middleware/rbac');
 const asyncHandler = require('../middleware/error');
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many attempts, please try again after 15 minutes' },
@@ -28,7 +29,7 @@ const otpLimiter = rateLimit({
 router.post('/send-otp', authLimiter, require('../middleware/auth').optionalAuth, asyncHandler(c.sendOtp));
 // send-otp validates req.user itself for authenticated purposes (change_password etc.)
 
-// Forgot-password initiation — cross-checks registration BEFORE issuing an OTP.
+// Forgot-password initiation â€” cross-checks registration BEFORE issuing an OTP.
 // Stricter limiter: this is the endpoint that can probe account existence.
 const forgotLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -42,5 +43,17 @@ router.post('/forgot-password', forgotLimiter, asyncHandler(c.forgotPasswordInit
 router.post('/reset-password', authLimiter, asyncHandler(c.resetPassword));
 router.post('/change-password', auth, asyncHandler(c.changePassword));
 router.post('/verify-email', auth, asyncHandler(c.verifyEmail));
+
+// Saved addresses (real persisted address book, Household).
+router.get('/addresses', auth, rbac('Household'), asyncHandler(c.listAddresses));
+router.post('/addresses', auth, rbac('Household'), asyncHandler(c.addAddress));
+router.patch('/addresses/:id', auth, rbac('Household'), asyncHandler(c.updateAddress));
+router.delete('/addresses/:id', auth, rbac('Household'), asyncHandler(c.deleteAddress));
+
+// Family members (Household).
+router.get('/family', auth, rbac('Household'), asyncHandler(c.listFamily));
+router.post('/family', auth, rbac('Household'), asyncHandler(c.addFamily));
+router.patch('/family/:id', auth, rbac('Household'), asyncHandler(c.updateFamily));
+router.delete('/family/:id', auth, rbac('Household'), asyncHandler(c.deleteFamily));
 
 module.exports = router;

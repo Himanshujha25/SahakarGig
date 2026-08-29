@@ -7,27 +7,114 @@ const { emitTo, broadcastAll } = require('../socket');
 const { haversine } = require('../utils/helpers');
 const notify = require('../utils/notify');
 
+const BROADCAST_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Next scheduled occurrence for a recurring booking series.
+function nextOccurrence(date, freq) {
+  const d = new Date(date);
+  if (freq === 'daily') { d.setDate(d.getDate() + 1); return d; }
+  if (freq === 'weekly') { d.setDate(d.getDate() + 7); return d; }
+  if (freq === 'biweekly') { d.setDate(d.getDate() + 14); return d; }
+  if (freq === 'monthly') {
+    const day = d.getDate();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + 1);
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    d.setDate(Math.min(day, lastDay));
+    return d;
+  }
+  return null;
+}
+
+// Weekday + local time (IST +05:30) of a stored instant, used to validate
+// against the provider's weekly availability slots (Mon–Sun, HH:MM).
+function slotParts(d) {
+  const shifted = new Date(d.getTime() + 5.5 * 3600 * 1000); // UTC -> IST
+  const pad = (n) => String(n).padStart(2, '0');
+  return {
+    day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][shifted.getUTCDay()],
+    time: `${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}`,
+  };
+}
+
+const inRange = (time, from, to) => {
+  const t = time.replace(':', '') * 1;
+  return t >= from.replace(':', '') * 1 && t < to.replace(':', '') * 1;
+};
+
 async function createBooking(req, res) {
-  const { providerId, service, scheduledTime, isEmergency, price } = req.body;
+  const { providerId, service, scheduledTime, isEmergency, price, recurrence, groupBooking } = req.body;
   if (!providerId || !service) return res.status(400).json({ message: 'providerId and service are required' });
 
   const provider = await Provider.findById(providerId).populate('userId');
   if (!provider) return res.status(404).json({ message: 'Provider not found' });
   if (!provider.verified) return res.status(400).json({ message: 'Provider is not verified' });
 
+  // Time-slot enforcement: household must pick a slot the worker is actually free for.
+  if (!scheduledTime) {
+    return res.status(400).json({ message: 'Please choose a time slot from the provider\'s availability.' });
+  }
+  const start = new Date(scheduledTime);
+  if (isNaN(start.getTime())) return res.status(400).json({ message: 'Please choose a valid time slot.' });
+  if (start.getTime() < Date.now()) return res.status(400).json({ message: 'Please pick a future time slot.' });
+
+  const { day: dayName, time } = slotParts(start);
+  const slot = (provider.availabilitySlots || []).find((s) => s.day === dayName);
+  if (!slot || !inRange(time, slot.from || '', slot.to || '')) {
+    return res.status(400).json({
+      message: `The provider is not available at ${time} on ${dayName}. Please pick from their open slots.`,
+    });
+  }
+
+  // Atomic conflict guard: no other active booking may overlap this hour.
+  const end = new Date(start.getTime() + 3600 * 1000);
+  const existing = await Booking.findOne({
+    providerId: provider._id,
+    scheduledTime: { $gte: start, $lt: end },
+    _id: { $ne: req.params.bookingId },
+    status: { $nin: ['cancelled', 'disputed'] },
+  });
+  if (existing) {
+    return res.status(409).json({ message: 'That time slot is already booked. Please choose another.' });
+  }
+
   const effectivePrice = (price && Number(price) > 0)
     ? Number(price)
     : ((provider.hourlyRate && provider.hourlyRate > 0) ? provider.hourlyRate : 250);
+
+  // Group / community booking: total price scales with the member count.
+  let groupInfo = {};
+  let totalPrice = effectivePrice;
+  if (groupBooking && groupBooking.enabled) {
+    const memberCount = Math.max(2, Math.floor(Number(groupBooking.memberCount) || 2));
+    groupInfo = {
+      enabled: true,
+      groupName: String(groupBooking.groupName || 'Community Group').trim().slice(0, 80),
+      memberCount,
+    };
+    totalPrice = effectivePrice * memberCount;
+  }
+
+  // Recurring series: validate + compute the next run automatically.
+  let recurrenceInfo = { enabled: false, freq: 'none', repeats: 1, nextRunAt: null, seriesId: null };
+  if (recurrence && recurrence.enabled) {
+    const freq = ['daily', 'weekly', 'biweekly', 'monthly'].includes(recurrence.freq) ? recurrence.freq : 'weekly';
+    const repeats = Math.max(2, Math.min(52, Math.floor(Number(recurrence.repeats) || 12)));
+    const nextRunAt = nextOccurrence(start, freq);
+    recurrenceInfo = { enabled: true, freq, repeats, nextRunAt, seriesId: require('crypto').randomUUID() };
+  }
 
   const booking = await Booking.create({
     householdId: req.user.userId,
     providerId,
     cooperativeId: provider.cooperativeId,
     service,
-    scheduledTime,
+    scheduledTime: start,
     isEmergency: !!isEmergency,
     priority: isEmergency ? 1 : 0,
-    price: effectivePrice,
+    price: totalPrice,
+    recurrence: recurrenceInfo,
+    groupBooking: groupInfo,
   });
 
   const provUserId = provider.userId._id.toString();
@@ -36,11 +123,62 @@ async function createBooking(req, res) {
   res.status(201).json(booking);
 }
 
+// Reschedule an existing booking to a new time slot the provider is free for.
+// Only allowed while the booking is still plannable (requested/accepted).
+async function rescheduleBooking(req, res) {
+  const { scheduledTime } = req.body;
+  if (!scheduledTime) return res.status(400).json({ message: 'Please choose a new time slot.' });
+
+  const b = await Booking.findById(req.params.id).populate('householdId', 'name phone');
+  if (!b) return res.status(404).json({ message: 'Not found' });
+  if (b.householdId?._id?.toString() !== req.user.userId)
+    return res.status(403).json({ message: 'Only the household can reschedule this booking' });
+  if (!['requested', 'accepted'].includes(b.status))
+    return res.status(400).json({ message: 'This booking can no longer be rescheduled.' });
+
+  const start = new Date(scheduledTime);
+  if (isNaN(start.getTime())) return res.status(400).json({ message: 'Please choose a valid time slot.' });
+  if (start.getTime() < Date.now()) return res.status(400).json({ message: 'Please pick a future time slot.' });
+
+  const provider = await Provider.findById(b.providerId).populate('userId');
+  if (!provider) return res.status(404).json({ message: 'Provider not found' });
+
+  const { day: dayName, time } = slotParts(start);
+  const slot = (provider.availabilitySlots || []).find((s) => s.day === dayName);
+  if (!slot || !inRange(time, slot.from || '', slot.to || '')) {
+    return res.status(400).json({
+      message: `The provider is not available at ${time} on ${dayName}. Please pick from their open slots.`,
+    });
+  }
+
+  // Atomic conflict guard: no other active booking may overlap this hour.
+  const end = new Date(start.getTime() + 3600 * 1000);
+  const existing = await Booking.findOne({
+    providerId: provider._id,
+    scheduledTime: { $gte: start, $lt: end },
+    _id: { $ne: b._id },
+    status: { $nin: ['cancelled', 'disputed'] },
+  });
+  if (existing) {
+    return res.status(409).json({ message: 'That time slot is already booked. Please choose another.' });
+  }
+
+  b.scheduledTime = start;
+  await b.save();
+  if (b.providerId?.userId?._id) {
+    await notify(b.providerId.userId._id.toString(), 'booking_updated', `Booking rescheduled to ${start.toLocaleString()}`, b._id);
+    emitTo(b.providerId.userId._id.toString(), 'booking:updated', b);
+  }
+  emitTo(b.householdId._id.toString(), 'booking:updated', b);
+  res.json(b);
+}
+
 async function getBooking(req, res) {
   const b = await Booking.findById(req.params.id)
     .populate('householdId', 'name phone')
     .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } })
-    .populate('cooperativeId', 'name');
+    .populate('cooperativeId', 'name')
+    .populate('chat.sender', 'name phone');
   if (!b) return res.status(404).json({ message: 'Not found' });
 
   // Ownership check — only the household, the provider, or an admin can read
@@ -68,7 +206,7 @@ async function householdBookings(req, res) {
 
 async function providerBookings(req, res) {
   const provider = await Provider.findOne({ userId: req.user.userId });
-  if (!provider) return res.status(403).json({ message: 'Not a provider' });
+  if (!provider) return res.status(401).json({ message: 'Provider record not found — please log in again' });
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, parseInt(req.query.limit) || 20);
   const b = await Booking.find({ providerId: provider._id })
@@ -109,7 +247,66 @@ async function updateStatus(req, res) {
   await notify(b.householdId._id.toString(), 'booking_status', `Booking status: ${status}`, b._id);
   emitTo(b.householdId._id.toString(), 'booking:updated', b);
   emitTo(req.user.userId, 'booking:updated', b);
+
+  // Recurring series — auto-create the next occurrence after this one completes.
+  if (status === 'completed' && b.recurrence?.enabled && b.providerId) {
+    await spawnNextOccurrence(b);
+  }
+
   res.json(b);
+}
+
+// Creates the next booking of a recurring series (same provider + service).
+async function spawnNextOccurrence(b) {
+  try {
+    if (b.recurrence?.freq === 'none' || !b.recurrence?.nextRunAt) return null;
+
+    // Stop when the series has produced all planned occurrences.
+    const done = await Booking.countDocuments({ 'recurrence.seriesId': b.recurrence.seriesId });
+    if (done >= b.recurrence.repeats) return null;
+
+    const provider = await Provider.findById(b.providerId);
+    if (!provider) return null;
+
+    const nextSlot = new Date(b.recurrence.nextRunAt);
+    const { day: dayName, time } = slotParts(nextSlot);
+    const slot = (provider.availabilitySlots || []).find((s) => s.day === dayName);
+    if (!slot || !inRange(time, slot.from || '', slot.to || '')) return null; // series pauses if provider full
+
+    const afterThat = nextOccurrence(nextSlot, b.recurrence.freq) || nextSlot;
+    const copy = await Booking.create({
+      householdId: b.householdId,
+      providerId: b.providerId,
+      cooperativeId: b.cooperativeId,
+      service: b.service,
+      scheduledTime: nextSlot,
+      isEmergency: b.isEmergency,
+      priority: b.priority,
+      price: b.price,
+      issue: undefined,
+      dispatchMode: 'direct',
+      recurrence: {
+        enabled: true,
+        freq: b.recurrence.freq,
+        repeats: b.recurrence.repeats,
+        nextRunAt: afterThat,
+        seriesId: b.recurrence.seriesId,
+      },
+      groupBooking: b.groupBooking,
+    });
+
+    const provUserId = provider.userId;
+    if (provUserId) {
+      await notify(provUserId.toString(), 'booking_request', `Recurring ${b.service} booking for ${nextSlot.toLocaleString('en-IN')}`, copy._id);
+      emitTo(provUserId.toString(), 'booking:new', copy);
+    }
+    const hhId = b.householdId?._id ? b.householdId._id.toString() : b.householdId.toString();
+    emitTo(hhId, 'booking:new', copy);
+    return copy;
+  } catch (e) {
+    console.error('[spawnNextOccurrence error]', e.message);
+    return null;
+  }
 }
 
 async function cancelBooking(req, res) {
@@ -123,16 +320,27 @@ async function cancelBooking(req, res) {
   const provider = await Provider.findOne({ userId, _id: b.providerId });
   if (!isHousehold && !provider && role !== 'Cooperative Admin')
     return res.status(403).json({ message: 'Forbidden' });
+
+  // Live broadcast dispatch is locked once a worker accepts — no ghost cancels.
+  if (b.dispatchMode === 'broadcast' && b.providerId) {
+    return res.status(409).json({ message: 'A worker already accepted this request — it is locked.' });
+  }
+
   b.status = 'cancelled';
+  if (b.dispatchMode === 'broadcast') b.broadcastStatus = 'cancelled';
   await b.save();
-  await notify(b.householdId._id.toString(), 'booking_cancelled', 'Booking cancelled', b._id);
+  await notify(b.householdId._id.toString(), 'booking_cancelled', 'Dispatch request cancelled', b._id);
   emitTo(b.householdId._id.toString(), 'booking:updated', b);
+  // Withdraw the job from EVERY worker's live feed instantly (broadcast dispatch)
+  if (b.dispatchMode === 'broadcast') {
+    broadcastAll('booking:cancelled', { bookingId: b._id, service: b.service, targetCategory: b.targetCategory });
+  }
   if (b.providerId?.userId?._id) emitTo(b.providerId.userId._id.toString(), 'booking:updated', b);
   res.json(b);
 }
 
 async function disputeBooking(req, res) {
-  const { reason } = req.body;
+  const { reason, category, evidence } = req.body;
   if (!reason?.trim()) return res.status(400).json({ message: 'Dispute reason is required' });
   const b = await Booking.findById(req.params.id)
     .populate('householdId', 'name phone')
@@ -140,8 +348,12 @@ async function disputeBooking(req, res) {
   if (!b) return res.status(404).json({ message: 'Not found' });
   if (b.householdId._id.toString() !== req.user.userId)
     return res.status(403).json({ message: 'Only the household can raise a dispute' });
+  if (['cancelled', 'disputed'].includes(b.status))
+    return res.status(400).json({ message: `Cannot raise a dispute on a ${b.status} booking` });
   b.status = 'disputed';
   b.issue = reason;
+  if (category) b.disputeCategory = category;
+  if (Array.isArray(evidence) && evidence.length) b.disputeEvidence = evidence.map((e) => String(e).slice(0, 2000));
   await b.save();
   const coop = await Cooperative.findById(b.cooperativeId);
   if (coop?.adminId) await notify(coop.adminId.toString(), 'dispute', 'A booking was disputed', b._id);
@@ -149,6 +361,23 @@ async function disputeBooking(req, res) {
     await notify(b.providerId.userId._id.toString(), 'dispute', 'Booking disputed', b._id);
     emitTo(b.providerId.userId._id.toString(), 'booking:updated', b);
   }
+  emitTo(b.householdId._id.toString(), 'booking:updated', b);
+  res.json(b);
+}
+
+// Allow the household to withdraw an open dispute (revert to 'completed').
+async function withdrawDispute(req, res) {
+  const b = await Booking.findById(req.params.id).populate('householdId', 'name');
+  if (!b) return res.status(404).json({ message: 'Not found' });
+  if (b.householdId._id.toString() !== req.user.userId)
+    return res.status(403).json({ message: 'Only the household can withdraw this dispute' });
+  if (b.status !== 'disputed')
+    return res.status(400).json({ message: 'Booking is not disputed' });
+  b.status = 'completed';
+  b.issue = undefined;
+  b.disputeCategory = undefined;
+  await b.save();
+  if (b.providerId?.userId?._id) emitTo(b.providerId.userId._id.toString(), 'booking:updated', b);
   emitTo(b.householdId._id.toString(), 'booking:updated', b);
   res.json(b);
 }
@@ -164,8 +393,12 @@ async function addChat(req, res) {
   b.chat.push(entry);
   await b.save();
   const chatPayload = { bookingId: b._id, message: entry };
-  emitTo(b.householdId._id.toString(), 'booking:chat', chatPayload);
+  if (b.householdId?._id) emitTo(b.householdId._id.toString(), 'booking:chat', chatPayload);
   if (b.providerId?.userId?._id) emitTo(b.providerId.userId._id.toString(), 'booking:chat', chatPayload);
+  if (b.cooperativeId) {
+    const coop = await Cooperative.findById(b.cooperativeId);
+    if (coop?.adminId) emitTo(coop.adminId.toString(), 'booking:chat', chatPayload);
+  }
   res.json(b);
 }
 
@@ -200,6 +433,7 @@ async function createBroadcastBooking(req, res) {
     priority: isEmergency ? 1 : 0,
     price: (price && Number(price) > 0) ? Number(price) : 250,
     status: 'requested',
+    expiresAt: new Date(Date.now() + BROADCAST_TTL_MS),
   });
 
   // Find nearby verified providers holding the matching skill tag
@@ -210,7 +444,10 @@ async function createBroadcastBooking(req, res) {
 
   let notified = 0;
   for (const p of providers) {
-    if (p.userId?._id && p.geoLocation && haversine(coordinates, p.geoLocation) <= radiusKm) {
+    // Feed parity: providers without a saved geoLocation are treated as in-range
+    // (matching availableBroadcastBookings) so they still get the instant push.
+    const inRange = !p.geoLocation || haversine(coordinates, p.geoLocation) <= radiusKm;
+    if (p.userId?._id && inRange) {
       emitTo(p.userId._id.toString(), 'booking:broadcast_new', {
         _id: booking._id,
         bookingId: booking._id,
@@ -230,47 +467,92 @@ async function createBroadcastBooking(req, res) {
   res.status(201).json({ booking, nearbyProviders: notified });
 }
 
+// Household heartbeat while watching the radar page. Renews the offer's expiry
+// so the job stays on workers' feeds — leaving the page stops the pings and the
+// job expires after BROADCAST_TTL_MS.
+async function keepaliveBroadcast(req, res) {
+  const b = await Booking.findById(req.params.id);
+  if (!b) return res.status(404).json({ message: 'Not found' });
+  if (b.householdId.toString() !== req.user.userId)
+    return res.status(403).json({ message: 'Forbidden' });
+
+  const active = b.dispatchMode === 'broadcast' && b.broadcastStatus === 'broadcasting' && b.providerId == null;
+  if (active) {
+    b.expiresAt = new Date(Date.now() + BROADCAST_TTL_MS);
+    await b.save();
+  }
+  res.json({ ok: true, active, expiresAt: active ? b.expiresAt : null });
+}
+
 // Live broadcast feed for a provider — only jobs matching their skills,
-// within range, and still awaiting first-acceptance.
+// within range, and still awaiting first-acceptance. A household keeps a job
+// alive with keepalive pings while it watches the radar page; leaving the page
+// stops the pings and the job silently expires, so ghosts never linger.
+
 async function availableBroadcastBookings(req, res) {
-  const provider = await Provider.findOne({ userId: req.user.userId });
-  if (!provider) return res.status(403).json({ message: 'Not a provider' });
+  try {
+    const provider = await Provider.findOne({ userId: req.user.userId });
+    if (!provider) return res.status(401).json({ message: 'Provider record not found — please log in again' });
 
-  const { lat, lng, radius } = req.query;
-  const radiusKm = parseFloat(radius) || 25;
+    const { lat, lng, radius } = req.query;
+    const radiusKm = parseFloat(radius) || 25;
 
-  const bookings = await Booking.find({
-    dispatchMode: 'broadcast',
-    broadcastStatus: 'broadcasting',
-    providerId: null,
-    status: 'requested',
-  })
-    .populate('householdId', 'name')
-    .sort('-createdAt');
+    // Expire stale open broadcasts (household left without cancelling etc.)
+    const now = new Date();
+    const staleSince = new Date(Date.now() - BROADCAST_TTL_MS);
+    await Booking.updateMany(
+      {
+        dispatchMode: 'broadcast',
+        broadcastStatus: 'broadcasting',
+        providerId: null,
+        status: 'requested',
+        expiresAt: { $lt: now },
+      },
+      { $set: { status: 'cancelled', broadcastStatus: 'expired', cancelReason: 'auto-expired' } }
+    );
 
-  const skills = (provider.skills || []).map((s) => s.toLowerCase());
-  const within = (coords) => {
-    if (lat && lng) return haversine({ lat: +lat, lng: +lng }, coords) <= radiusKm;
-    if (provider.geoLocation) return haversine(provider.geoLocation, coords) <= radiusKm;
-    return true;
-  };
+    const bookings = await Booking.find({
+      dispatchMode: 'broadcast',
+      broadcastStatus: 'broadcasting',
+      providerId: null,
+      status: 'requested',
+      createdAt: { $gte: staleSince },
+      expiresAt: { $gt: now },
+    })
+      .populate('householdId', 'name')
+      .sort('-createdAt');
 
-  const filtered = bookings.filter((b) => {
-    const cat = (b.targetCategory || b.service || '').toLowerCase();
-    const matchesSkill = skills.includes(cat) || skills.includes((b.service || '').toLowerCase());
-    return matchesSkill && within(b.coordinates || {});
-  });
+    const skills = (provider.skills || []).map((s) => s.toLowerCase());
+    // Feed parity with the household radar: use the worker's fresh live GPS fix
+    // when available, else their saved geoLocation.
+    const liveGeo = require('../socket/liveLocations').getFresh(String(provider.userId));
+    const providerGeo = (liveGeo && liveGeo.lat != null) ? { lat: liveGeo.lat, lng: liveGeo.lng } : provider.geoLocation;
+    const within = (coords) => {
+      if (lat && lng) return haversine({ lat: +lat, lng: +lng }, coords) <= radiusKm;
+      if (providerGeo) return haversine(providerGeo, coords) <= radiusKm;
+      return true;
+    };
 
-  res.json(filtered);
+    const filtered = bookings.filter((b) => {
+      const cat = (b.targetCategory || b.service || '').toLowerCase();
+      const matchesSkill = skills.includes(cat) || skills.includes((b.service || '').toLowerCase());
+      return matchesSkill && within(b.coordinates || {});
+    });
+
+    res.json(filtered);
+  } catch (err) {
+    console.error('[availableBroadcastBookings error]', err.message);
+    res.status(500).json({ message: 'Error fetching available bookings' });
+  }
 }
 
 // ATOMIC first-acceptance race lock (PRD §3.2).
 // Guarantees zero double-assignments under concurrent taps.
 async function acceptBroadcastRequest(req, res) {
-  const { bookingId } = req.params;
+  const { id: bookingId } = req.params;
   const provider = await Provider.findOne({ userId: req.user.userId })
     .populate('cooperativeId', 'name');
-  if (!provider) return res.status(403).json({ message: 'Only verified providers can accept jobs' });
+  if (!provider) return res.status(401).json({ message: 'Provider record not found — please log in again' });
   if (!provider.verified)
     return res.status(400).json({ message: 'Your provider account is not verified yet' });
 
@@ -291,7 +573,7 @@ async function acceptBroadcastRequest(req, res) {
         claimedAt: new Date(),
       },
     },
-    { new: true }
+    { returnDocument: 'after' }
   )
     .populate('householdId', 'name phone')
     .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } })
@@ -336,13 +618,121 @@ async function acceptBroadcastRequest(req, res) {
     booking: updatedBooking,
     providerDetails,
   });
-  broadcastAll('booking:claimed', { bookingId }); // notify all other workers to remove card
+  broadcastAll('booking:claimed', { bookingId: updatedBooking._id }); // notify all other workers to remove card
 
   res.json({ booking: updatedBooking, providerDetails });
 }
 
+async function listAllBookings(req, res) {
+  const query = {};
+  if (req.user?.role === 'CooperativeAdmin' && req.user?.cooperativeId) {
+    query.cooperativeId = req.user.cooperativeId;
+  }
+  const bookings = await Booking.find(query)
+    .populate('providerId')
+    .populate('householdId')
+    .populate('cooperativeId')
+    .sort({ createdAt: -1 })
+    .lean();
+  res.json(bookings);
+}
+
+async function createBulkRFP(req, res) {
+  const { cooperativeId, service, price, workerCount, durationDays, siteLocation, scopeOfWork } = req.body;
+  if (!service) return res.status(400).json({ message: 'Service requirement is required' });
+
+  let targetCoop = null;
+  const mongoose = require('mongoose');
+  if (cooperativeId && mongoose.isValidObjectId(cooperativeId)) {
+    targetCoop = await Cooperative.findById(cooperativeId);
+  }
+  if (!targetCoop) {
+    targetCoop = await Cooperative.findOne();
+  }
+
+  // Find a nominal provider under this cooperative if available, or null
+  let defaultProvider = null;
+  if (targetCoop?._id) {
+    defaultProvider = await Provider.findOne({ cooperativeId: targetCoop._id });
+  }
+  if (!defaultProvider) {
+    defaultProvider = await Provider.findOne();
+  }
+
+  const booking = await Booking.create({
+    householdId: req.user.userId || req.user._id,
+    providerId: defaultProvider?._id || undefined,
+    cooperativeId: targetCoop?._id || undefined,
+    service: service || 'Bulk Cooperative Crew RFP',
+    scheduledTime: new Date(Date.now() + 24 * 3600 * 1000), // Tomorrow
+    price: Number(price) || 24000,
+    isEmergency: false,
+    groupBooking: {
+      enabled: true,
+      memberCount: Number(workerCount) || 10,
+    },
+    status: 'requested',
+    notes: `[Institutional Bulk RFP - ${workerCount} Workers for ${durationDays} Days] Site: ${siteLocation || 'N/A'}. Scope: ${scopeOfWork || 'N/A'}`,
+  });
+
+  // Notify Cooperative Admin (Database notification + socket notification)
+  if (targetCoop?.adminId) {
+    const adminUserId = targetCoop.adminId.toString();
+    try {
+      await notify(
+        adminUserId,
+        'booking_request',
+        `New Institutional RFP: ${workerCount}x ${service} (${durationDays} Days) at ${siteLocation || 'Site'}`,
+        booking._id
+      );
+    } catch (nErr) {
+      console.error('[notify error]', nErr.message);
+    }
+    emitTo(adminUserId, 'rfp:new', {
+      booking,
+      cooperativeId: targetCoop._id,
+      workerCount,
+      durationDays,
+      siteLocation,
+      scopeOfWork,
+      sender: req.user.name,
+    });
+    emitTo(adminUserId, 'booking:new', booking);
+  }
+
+  if (targetCoop?._id) {
+    emitTo(`coop:${targetCoop._id}`, 'rfp:new', {
+      booking,
+      cooperativeId: targetCoop._id,
+      workerCount,
+      durationDays,
+      siteLocation,
+      scopeOfWork,
+      sender: req.user.name,
+    });
+  }
+  broadcastAll('booking:new', booking);
+
+  return res.status(201).json(booking);
+}
+
 module.exports = {
-  createBooking, getBooking, householdBookings, providerBookings,
-  acceptBooking, updateStatus, cancelBooking, disputeBooking, addChat,
-  createBroadcastBooking, availableBroadcastBookings, acceptBroadcastRequest,
+  createBooking,
+  createBroadcastBooking,
+  createBulkRFP,
+  keepaliveBroadcast,
+  availableBroadcastBookings,
+  acceptBroadcastRequest,
+  getBooking,
+  householdBookings,
+  providerBookings,
+  listAllBookings,
+  acceptBooking,
+  updateStatus,
+  cancelBooking,
+  disputeBooking,
+  withdrawDispute,
+  rescheduleBooking,
+  addChat,
+  spawnNextOccurrence,
 };

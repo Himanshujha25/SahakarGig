@@ -13,8 +13,7 @@ export default function AdminLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    socket.connect();
-    return () => { socket.disconnect(); };
+    if (!socket.connected) socket.connect();
   }, []);
 
   return (
@@ -120,8 +119,8 @@ export default function AdminLayout() {
                 }`
               }
             >
-              <Icon name="leaderboard" className="" />
-              <span className="font-label-sm text-label-sm">Leaderboard</span>
+              <Icon name="group" className="" />
+              <span className="font-label-sm text-label-sm">Agency Workers</span>
             </NavLink>
           </nav>
 
@@ -169,7 +168,9 @@ export default function AdminLayout() {
         </header>
 
         {/* Child Routes Outlet */}
-        <Outlet />
+        <div className="w-full max-w-7xl mx-auto">
+          <Outlet />
+        </div>
       </main>
 
       {/* BottomNavBar (Mobile Only) */}

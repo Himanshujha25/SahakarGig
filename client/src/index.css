@@ -1,5 +1,329 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* ============================================================
+   Ultra-Premium Dark Mode Engine
+   Single source of truth = the `html.dark` token set below
+   (warm charcoal). These rules map the remaining legacy
+   light-only Tailwind utilities onto those tokens so every
+   card, text, border and hover matches exactly — no white leaks.
+   ============================================================ */
+
+/* Canvas & body */
+.dark body,
+.dark main,
+.dark .bg-background {
+  background-color: var(--color-background) !important;
+  color: var(--color-on-background) !important;
+}
+
+/* Premium card surfacing */
+.dark .orvia-card,
+.dark [class*="orvia-card"] {
+  background-color: var(--color-surface-container-low) !important;
+  border-color: var(--color-outline-variant) !important;
+  color: var(--color-on-surface) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* White & translucent-white surfaces → warm container surfaces */
+.dark .bg-white,
+.dark .bg-white\/5,
+.dark .bg-white\/10,
+.dark .bg-white\/20,
+.dark .bg-white\/30,
+.dark .bg-white\/40,
+.dark .bg-white\/50,
+.dark .bg-white\/60,
+.dark .bg-white\/70,
+.dark .bg-white\/80,
+.dark .bg-white\/90,
+.dark .bg-white\/95 {
+  background-color: var(--color-surface-container-low) !important;
+  border-color: var(--color-outline-variant) !important;
+}
+
+/* Slate / Gray / Neutral containers */
+.dark .bg-slate-50,
+.dark .bg-slate-50\/30,
+.dark .bg-slate-50\/40,
+.dark .bg-slate-50\/50,
+.dark .bg-slate-50\/60,
+.dark .bg-slate-50\/70,
+.dark .bg-slate-50\/80,
+.dark .bg-slate-50\/90,
+.dark .bg-slate-100,
+.dark .bg-slate-100\/50,
+.dark .bg-gray-50,
+.dark .bg-gray-100,
+.dark .bg-neutral-50,
+.dark .bg-neutral-100 {
+  background-color: var(--color-surface-container) !important;
+  border-color: var(--color-outline-variant) !important;
+  color: var(--color-on-surface) !important;
+}
+.dark .bg-slate-200,
+.dark .bg-gray-200,
+.dark .bg-neutral-200 {
+  background-color: var(--color-surface-container-high) !important;
+  border-color: var(--color-outline-variant) !important;
+  color: var(--color-on-surface) !important;
+}
+.dark .bg-slate-300,
+.dark .bg-gray-300 {
+  background-color: var(--color-surface-container-highest) !important;
+  color: var(--color-on-surface) !important;
+}
+
+/* Text shades → on-surface scale */
+.dark .text-slate-950,
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-neutral-900,
+.dark .text-neutral-800,
+.dark .text-black {
+  color: var(--color-on-surface) !important;
+}
+.dark .text-slate-700,
+.dark .text-slate-600,
+.dark .text-gray-700,
+.dark .text-gray-600,
+.dark .text-neutral-600,
+.dark .text-neutral-700 {
+  color: var(--color-on-surface-variant) !important;
+}
+.dark .text-slate-500,
+.dark .text-slate-400,
+.dark .text-gray-500,
+.dark .text-gray-400,
+.dark .text-neutral-500 {
+  color: color-mix(in srgb, var(--color-on-surface-variant) 72%, transparent) !important;
+}
+.dark .text-slate-300,
+.dark .text-gray-300,
+.dark .text-slate-200,
+.dark .text-gray-200 {
+  color: color-mix(in srgb, var(--color-on-surface-variant) 55%, transparent) !important;
+}
+
+/* Borders + dividers + rings → outline scale */
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300,
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300,
+.dark .border-neutral-200,
+.dark .border-neutral-300 {
+  border-color: var(--color-outline-variant) !important;
+}
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--color-outline-variant) !important;
+}
+.dark .ring-slate-100,
+.dark .ring-slate-200,
+.dark .ring-gray-100,
+.dark .ring-gray-200 {
+  --tw-ring-color: var(--color-outline-variant) !important;
+}
+
+/* Hover effects — palette-matched, never a white flash */
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-slate-50\/60:hover,
+.dark .hover\:bg-slate-100:hover,
+.dark .hover\:bg-slate-200:hover,
+.dark .hover\:bg-slate-300:hover,
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover,
+.dark .hover\:bg-gray-200:hover,
+.dark .hover\:bg-white:hover {
+  background-color: var(--color-surface-container) !important;
+  color: var(--color-on-surface) !important;
+}
+.dark .hover\:text-slate-900:hover,
+.dark .hover\:text-slate-700:hover,
+.dark .hover\:text-gray-900:hover,
+.dark .hover\:text-gray-700:hover {
+  color: var(--color-on-surface) !important;
+}
+.dark .hover\:border-slate-200:hover,
+.dark .hover\:border-slate-300:hover,
+.dark .hover\:border-gray-200:hover,
+.dark .hover\:border-gray-300:hover {
+  border-color: var(--color-outline) !important;
+}
+
+/* Pale tint chips / soft badges → depth-matched dark containers */
+.dark [class*="bg-[#e8edff]"],
+.dark [class*="bg-[#d7e3ff]"],
+.dark [class*="bg-[#e6f4f1]"] {
+  background-color: var(--color-primary-container) !important;
+}
+.dark [class*="bg-[#f7fee7]"],
+.dark [class*="bg-[#e6f9ec]"] {
+  background-color: var(--color-secondary-container) !important;
+}
+.dark [class*="bg-[#fff3e0]"] {
+  background-color: var(--color-tertiary-container) !important;
+}
+.dark [class*="border-[#d9f99d]"] {
+  border-color: var(--color-secondary-container) !important;
+}
+.dark [class*="text-[#6b4200]"] {
+  color: var(--color-tertiary) !important;
+}
+.dark [class*="text-[#00288e]"],
+.dark [class*="text-[#1e6b65]"] {
+  color: var(--color-primary) !important;
+}
+.dark [class*="text-[#145e58]"] {
+  color: var(--color-on-primary-container) !important;
+}
+.dark [class*="text-[#4d7c0f]"],
+.dark [class*="text-[#65a30d]"],
+.dark [class*="text-[#006d30]"] {
+  color: var(--color-secondary) !important;
+}
+.dark [class*="hover:bg-[#e6f4f1]"]:hover,
+.dark [class*="hover:bg-[#e8edff]"]:hover,
+.dark [class*="hover:bg-[#d7e3ff]"]:hover {
+  background-color: var(--color-primary-container) !important;
+}
+
+/* Red / amber / green soft tints → token-matched */
+.dark .bg-red-50,
+.dark .bg-red-50\/50,
+.dark .bg-red-100,
+.dark .bg-rose-50 {
+  background-color: color-mix(in srgb, var(--color-error-container) 42%, var(--color-surface-container-low)) !important;
+}
+.dark .text-red-700,
+.dark .text-red-600,
+.dark .text-red-500 {
+  color: var(--color-error) !important;
+}
+.dark .bg-amber-50,
+.dark .bg-yellow-50 {
+  background-color: color-mix(in srgb, var(--color-tertiary-container) 40%, var(--color-surface-container-low)) !important;
+}
+.dark .text-amber-700,
+.dark .text-amber-600,
+.dark .text-yellow-700 {
+  color: var(--color-tertiary) !important;
+}
+.dark .bg-green-50,
+.dark .bg-emerald-50,
+.dark .bg-lime-50 {
+  background-color: color-mix(in srgb, var(--color-secondary-container) 35%, var(--color-surface-container-low)) !important;
+}
+.dark .text-green-700,
+.dark .text-emerald-700 {
+  color: var(--color-secondary) !important;
+}
+.dark .bg-blue-100,
+.dark .bg-indigo-100 {
+  background-color: color-mix(in srgb, var(--color-primary-container) 45%, var(--color-surface-container-low)) !important;
+}
+.dark .text-blue-800,
+.dark .text-indigo-800 {
+  color: var(--color-primary) !important;
+}
+html.dark .focus\:bg-white:focus {
+  background-color: var(--color-surface-container) !important;
+}
+
+/* Gradient-tinted card starts → depth-matched containers */
+.dark [class*="from-[#e6f9ec]"] {
+  --tw-gradient-from: color-mix(in srgb, var(--color-secondary-container) 60%, transparent) !important;
+}
+.dark [class*="from-[#fff3e0]"] {
+  --tw-gradient-from: color-mix(in srgb, var(--color-tertiary-container) 55%, transparent) !important;
+}
+.dark [class*="from-[#e8edff]"],
+.dark [class*="from-[#eef2ff]"] {
+  --tw-gradient-from: color-mix(in srgb, var(--color-primary-container) 60%, transparent) !important;
+}
+
+/* AppearanceSettings real preview cards stay colour-accurate in dark mode */
+html.dark .theme-preview-card,
+html.dark .theme-preview-card .w-full.h-3.rounded,
+html.dark .theme-preview-card .w-2\/3.h-2.rounded {
+  background-color: #f8f9ff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+html.dark .theme-preview-card .bg-white {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Table Dark Styling */
+.dark table thead tr,
+.dark table thead {
+  background-color: var(--color-surface-container) !important;
+  border-color: var(--color-outline-variant) !important;
+  color: var(--color-on-surface-variant) !important;
+}
+
+.dark table tbody tr {
+  border-color: var(--color-outline-variant) !important;
+}
+
+.dark table tbody tr:hover {
+  background-color: var(--color-surface-container) !important;
+}
+
+/* Dark-mode input autofill + form controls */
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark textarea:-webkit-autofill,
+html.dark select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-surface-container-low) inset !important;
+  -webkit-text-fill-color: var(--color-on-surface) !important;
+  caret-color: var(--color-on-surface) !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Dark-mode text selection + scrollbars */
+html.dark ::selection {
+  background-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  color: var(--color-on-surface);
+}
+html.dark * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-outline) var(--color-surface-dim);
+}
+html.dark ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: var(--color-outline);
+  border-radius: 999px;
+  border: 2px solid var(--color-surface-dim);
+}
+html.dark ::-webkit-scrollbar-track {
+  background: var(--color-surface-dim);
+}
+
 /* ============================================================
    SahakarGig Design System — translated 1:1 from the Stitch
    export (docs/stitch/home.html). Tokens are authoritative.
@@ -7,57 +331,57 @@
    ============================================================ */
 
 @theme {
-  /* ---- Surface scale ---- */
-  --color-surface: #f8f9ff;
-  --color-surface-dim: #ccdbf3;
-  --color-surface-bright: #f8f9ff;
+  /* ---- Surface scale (Orvia Warm Healthcare Canvas) ---- */
+  --color-surface: #faf9f6;
+  --color-surface-dim: #f3f4f6;
+  --color-surface-bright: #ffffff;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #eff4ff;
-  --color-surface-container: #e6eeff;
-  --color-surface-container-high: #dce9ff;
-  --color-surface-container-highest: #d5e3fc;
-  --color-surface-variant: #d5e3fc;
+  --color-surface-container-low: #f4f5f6;
+  --color-surface-container: #eaecee;
+  --color-surface-container-high: #e2e5e8;
+  --color-surface-container-highest: #dadde1;
+  --color-surface-variant: #f2f4f7;
 
   /* ---- Text on surfaces ---- */
-  --color-on-surface: #0d1c2e;
-  --color-on-surface-variant: #444653;
-  --color-inverse-surface: #233144;
-  --color-inverse-on-surface: #eaf1ff;
-  --color-background: #f8f9ff;
-  --color-on-background: #0d1c2e;
+  --color-on-surface: #0f172a;
+  --color-on-surface-variant: #64748b;
+  --color-inverse-surface: #1e293b;
+  --color-inverse-on-surface: #f8fafc;
+  --color-background: #faf9f6;
+  --color-on-background: #0f172a;
 
   /* ---- Outlines ---- */
-  --color-outline: #757684;
-  --color-outline-variant: #c4c5d5;
+  --color-outline: #cbd5e1;
+  --color-outline-variant: #e2e8f0;
 
-  /* ---- Primary (Cooperative Blue) ---- */
+  /* ---- Primary (SahakarGig Deep Cooperative Blue) ---- */
   --color-primary: #00288e;
   --color-on-primary: #ffffff;
-  --color-primary-container: #1e40af;
-  --color-on-primary-container: #a8b8ff;
+  --color-primary-container: #e8edff;
+  --color-on-primary-container: #00288e;
   --color-inverse-primary: #b8c4ff;
-  --color-surface-tint: #3755c3;
+  --color-surface-tint: #00288e;
   --color-primary-fixed: #dde1ff;
   --color-primary-fixed-dim: #b8c4ff;
   --color-on-primary-fixed: #001453;
-  --color-on-primary-fixed-variant: #173bab;
+  --color-on-primary-fixed-variant: #00288e;
 
-  /* ---- Secondary (Growth Green) ---- */
-  --color-secondary: #006d30;
+  /* ---- Secondary (Active Lime / Health Green) ---- */
+  --color-secondary: #65a30d;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #92f5a4;
-  --color-on-secondary-container: #007233;
-  --color-secondary-fixed: #95f8a7;
-  --color-secondary-fixed-dim: #79db8d;
-  --color-on-secondary-fixed: #00210a;
-  --color-on-secondary-fixed-variant: #005323;
+  --color-secondary-container: #ecfdf5;
+  --color-on-secondary-container: #047857;
+  --color-secondary-fixed: #d9f99d;
+  --color-secondary-fixed-dim: #bef264;
+  --color-on-secondary-fixed: #1a2e05;
+  --color-on-secondary-fixed-variant: #3f6212;
 
-  /* ---- Tertiary (Amber / earning accent) ---- */
-  --color-tertiary: #4c2e00;
+  /* ---- Tertiary (Warm Honey / Amber accent) ---- */
+  --color-tertiary: #d97706;
   --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #6b4200;
-  --color-on-tertiary-container: #ffa929;
-  --color-tertiary-fixed: #ffddb8;
+  --color-tertiary-container: #fffbeb;
+  --color-on-tertiary-container: #92400e;
+  --color-tertiary-fixed: #fef3c7;
   --color-tertiary-fixed-dim: #ffb95f;
   --color-on-tertiary-fixed: #2a1700;
   --color-on-tertiary-fixed-variant: #653e00;
@@ -199,14 +523,151 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
     color: var(--color-on-surface);
+    letter-spacing: -0.015em;
   }
 }
 
 /* ============================================================
-   Component classes — plain CSS (no @apply) so they compile
-   reliably in Tailwind v4's CSS Cascade Layers.
+   Stitch Dark Mode Theme Tokens (Authoritative — from Stitch HTML export)
+   Palette: Warm neutral charcoal grays, NOT cool blue slates.
+   ============================================================ */
+html.dark {
+  color-scheme: dark;
+
+  /* ---- Surface scale (warm charcoal) ---- */
+  --color-surface: #131313;
+  --color-surface-dim: #131313;
+  --color-surface-bright: #393939;
+  --color-surface-container-lowest: #0e0e0e;
+  --color-surface-container-low: #1c1b1b;
+  --color-surface-container: #201f1f;
+  --color-surface-container-high: #2a2a2a;
+  --color-surface-container-highest: #353534;
+  --color-surface-variant: #353534;
+
+  /* ---- Text on surfaces ---- */
+  --color-on-surface: #e5e2e1;
+  --color-on-surface-variant: #c4c5d5;
+  --color-inverse-surface: #e5e2e1;
+  --color-inverse-on-surface: #313030;
+  --color-background: #131313;
+  --color-on-background: #e5e2e1;
+
+  /* ---- Outlines ---- */
+  --color-outline: #8e909f;
+  --color-outline-variant: #444653;
+
+  /* ---- Primary (Cooperative Blue — inverted for dark) ---- */
+  --color-primary: #b8c4ff;
+  --color-on-primary: #002584;
+  --color-primary-container: #2b3577;
+  --color-on-primary-container: #c6d0ff;
+  --color-inverse-primary: #3755c3;
+  --color-surface-tint: #b8c4ff;
+  --color-primary-fixed: #dde1ff;
+  --color-primary-fixed-dim: #b8c4ff;
+
+  /* ---- Secondary (Growth Green — inverted for dark) ---- */
+  --color-secondary: #4ae176;
+  --color-on-secondary: #003915;
+  --color-secondary-container: #00b954;
+  --color-on-secondary-container: #004119;
+
+  /* ---- Tertiary (Amber — inverted for dark) ---- */
+  --color-tertiary: #ffb95f;
+  --color-on-tertiary: #472a00;
+  --color-tertiary-container: #6b4200;
+  --color-on-tertiary-container: #ffa929;
+
+  /* ---- Error (inverted for dark) ---- */
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+}
+
+/* ============================================================
+   Component classes — Stitch Design System Status Badges & Utilities
    ============================================================ */
 @layer components {
+  /* Semantic Status Badges */
+  .badge-pending {
+    background-color: #fff3e0;
+    color: #6b4200;
+  }
+  html.dark .badge-pending {
+    background-color: rgba(255, 185, 95, 0.12);
+    color: #ffb95f;
+    border: 1px solid rgba(255, 185, 95, 0.25);
+  }
+
+  .badge-accepted {
+    background-color: #e8edff;
+    color: #00288e;
+  }
+  html.dark .badge-accepted {
+    background-color: rgba(184, 196, 255, 0.12);
+    color: #b8c4ff;
+    border: 1px solid rgba(184, 196, 255, 0.25);
+  }
+
+  .badge-completed {
+    background-color: #e6f9ec;
+    color: #006d30;
+  }
+  html.dark .badge-completed {
+    background-color: rgba(74, 225, 118, 0.12);
+    color: #4ae176;
+    border: 1px solid rgba(74, 225, 118, 0.25);
+  }
+
+  .badge-disputed {
+    background-color: #fce8e8;
+    color: #ba1a1a;
+  }
+  html.dark .badge-disputed {
+    background-color: rgba(255, 180, 171, 0.12);
+    color: #ffb4ab;
+    border: 1px solid rgba(255, 180, 171, 0.25);
+  }
+
+  .badge-emergency {
+    background-color: #fce8e8;
+    color: #ba1a1a;
+  }
+  html.dark .badge-emergency {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ffb4ab;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  /* Icon Container Boxes */
+  .icon-box-blue {
+    background-color: #e8edff;
+    color: #00288e;
+  }
+  html.dark .icon-box-blue {
+    background-color: rgba(184, 196, 255, 0.1);
+    color: #b8c4ff;
+  }
+
+  .icon-box-amber {
+    background-color: #fff3e0;
+    color: #6b4200;
+  }
+  html.dark .icon-box-amber {
+    background-color: rgba(255, 185, 95, 0.1);
+    color: #ffb95f;
+  }
+
+  .icon-box-green {
+    background-color: #e6f9ec;
+    color: #006d30;
+  }
+  html.dark .icon-box-green {
+    background-color: rgba(74, 225, 118, 0.1);
+    color: #4ae176;
+  }
   .btn-primary {
     display: inline-flex;
     height: 3rem;
@@ -396,3 +857,241 @@
 .sg-dropdown-list::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* ============================================================
+   UI UX Pro Max (uupm.cc) Design System Tokens & Aurora UI
+   ============================================================ */
+.uupm-aurora-bg {
+  background: radial-gradient(circle at 50% 20%, rgba(37, 99, 235, 0.18) 0%, rgba(59, 130, 246, 0.08) 40%, transparent 70%),
+              radial-gradient(circle at 80% 60%, rgba(249, 115, 22, 0.12) 0%, transparent 50%);
+}
+
+.uupm-gradient-text {
+  background: linear-gradient(135deg, #2563EB 0%, #3B82F6 50%, #F97316 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.uupm-glass-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 1.25rem;
+  box-shadow: 0 20px 50px rgba(0, 40, 142, 0.08);
+}
+
+.uupm-glass-card-dark {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1.25rem;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+}
+
+.uupm-glass-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.uupm-glass-hover:hover {
+  transform: translateY(-4px);
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 24px 60px rgba(37, 99, 235, 0.15);
+}
+
+.uupm-btn-primary {
+  background: linear-gradient(135deg, #2563EB 0%, #3B82F6 50%, #F97316 100%);
+  color: white;
+  font-weight: 700;
+  border-radius: 0.875rem;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.28);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.uupm-btn-primary:hover {
+  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.4);
+  transform: scale(1.02);
+}
+.uupm-btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* ── Smooth Alert Entrance & Exit Animations ── */
+@keyframes alertSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes alertSlideOut {
+  0% {
+    opacity: 1;
+    max-height: 300px;
+    transform: translateY(0) scale(1);
+    margin-bottom: 0.5rem;
+  }
+  100% {
+    opacity: 0;
+    max-height: 0px;
+    transform: translateY(-16px) scale(0.95);
+    margin-bottom: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+  }
+}
+
+.animate-alert-in {
+  animation: alertSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-alert-out {
+  animation: alertSlideOut 0.6s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+  overflow: hidden;
+}
+
+/* ============================================================
+   Orvia Modern Healthcare UI Aesthetic Classes
+   ============================================================ */
+
+.orvia-card {
+  background-color: #ffffff;
+  border-radius: 28px;
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.orvia-card:hover {
+  box-shadow: 0 14px 40px rgba(30, 107, 101, 0.09);
+  border-color: rgba(30, 107, 101, 0.25);
+}
+
+.orvia-insight-card {
+  background: linear-gradient(135deg, rgba(254, 252, 232, 0.7) 0%, rgba(209, 250, 229, 0.7) 50%, rgba(224, 242, 254, 0.7) 100%);
+  border-radius: 28px;
+  border: 1px solid rgba(167, 243, 208, 0.8);
+  padding: 1.5rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.03);
+  backdrop-filter: blur(8px);
+}
+
+.orvia-pill-selected {
+  background-color: #0f172a;
+  color: #ffffff;
+  border-radius: 9999px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.orvia-pill-unselected {
+  background-color: transparent;
+  color: #64748b;
+  border-radius: 9999px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+.orvia-pill-unselected:hover {
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+
+.orvia-btn-primary {
+  background-color: #1e6b65;
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 0.875rem 1.75rem;
+  box-shadow: 0 10px 25px rgba(30, 107, 101, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.orvia-btn-primary:hover {
+  background-color: #145e58;
+  box-shadow: 0 14px 32px rgba(30, 107, 101, 0.35);
+  transform: translateY(-1px);
+}
+.orvia-btn-primary:active {
+  transform: translateY(0);
+}
+
+.orvia-badge-lime {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background-color: #f7fee7;
+  color: #4d7c0f;
+  border: 1px solid #d9f99d;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+html.dark .orvia-insight-card {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-secondary-container) 55%, transparent) 0%,
+    color-mix(in srgb, var(--color-tertiary-container) 45%, transparent) 50%,
+    color-mix(in srgb, var(--color-primary-container) 50%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--color-secondary-container) 60%, transparent);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+html.dark .orvia-card:hover {
+  border-color: var(--color-outline-variant);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+}
+html.dark .orvia-pill-selected {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+html.dark .orvia-pill-unselected {
+  color: var(--color-on-surface-variant);
+}
+html.dark .orvia-pill-unselected:hover {
+  color: var(--color-on-surface);
+  background-color: var(--color-surface-container-high);
+}
+html.dark .orvia-btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+}
+html.dark .orvia-btn-primary:hover {
+  background-color: var(--color-primary-fixed);
+  color: var(--color-on-primary-fixed);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
+}
+html.dark .orvia-badge-lime {
+  background-color: color-mix(in srgb, var(--color-secondary-container) 45%, var(--color-surface-container-low));
+  color: var(--color-secondary);
+  border: 1px solid var(--color-secondary-container);
+}
+
+/* ── 3D Flip Card Animation Utilities ── */
+.perspective-1000 {
+  perspective: 1000px;
+}
+.transform-style-3d {
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.rotate-y-180 {
+  transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
+}
+

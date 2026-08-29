@@ -10,7 +10,7 @@ const bookingSchema = new mongoose.Schema(
     scheduledTime: { type: Date },
 
     // ── AI Geospatial Broadcast & First-Acceptance Dispatch §3.1 ──
-    dispatchMode: { type: String, enum: ['direct', 'broadcast'], default: 'broadcast' },
+    dispatchMode: { type: String, enum: ['direct', 'broadcast'], default: 'direct' },
     broadcastStatus: {
       type: String,
       enum: ['broadcasting', 'assigned', 'expired', 'cancelled'],
@@ -23,6 +23,8 @@ const bookingSchema = new mongoose.Schema(
       lng: { type: Number, default: 77.2090 },
     },
     claimedAt: { type: Date },
+    // Broadcast offers expire unless the household keeps them alive from the radar page
+    expiresAt: { type: Date },
 
     status: {
       type: String,
@@ -34,7 +36,37 @@ const bookingSchema = new mongoose.Schema(
     isEmergency: { type: Boolean, default: false },
     priority: { type: Number, default: 0 },
     issue: { type: String },
+    disputeCategory: { type: String },   // reason category chosen by the household
+    disputeEvidence: [String],           // evidence document URLs/keys uploaded by the household
+    disputeResolution: {
+      decision: {
+        type: String,
+        enum: ['refund_household', 'release_provider', 'penalty_provider', 'warning', 'escalated', 'none'],
+        default: 'none',
+      },
+      resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      resolvedAt: { type: Date },
+      notes: { type: String },
+      refundAmount: { type: Number, default: 0 },
+      penaltyAmount: { type: Number, default: 0 },
+      status: { type: String, enum: ['open', 'investigating', 'resolved', 'escalated'], default: 'open' },
+    },
+    cancelReason: { type: String },
     chat: [{ sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, message: String, at: { type: Date, default: Date.now } }],
+    // Recurring bookings (same provider, same service, auto re-booked).
+    recurrence: {
+      enabled: { type: Boolean, default: false },
+      freq: { type: String, enum: ['daily', 'weekly', 'biweekly', 'monthly', 'none'], default: 'none' },
+      repeats: { type: Number, default: 1 },   // total occurrences including this one
+      nextRunAt: { type: Date },
+      seriesId: { type: String },              // shared across the whole series
+    },
+    // Group / community booking (e.g. entire building society).
+    groupBooking: {
+      enabled: { type: Boolean, default: false },
+      groupName: { type: String },
+      memberCount: { type: Number, default: 1 },
+    },
   },
   { timestamps: true }
 );

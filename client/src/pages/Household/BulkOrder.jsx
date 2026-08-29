@@ -1,0 +1,593 @@
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import api from "../../lib/api";
+import socket from "../../lib/socket";
+import { useAuth } from "../../context/AuthContext";
+import {
+  Users, Building2, ShieldCheck, CheckCircle2,
+  Calendar, MapPin, Send, AlertCircle, Sparkles,
+  ArrowRight, IndianRupee, Clock, FileText, ChevronRight,
+  Hammer, Zap, Wrench, Sparkle, Utensils, Paintbrush,
+  HardHat, Car, Stethoscope, Mic, CalendarDays, Heart, Star, Check
+} from "lucide-react";
+import AIVoiceSearchModal from "../../components/AIVoiceSearchModal";
+
+const SKILLS = [
+  { label: "Carpenter", icon: Hammer, color: "bg-blue-50 text-[#00288e]", defaultRate: 800, desc: "Furniture fitting, wood works & modular assembly" },
+  { label: "Electrician", icon: Zap, color: "bg-amber-50 text-amber-700", defaultRate: 750, desc: "Wiring, switchboard installations, phase balancing" },
+  { label: "Plumber", icon: Wrench, color: "bg-sky-50 text-sky-700", defaultRate: 700, desc: "Pipe fittings, drainage lines & sanitary setup" },
+  { label: "Cleaner", icon: Sparkle, color: "bg-emerald-50 text-emerald-700", defaultRate: 550, desc: "Deep site cleaning, post-construction sanitization" },
+  { label: "Cook", icon: Utensils, color: "bg-orange-50 text-orange-700", defaultRate: 700, desc: "Event catering, bulk institutional meal prep" },
+  { label: "Painter", icon: Paintbrush, color: "bg-indigo-50 text-indigo-700", defaultRate: 650, desc: "Wall putty, primer & full exterior painting" },
+  { label: "Mason", icon: HardHat, color: "bg-slate-100 text-slate-800", defaultRate: 850, desc: "Bricklaying, plastering & tile flooring" },
+  { label: "Driver", icon: Car, color: "bg-blue-50 text-[#00288e]", defaultRate: 750, desc: "Commercial transport, logistics & passenger commute" },
+  { label: "Caregiver", icon: Stethoscope, color: "bg-teal-50 text-teal-700", defaultRate: 800, desc: "Event medical assistance, patient care" },
+];
+
+const DURATIONS = [
+  { label: "1 Day (8h Shift)", days: 1 },
+  { label: "3 Days Project", days: 3 },
+  { label: "1 Week (6 Working Days)", days: 6 },
+  { label: "15 Days Project", days: 15 },
+  { label: "1 Month (26 Working Days)", days: 26 },
+];
+
+// Fallback verified cooperative societies registered under Multi-State Cooperative Societies Act
+const DEFAULT_COOPERATIVES = [
+  { _id: "coop-delhi-shramik", name: "Delhi Shramik Vikas Sahakari Samiti", registrationNumber: "MSCS-DEL-2023-881", district: "Delhi NCR", state: "Delhi", rating: 4.9, activeCrew: 24 },
+  { _id: "coop-noida-urban", name: "Noida Sector 62 Karigar Sahakar Union", registrationNumber: "UP-GNB-2022-412", district: "Gautam Buddha Nagar", state: "Uttar Pradesh", rating: 4.8, activeCrew: 18 },
+  { _id: "coop-bengaluru-craft", name: "Bengaluru Technical & Craft Gig Cooperative", registrationNumber: "KA-BLR-2021-109", district: "Bengaluru Urban", state: "Karnataka", rating: 4.9, activeCrew: 32 },
+  { _id: "coop-mumbai-shramik", name: "Mumbai Mahanagar Shramik Sahakari Sanstha", registrationNumber: "MH-MUM-2022-553", district: "Mumbai Suburban", state: "Maharashtra", rating: 4.7, activeCrew: 22 },
+  { _id: "coop-gurugram-trades", name: "Gurugram Infrastructure & Services Union", registrationNumber: "HR-GGM-2023-904", district: "Gurugram", state: "Haryana", rating: 4.8, activeCrew: 16 },
+  { _id: "coop-pune-artisan", name: "Pune District Artisan & Labor Cooperative", registrationNumber: "MH-PUN-2021-314", district: "Pune", state: "Maharashtra", rating: 4.9, activeCrew: 20 },
+];
+
+function formatMoney(v) {
+  const n = Number(v) || 0;
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
+  return `₹${n}`;
+}
+
+export default function BulkOrder() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [selectedSkill, setSelectedSkill] = useState("Carpenter");
+  const [workerCount, setWorkerCount] = useState(10);
+  const [selectedDuration, setSelectedDuration] = useState(DURATIONS[1]); // 3 days default
+  const [siteLocation, setSiteLocation] = useState("Noida Sector 62, Uttar Pradesh");
+  const [requirementMsg, setRequirementMsg] = useState("");
+  const [selectedCoopId, setSelectedCoopId] = useState(DEFAULT_COOPERATIVES[0]._id);
+
+  const [cooperatives, setCooperatives] = useState(DEFAULT_COOPERATIVES);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(null);
+  const [successModal, setSuccessModal] = useState(null);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [coopsRes, wRes] = await Promise.all([
+          api.get("/providers/cooperatives").catch(() => null),
+          api.get("/wallet").catch(() => null),
+        ]);
+        const list = coopsRes?.data?.cooperatives || (Array.isArray(coopsRes?.data) ? coopsRes.data : []);
+        if (list.length > 0) {
+          const merged = list.map((c) => ({
+            _id: c._id,
+            name: c.name,
+            registrationNumber: c.registrationNumber || c.registrationId || "MSCS-REG-2024",
+            district: c.district || c.region || "Delhi NCR",
+            state: c.state || "Delhi",
+            totalWorkers: c.totalWorkers || (c.memberProviderIds ? c.memberProviderIds.length : 0),
+            skillCounts: c.skillCounts || {},
+          }));
+          setCooperatives(merged);
+          setSelectedCoopId(merged[0]._id);
+        } else {
+          setCooperatives(DEFAULT_COOPERATIVES);
+          setSelectedCoopId(DEFAULT_COOPERATIVES[0]._id);
+        }
+        if (wRes?.data && typeof wRes.data.balance === "number") setWalletBalance(wRes.data.balance);
+      } catch {
+        setCooperatives(DEFAULT_COOPERATIVES);
+      }
+    }
+    loadData();
+  }, []);
+
+  const currentSkillData = SKILLS.find((s) => s.label === selectedSkill) || SKILLS[0];
+  const ratePerWorkerDay = currentSkillData.defaultRate;
+  const totalDays = selectedDuration.days;
+
+  // Quotation calculations
+  const totalGrossWage = workerCount * totalDays * ratePerWorkerDay;
+  const workerTakeHome = Math.round(totalGrossWage * 0.85); // 85% Escrow
+  const coopWelfarePool = Math.round(totalGrossWage * 0.10); // 10% Society Pool
+  const fedPlatformFee = Math.round(totalGrossWage * 0.05); // 5% Platform Tech
+
+  async function handleSendRFP(e) {
+    e.preventDefault();
+    if (!requirementMsg.trim()) {
+      alert("Please provide project scope details and message for the Cooperative.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const targetCoop = cooperatives.find((c) => c._id === selectedCoopId) || cooperatives[0];
+      const payload = {
+        service: `Bulk Crew: ${workerCount}x ${selectedSkill} (${selectedDuration.label})`,
+        price: totalGrossWage,
+        cooperativeId: targetCoop?._id,
+        isBulkOrder: true,
+        workerCount,
+        durationDays: totalDays,
+        siteLocation,
+        scopeOfWork: requirementMsg,
+      };
+
+      // Call bulk-rfp endpoint
+      const { data } = await api.post("/bookings/bulk-rfp", payload);
+
+      // Emit real-time Socket event to target cooperative
+      socket.emit("rfp:send", {
+        bookingId: data?._id,
+        cooperativeId: targetCoop?._id,
+        cooperativeName: targetCoop?.name,
+        workerCount,
+        skill: selectedSkill,
+        duration: selectedDuration.label,
+        price: totalGrossWage,
+        location: siteLocation,
+        message: requirementMsg,
+        sender: user?.name || "Household Client",
+      });
+
+      setSuccessModal({
+        bookingId: data?._id || `RFP-${Date.now().toString().slice(-6)}`,
+        coopName: targetCoop?.name || "Delhi Shramik Vikas Sahakari Samiti",
+        skill: selectedSkill,
+        workerCount,
+        amount: totalGrossWage,
+      });
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to dispatch RFP. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const firstName = user?.name?.split(" ")[0] || "there";
+
+  return (
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12 space-y-6">
+      
+      {/* ── Top Header ── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#e8edff] text-[#00288e] text-xs font-bold border border-[#00288e]/20">
+              <span className="w-2 h-2 rounded-full bg-[#00288e] animate-ping" />
+              Institutional RFP & Quotations
+            </span>
+            <span className="text-xs text-slate-400 font-medium">
+              • {new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+            </span>
+          </div>
+          <h1
+            className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900"
+            style={{ fontFamily: "Hanken Grotesk, sans-serif" }}
+          >
+            Bulk Workforce RFP & Quotations
+          </h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Deploy certified cooperative crews in bulk with statutory 100% Escrow security.
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <button
+            type="button"
+            onClick={() => setIsVoiceOpen(true)}
+            className="h-9 inline-flex items-center gap-2 px-3.5 rounded-xl bg-[#00288e] text-white text-xs font-bold shadow-xs hover:bg-[#173bab] active:scale-98 transition-all cursor-pointer"
+          >
+            <Mic size={14} className="animate-bounce" />
+            <span>Voice AI</span>
+          </button>
+
+          {walletBalance !== null && (
+            <Link
+              to="/household/wallet"
+              className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:border-[#00288e]/40 hover:text-[#00288e] transition-all"
+            >
+              <IndianRupee size={13} className="text-[#00288e]" strokeWidth={2.5} />
+              <span>Wallet {formatMoney(walletBalance)}</span>
+            </Link>
+          )}
+
+          <Link
+            to="/household/bookings"
+            className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:border-[#00288e]/40 hover:text-[#00288e] transition-all"
+          >
+            <CalendarDays size={14} strokeWidth={2} />
+            <span>My Bookings</span>
+          </Link>
+
+          <Link
+            to="/household/saved"
+            className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:border-[#00288e]/40 hover:text-[#00288e] transition-all"
+            title="Saved Providers"
+          >
+            <Heart size={14} strokeWidth={2} />
+            <span>Saved</span>
+          </Link>
+        </div>
+        <AIVoiceSearchModal isOpen={isVoiceOpen} onClose={() => setIsVoiceOpen(false)} />
+      </div>
+
+      {/* ── Blue-Themed Hero Banner Card (Crisp rounded-2xl) ── */}
+      <div className="rounded-2xl border border-[#00288e]/20 bg-gradient-to-r from-[#e8edff]/90 via-blue-50/70 to-slate-50 p-5 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-xs">
+        <div className="space-y-1.5 max-w-2xl">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-white border border-[#00288e]/30 text-[11px] font-bold text-[#00288e]">
+              <CheckCircle2 size={12} /> 100% Escrow Protected
+            </span>
+            <span className="text-xs text-slate-500 font-semibold">• Zero Contractor Cuts • Direct Cooperative Union Rates</span>
+          </div>
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+            Deploy Certified Cooperative Crews in Bulk
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            Need 10 Carpenters, 20 Electricians, or an entire sanitation crew? Directly connect with registered cooperative unions, receive transparent institutional quotations, and lock verified manpower.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="px-4 py-2 rounded-xl bg-white border border-[#00288e]/20 shadow-xs text-center">
+            <p className="text-[10px] font-extrabold text-[#00288e] uppercase tracking-wider">Statutory Escrow</p>
+            <p className="text-base sm:text-lg font-black text-slate-900">85% To Workers</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Grid ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* Left Column: RFP Configuration Form (7 Cols) */}
+        <div className="lg:col-span-7 space-y-6">
+          <form onSubmit={handleSendRFP} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+            
+            {/* 1. Select Skill / Trade */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">
+                  1. Select Required Trade / Skill
+                </label>
+                <span className="text-xs font-bold text-[#00288e] bg-[#e8edff] px-2 py-0.5 rounded-md border border-[#00288e]/20">
+                  ₹{ratePerWorkerDay}/worker/day
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {SKILLS.map((skill) => {
+                  const IconComponent = skill.icon;
+                  const isSelected = selectedSkill === skill.label;
+                  return (
+                    <button
+                      key={skill.label}
+                      type="button"
+                      onClick={() => setSelectedSkill(skill.label)}
+                      className={`h-[60px] p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                        isSelected
+                          ? "border-[#00288e] bg-[#e8edff] shadow-xs"
+                          : "border-slate-200 bg-white hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${skill.color}`}>
+                        <IconComponent size={16} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-[12.5px] font-bold leading-tight truncate ${isSelected ? "text-[#00288e]" : "text-slate-900"}`}>
+                          {skill.label}
+                        </p>
+                        <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">₹{skill.defaultRate}/day</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Worker Count Selector */}
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between">
+                <label className="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">
+                  2. Number of Workers Needed
+                </label>
+                <span className="text-xs font-extrabold text-[#00288e] bg-[#e8edff] px-2.5 py-0.5 rounded-md border border-[#00288e]/20">
+                  {workerCount} {selectedSkill}{workerCount > 1 ? "s" : ""}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setWorkerCount((c) => Math.max(2, c - 1))}
+                  className="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-bold text-lg flex items-center justify-center hover:bg-slate-100 transition cursor-pointer"
+                >
+                  -
+                </button>
+                <input
+                  type="range"
+                  min="2"
+                  max="100"
+                  value={workerCount}
+                  onChange={(e) => setWorkerCount(Number(e.target.value))}
+                  className="flex-1 accent-[#00288e] h-2 bg-slate-200 rounded-lg cursor-pointer"
+                />
+                <button
+                  type="button"
+                  onClick={() => setWorkerCount((c) => Math.min(100, c + 1))}
+                  className="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-bold text-lg flex items-center justify-center hover:bg-slate-100 transition cursor-pointer"
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Quick Count Pills in uniform 6-column grid */}
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-0.5">
+                {[5, 10, 15, 25, 50, 100].map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    onClick={() => setWorkerCount(count)}
+                    className={`h-9 rounded-xl text-[11.5px] font-bold transition flex items-center justify-center cursor-pointer ${
+                      workerCount === count
+                        ? "bg-[#00288e] text-white shadow-xs"
+                        : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    {count} Workers
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. Duration & Shift in uniform 5-column grid */}
+            <div className="space-y-2.5 pt-1">
+              <label className="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">
+                3. Deployment Duration / Shift Length
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {DURATIONS.map((d, index) => {
+                  const isSelected = selectedDuration.label === d.label;
+                  return (
+                    <button
+                      key={d.label}
+                      type="button"
+                      onClick={() => setSelectedDuration(d)}
+                      className={`h-[56px] p-2 rounded-xl border text-center flex flex-col items-center justify-center transition cursor-pointer ${
+                        index === 4 ? "col-span-2 sm:col-span-1" : ""
+                      } ${
+                        isSelected
+                          ? "border-[#00288e] bg-[#e8edff] text-[#00288e] font-bold shadow-xs"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span className="text-[11.5px] font-bold leading-tight truncate w-full">{d.label.split(" (")[0]}</span>
+                      <span className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                        {d.days} {d.days === 1 ? "Day" : "Days"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 4. Site Location & Scope */}
+            <div className="space-y-3.5 pt-1">
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  4. Site Deployment Location
+                </label>
+                <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus-within:border-[#00288e] focus-within:bg-white transition">
+                  <MapPin size={16} className="text-[#00288e] shrink-0" />
+                  <input
+                    type="text"
+                    value={siteLocation}
+                    onChange={(e) => setSiteLocation(e.target.value)}
+                    className="w-full bg-transparent border-none outline-none text-xs sm:text-sm font-semibold text-slate-800"
+                    placeholder="Enter project site address / landmark in India"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  5. Detailed Scope of Work & Message for Cooperative
+                </label>
+                <textarea
+                  rows={3}
+                  value={requirementMsg}
+                  onChange={(e) => setRequirementMsg(e.target.value)}
+                  placeholder={`e.g. Requirement for ${workerCount} certified ${selectedSkill.toLowerCase()}s for modular furniture assembly and structural fitting. Tools and materials will be provided on site. Daily reporting to site manager required.`}
+                  className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#00288e] focus:bg-white focus:ring-2 focus:ring-[#00288e]/15 outline-none transition"
+                />
+              </div>
+            </div>
+
+            {/* Submit Action */}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full h-12 rounded-xl bg-[#00288e] hover:bg-[#173bab] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs active:scale-98 transition cursor-pointer disabled:opacity-60"
+            >
+              <Send size={16} />
+              <span>{submitting ? "Transmitting RFP to Cooperative..." : `Dispatch Institutional RFP for ${workerCount} ${selectedSkill}s`}</span>
+            </button>
+          </form>
+        </div>
+
+        {/* Right Column: Dynamic Quotation & Cooperative Capacity Directory (5 Cols) */}
+        <div className="lg:col-span-5 space-y-6">
+          
+          {/* Institutional Quotation Breakdown Card */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+                  Estimated Institutional Quotation
+                </h3>
+                <p className="text-xs text-slate-500">Statutory Nodal Escrow Model</p>
+              </div>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#e8edff] text-[#00288e] text-[11px] font-bold border border-[#00288e]/20">
+                <ShieldCheck size={11} /> 100% Escrow
+              </span>
+            </div>
+
+            <div className="space-y-2.5 text-xs sm:text-sm">
+              <div className="flex justify-between text-slate-600">
+                <span>Crew Deployment:</span>
+                <span className="font-bold text-slate-900">{workerCount} {selectedSkill}s × {totalDays} {totalDays === 1 ? "Day" : "Days"}</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span>Base Daily Wage (₹{ratePerWorkerDay}/worker):</span>
+                <span className="font-bold text-slate-900">₹{totalGrossWage.toLocaleString("en-IN")}</span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5 text-xs">
+                <div className="flex justify-between text-slate-600">
+                  <span>• Net Worker Escrow Take-Home (85%):</span>
+                  <span className="font-bold text-emerald-700">₹{workerTakeHome.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>• Cooperative Member Welfare Pool (10%):</span>
+                  <span className="font-bold text-[#00288e]">₹{coopWelfarePool.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>• Platform Tech & Insurance Escrow (5%):</span>
+                  <span className="font-bold text-slate-700">₹{fedPlatformFee.toLocaleString("en-IN")}</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-baseline pt-2 border-t border-slate-100">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Transparent Quotation</p>
+                  <p className="text-[10px] text-slate-400">Zero hidden contractor cuts</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-black text-[#00288e]">₹{totalGrossWage.toLocaleString("en-IN")}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cooperative Societies Capacity Directory */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+                  Registered Cooperative Societies
+                </h3>
+                <p className="text-xs text-slate-500">Select which society union receives your RFP</p>
+              </div>
+              <Building2 size={16} className="text-[#00288e]" />
+            </div>
+
+            <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
+              {cooperatives.map((coop) => {
+                const isSelected = selectedCoopId === coop._id;
+                return (
+                  <label
+                    key={coop._id}
+                    className={`block p-3 rounded-xl border transition cursor-pointer ${
+                      isSelected
+                        ? "border-[#00288e] bg-[#e8edff]/70 shadow-xs"
+                        : "border-slate-200 bg-white hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="flex items-start gap-2.5">
+                        <input
+                          type="radio"
+                          name="selectedCoop"
+                          value={coop._id}
+                          checked={isSelected}
+                          onChange={() => setSelectedCoopId(coop._id)}
+                          className="mt-0.5 accent-[#00288e] cursor-pointer"
+                        />
+                        <div>
+                          <p className={`text-xs font-bold ${isSelected ? "text-[#00288e]" : "text-slate-900"}`}>{coop.name}</p>
+                          <p className="text-[10.5px] text-slate-500">
+                            Reg: {coop.registrationNumber || "MSCS-DEL-2024"} • {coop.district || "Delhi NCR"}
+                          </p>
+                        </div>
+                      </div>
+                      {(() => {
+                        const skillKey = selectedSkill.toLowerCase().trim();
+                        const count = coop.skillCounts?.[skillKey] || 0;
+                        if (count > 0) {
+                          return (
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] font-bold shrink-0 border border-emerald-200">
+                              {count} {selectedSkill}{count > 1 ? "s" : ""} Verified
+                            </span>
+                          );
+                        }
+                        if (coop.totalWorkers > 0) {
+                          return (
+                            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-[#00288e] text-[10px] font-bold shrink-0 border border-[#00288e]/20">
+                              {coop.totalWorkers} Member{coop.totalWorkers > 1 ? "s" : ""}
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold shrink-0 border border-slate-200">
+                            Verified Union Hub
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Success Confirmation Modal */}
+      {successModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center space-y-3.5 shadow-2xl border border-slate-100">
+            <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center shadow-inner">
+              <CheckCircle2 size={32} strokeWidth={2.5} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 font-heading">
+              Bulk RFP Transmitted Successfully!
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Your request for <strong className="text-slate-900">{successModal.workerCount} {successModal.skill}s</strong> has been transmitted directly to <strong className="text-[#00288e]">{successModal.coopName}</strong>. The Cooperative Admin will review your scope of work and allocate the verified worker crew shortly.
+            </p>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 text-left space-y-1">
+              <p>• <strong>RFP Reference ID:</strong> {successModal.bookingId}</p>
+              <p>• <strong>Total Estimated Escrow:</strong> ₹{successModal.amount.toLocaleString("en-IN")}</p>
+              <p>• <strong>Status:</strong> Dispatched to Society Admin Desk</p>
+            </div>
+            <div className="flex gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => navigate("/household/bookings")}
+                className="w-full h-10 rounded-xl bg-[#00288e] hover:bg-[#173bab] text-white text-xs font-bold transition cursor-pointer"
+              >
+                Track in My Bookings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
