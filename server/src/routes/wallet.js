@@ -7,5 +7,6 @@ const asyncHandler = require('../middleware/error');
 router.get('/', auth, rbac('Household'), asyncHandler(c.walletOverview));
 router.post('/topup', auth, rbac('Household'), asyncHandler(c.createTopup));
 router.post('/topup/verify', auth, rbac('Household'), asyncHandler(c.verifyTopup));
+router.post('/dev-topup', auth, rbac('Household'), asyncHandler(c.devTopup));
 
 module.exports = router;

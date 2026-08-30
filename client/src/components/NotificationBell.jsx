@@ -1,19 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, Megaphone, Building2, ShieldAlert, Sparkles, CheckCheck, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Bell, Megaphone, Building2, CheckCheck, X, Trash2 } from 'lucide-react';
 import api from '../lib/api';
 import socket from '../lib/socket';
 
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
-  const ref = useRef(null);
+  const [clearing, setClearing] = useState(false);
+  const btnRef = useRef(null);
+  const [anchor, setAnchor] = useState({ top: 0, left: 0, right: 0, bottom: 0, width: 36 });
 
   async function fetchAll() {
     try {
       const { data } = await api.get('/notifications').catch(() => ({ data: [] }));
       const coopMsgs = JSON.parse(localStorage.getItem("sg_coop_messages") || "[]")
         .filter(m => !m.id?.startsWith("msg_seed_"));
-      
+
       const formattedCoop = coopMsgs.map(m => ({
         _id: m.id,
         type: 'coop_message',
@@ -30,16 +33,36 @@ export default function NotificationBell() {
     } catch { /* ignore */ }
   }
 
+  async function clearAll() {
+    if (items.length === 0 || clearing) return;
+    setClearing(true);
+    try {
+      await api.delete('/notifications').catch(() => {});
+      localStorage.setItem("sg_coop_messages", JSON.stringify([]));
+      setItems(prev => prev.filter(n => n.type !== 'coop_message'));
+      fetchAll();
+    } catch { /* ignore */ }
+    setClearing(false);
+  }
+
   useEffect(() => {
     fetchAll();
     const interval = setInterval(fetchAll, 3000);
-    function onNotif(n) {
-      setItems(prev => [{ ...n, read: false }, ...prev]);
+    function onNotif(n) { setItems(prev => [{ ...n, read: false }, ...prev]); }
+    function onCleared() {
+      setItems(prev => prev.filter(n => n.type !== 'coop_message'));
+      localStorage.setItem("sg_coop_messages", JSON.stringify([]));
+      fetchAll();
     }
+    function onReadAll() { setItems(prev => prev.map(n => ({ ...n, read: true }))); }
     socket.on('notification', onNotif);
+    socket.on('notifications:cleared', onCleared);
+    socket.on('notifications:read-all', onReadAll);
     return () => {
       clearInterval(interval);
       socket.off('notification', onNotif);
+      socket.off('notifications:cleared', onCleared);
+      socket.off('notifications:read-all', onReadAll);
     };
   }, []);
 
@@ -53,96 +76,136 @@ export default function NotificationBell() {
     } catch { /* ignore */ }
   }
 
+  function toggle(e) {
+    if (e) e.stopPropagation();
+    if (open) { setOpen(false); return; }
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) setAnchor({ top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width });
+    setOpen(true);
+  }
+
   const unread = items.filter(n => !n.read).length;
+
+  // Dropdown appears just below the bell, horizontally centered on it,
+  // clamped so it never overflows the viewport.
+  const POP_W = 340;
+  const center = anchor.left + (anchor.width || 36) / 2;
+  const dropLeft = Math.max(8, Math.min(center - POP_W / 2, window.innerWidth - POP_W - 8));
+  const dropTop = (anchor.bottom || 0) + 8;
 
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
-        className="relative flex items-center justify-center w-9 h-9 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer"
+        ref={btnRef}
+        onClick={toggle}
+        className="relative flex items-center justify-center w-9 h-9 rounded-xl text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all cursor-pointer"
         aria-label="Notifications"
       >
         <Bell size={19} strokeWidth={2} />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-4 rounded-full bg-red-600 text-white text-[10px] font-extrabold flex items-center justify-center px-1 shadow-sm animate-pulse">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-4 px-1 rounded-full bg-error text-on-error text-[10px] font-extrabold flex items-center justify-center shadow-sm">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
       </button>
 
-      {/* ── Fixed Viewport Overlay Modal (Never clipped by sidebars or overflow containers) ── */}
-      {open && (
-        <div
-          className="fixed inset-0 z-[99999] bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4 animate-alert-in"
-          onClick={() => setOpen(false)}
-        >
+      {open && createPortal(
+        <>
+          {/* Invisible click-catcher to close on outside tap */}
+          <div className="fixed inset-0 z-[99999]" onClick={toggle} />
+          {/* Floating premium dropdown anchored to the bell */}
           <div
-            className="w-full max-w-md rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden flex flex-col max-h-[82vh]"
+            className="fixed z-[100000] w-[min(92vw,340px)] rounded-2xl border border-outline-variant/70 bg-surface shadow-[0_12px_48px_rgba(0,0,0,0.22)] overflow-hidden flex flex-col animate-dropdown-in"
+            style={{
+              left: dropLeft,
+              top: dropTop,
+              maxHeight: 'min(70vh, 520px)',
+              transformOrigin: `${Math.max(0, Math.min(((anchor.left + (anchor.width||36)/2) - dropLeft) / POP_W, 1)) * 100}% top`
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 bg-slate-900 text-white shrink-0">
-              <div className="flex items-center gap-2">
-                <Megaphone size={18} className="text-[#84cc16]" />
-                <div>
-                  <h3 className="text-sm font-extrabold tracking-tight">Agency Alerts & Notifications</h3>
-                  <p className="text-[11px] text-slate-400 font-medium">Cooperative messages & platform updates</p>
+            {/* Center arrow pointing to the bell */}
+            <div
+              className="absolute top-[-7px] w-3.5 h-3.5 rotate-45 bg-surface border-l border-t border-outline-variant/70"
+              style={{ left: `${Math.max(12, Math.min(((anchor.left + (anchor.width||36)/2) - dropLeft) - 7, POP_W - 24))}px` }}
+            />
+            {/* Header */}
+            <div className="relative flex items-center justify-between px-4 py-3 border-b border-outline-variant/60 bg-surface-container-low/60">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="relative">
+                  <Bell size={16} className="text-primary" strokeWidth={2.2} />
+                  {unread > 0 && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-error" />}
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
+                <h3 className="text-sm font-extrabold text-on-surface tracking-tight">Notifications</h3>
                 {unread > 0 && (
+                  <span className="text-[10px] font-bold text-on-primary bg-primary px-1.5 py-0.5 rounded-full">{unread}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                {items.length > 0 && (
                   <button
-                    onClick={markAll}
-                    className="text-xs font-bold text-[#84cc16] hover:underline cursor-pointer flex items-center gap-1"
+                    onClick={clearAll}
+                    disabled={clearing}
+                    title="Clear all notifications"
+                    className="flex items-center gap-1 text-[10.5px] font-bold text-on-surface-variant hover:text-error px-2 h-7 rounded-lg hover:bg-error-container/40 transition-colors cursor-pointer disabled:opacity-60"
                   >
-                    <CheckCheck size={14} /> Mark all read
+                    <Trash2 size={12} /> <span className="hidden sm:inline">Clear all</span>
                   </button>
                 )}
                 <button
                   onClick={() => setOpen(false)}
-                  className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer transition-colors"
+                  className="w-7 h-7 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer"
+                  aria-label="Close"
                 >
-                  <X size={18} />
+                  <X size={15} />
                 </button>
               </div>
             </div>
 
-            {/* Notification Items List */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1.5">
+            {/* List */}
+            <div className="flex-1 overflow-y-auto overscroll-contain">
               {items.length === 0 ? (
-                <div className="px-4 py-12 text-center space-y-2">
-                  <Building2 size={32} className="mx-auto text-slate-300" />
-                  <p className="text-sm font-extrabold text-slate-700">No agency alerts or messages yet</p>
-                  <p className="text-xs text-slate-400">Broadcasts sent by your cooperative society will appear here.</p>
-                </div>
-              ) : items.map((n, i) => (
-                <div
-                  key={n._id || i}
-                  className={`p-4 rounded-2xl space-y-1.5 transition-all ${
-                    n.read
-                      ? 'bg-white hover:bg-slate-50'
-                      : n.type === 'coop_message'
-                      ? 'bg-[#f7fee7] border-l-4 border-l-[#84cc16] shadow-xs'
-                      : 'bg-slate-50 border-l-4 border-l-[#1e6b65] shadow-xs'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
-                      n.type === 'coop_message' ? 'bg-[#84cc16]/20 text-[#4d7c0f]' : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {n.sender || n.title || 'Cooperative Alert'}
-                    </span>
-                    <span className="text-[10.5px] text-slate-400 font-semibold">{n.timestamp}</span>
+                <div className="flex flex-col items-center justify-center px-5 py-12 text-center space-y-2">
+                  <div className="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center">
+                    <Building2 size={22} className="text-on-surface-variant/50" strokeWidth={1.6} />
                   </div>
-                  <h4 className="text-xs font-extrabold text-slate-900 leading-snug">{n.title || n.type?.replace(/_/g, ' ')}</h4>
-                  <p className="text-xs font-medium text-slate-600 leading-relaxed">{n.message}</p>
+                  <p className="text-sm font-extrabold text-on-surface">All caught up</p>
+                  <p className="text-xs text-on-surface-variant">New cooperative & platform alerts will show up here.</p>
                 </div>
-              ))}
+              ) : (
+                items.map((n, i) => (
+                  <div
+                    key={n._id || i}
+                    className={`px-4 py-3 border-b border-outline-variant/50 last:border-b-0 transition-colors ${
+                      n.read ? 'hover:bg-surface-container-low' : 'bg-primary-container/25 border-l-[3px] border-l-[#84cc16] hover:bg-primary-container/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className={`inline-flex items-center text-[9.5px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full truncate ${
+                        n.type === 'coop_message' ? 'bg-[#84cc16]/15 text-[#4d7c0f]' : 'bg-primary-container/60 text-primary'
+                      }`}>
+                        {n.sender || n.title || 'Alert'}
+                      </span>
+                      <span className="text-[10px] text-on-surface-variant/70 font-semibold shrink-0">{n.timestamp}</span>
+                    </div>
+                    <h4 className="text-[13px] font-extrabold text-on-surface leading-snug">{n.title || n.type?.replace(/_/g, ' ')}</h4>
+                    <p className="text-xs font-medium text-on-surface-variant/90 leading-relaxed mt-0.5 line-clamp-2">{n.message}</p>
+                    {!n.read && (
+                      <button
+                        onClick={markAll}
+                        className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-bold text-primary hover:underline cursor-pointer transition-colors"
+                      >
+                        <CheckCheck size={12} /> Mark read
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
-        </div>
+        </>,
+        document.body
       )}
     </>
   );
 }
-

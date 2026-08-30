@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import api from "../lib/api";
 import {
   Mic, X, Zap, ArrowRight, Volume2, LoaderCircle,
@@ -121,6 +122,7 @@ function fallbackClassify(text) {
 }
 
 export default function AIVoiceSearchModal({ isOpen, onClose, initialQuery = "" }) {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [transcript, setTranscript] = useState(initialQuery);
   const [isListening, setIsListening] = useState(false);
@@ -222,7 +224,12 @@ export default function AIVoiceSearchModal({ isOpen, onClose, initialQuery = "" 
     const cat = parsedIntent?.category || "Electrician";
     const emergency = parsedIntent?.isEmergency ? "true" : "false";
     onClose();
-    navigate(`/household/dispatch?category=${encodeURIComponent(cat)}&emergency=${emergency}`);
+    const targetUrl = `/household/dispatch?category=${encodeURIComponent(cat)}&emergency=${emergency}`;
+    if (!user) {
+      navigate(`/signup?role=Household&redirect=${encodeURIComponent(targetUrl)}`);
+      return;
+    }
+    navigate(targetUrl);
   }
 
   if (!isOpen) return null;

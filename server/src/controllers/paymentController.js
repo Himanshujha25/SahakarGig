@@ -14,15 +14,10 @@ const { calcWelfareScore } = require('./welfareController');
 const { discountedAmount } = require('./subscriptionController');
 const notify = require('../utils/notify');
 const { emitTo } = require('../socket');
+const { getRazorpayConfig, getRazorpayClient } = require('../lib/razorpay');
 
 function getRazorpay() {
-  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-    throw new Error('RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are not configured on the server.');
-  }
-  return new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-  });
+  return getRazorpayClient();
 }
 
 // Server-side coupon catalogue — the ONLY source of truth for discounts.
@@ -139,11 +134,12 @@ async function createOrder(req, res) {
       notes: { bookingId: bookingId.toString(), service: b.service },
     });
 
+    const { keyId } = getRazorpayConfig();
     res.json({
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
-      keyId: process.env.RAZORPAY_KEY_ID,
+      keyId,
     });
   } catch (err) {
     console.error('[Razorpay Order Error]:', err.message);
@@ -160,9 +156,10 @@ async function verifyAndCapture(req, res) {
   }
 
   // HMAC-SHA256 signature verification
+  const { keySecret } = getRazorpayConfig();
   const body = razorpay_order_id + '|' + razorpay_payment_id;
   const expectedSig = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+    .createHmac('sha256', keySecret)
     .update(body)
     .digest('hex');
 

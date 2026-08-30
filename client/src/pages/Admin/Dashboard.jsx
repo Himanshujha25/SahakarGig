@@ -131,15 +131,15 @@ export default function Dashboard() {
   const maxRevenue = Math.max(1, ...series.map((s) => s.value));
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-6 pt-8 pb-24 lg:pb-10 space-y-6">
+    <div className="w-full max-w-7xl mx-auto px-1 sm:px-6 pt-2 sm:pt-4 pb-12 space-y-4 sm:space-y-6 text-on-surface">
 
       {/* ── Page header ── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-outline-variant/60">
         <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
             Dashboard
           </h1>
-          <p className="text-[14px] text-on-surface-variant mt-0.5">
+          <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
             {coopName
               ? <><span className="font-semibold text-primary">{coopName}</span> · Cooperative Dashboard</>  
               : "System performance and network health for your cooperative."
@@ -149,29 +149,29 @@ export default function Dashboard() {
         <TimeframePicker value={timeframe} onChange={setTimeframe} />
       </div>
 
-      {/* ── Stat cards ── */}
+      {/* ── Stat cards (Compact Sleek Horizontal Tiles) ── */}
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           {[0,1,2,3].map((i) => (
-            <div key={i} className="animate-pulse rounded-2xl border border-outline-variant bg-surface p-5 h-28" />
+            <div key={i} className="animate-pulse rounded-xl border border-outline-variant bg-surface p-3.5 h-16" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           {cards.map(({ key, label, value, accent }) => {
             const { Icon, bg, ic } = STAT_META[key];
             return (
               <div key={key}
-                className="group relative overflow-hidden rounded-2xl border border-outline-variant/60 bg-surface p-5 hover:shadow-[0_4px_24px_rgba(0,40,142,0.08)] hover:border-outline transition-all duration-200">
-                <div className="flex items-start justify-between mb-4">
-                  <p className="text-[12px] font-bold text-on-surface-variant uppercase tracking-[0.08em]">{label}</p>
-                  <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
-                    <Icon size={17} strokeWidth={2} className={ic} />
-                  </div>
+                className="rounded-xl border border-outline-variant/60 bg-surface p-3 sm:p-3.5 flex items-center justify-between gap-2 shadow-2xs hover:border-primary/40 transition-all duration-200">
+                <div className="min-w-0 space-y-0.5">
+                  <p className="text-[11px] font-semibold text-on-surface-variant tracking-normal truncate">{label}</p>
+                  <p className={`text-xl sm:text-2xl font-black tracking-tight ${accent ? "text-rose-600 dark:text-rose-400" : "text-on-surface"}`}>
+                    {value}
+                  </p>
                 </div>
-                <p className={`text-[28px] font-bold tracking-tight leading-none ${accent ? "text-error" : "text-on-surface"}`}>
-                  {value}
-                </p>
+                <div className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
+                  <Icon size={15} strokeWidth={2} className={ic} />
+                </div>
               </div>
             );
           })}

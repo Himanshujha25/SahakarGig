@@ -1,28 +1,10 @@
 import { useEffect, useState } from 'react';
 import api from '../../lib/api';
-import Icon from '../../components/Icon';
-
-const STAT_ICONS = {
-  cooperatives: 'corporate_fare',
-  providers: 'groups',
-  bookings: 'calendar_month',
-  revenue: 'payments',
-};
-
-function StatCard({ icon, label, value, sub, color = 'text-primary' }) {
-  return (
-    <div className="rounded-xl border border-outline-variant bg-surface p-5 flex items-start gap-4">
-      <div className={`w-10 h-10 rounded-xl bg-[#e8edff] flex items-center justify-center shrink-0 ${color}`}>
-        <Icon name={icon} className="text-[20px]" />
-      </div>
-      <div>
-        <p className="text-xs font-semibold text-on-surface-variant">{label}</p>
-        <p className="font-heading text-2xl font-bold text-on-surface">{value}</p>
-        {sub && <p className="text-xs text-on-surface-variant mt-0.5">{sub}</p>}
-      </div>
-    </div>
-  );
-}
+import {
+  Building2, Users, CalendarCheck, IndianRupee,
+  ShieldCheck, AlertTriangle, ArrowUpRight, TrendingUp,
+  Landmark, ChevronRight
+} from 'lucide-react';
 
 export default function FederationDashboard() {
   const [data, setData] = useState(null);
@@ -40,90 +22,207 @@ export default function FederationDashboard() {
     return () => clearInterval(t);
   }, []);
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="p-6 lg:p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-7 w-64 rounded bg-surface-variant" />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => <div key={i} className="h-24 rounded-xl bg-surface-variant" />)}
-          </div>
-        </div>
-      </div>
-    );
-
-  return (
-    <div className="w-full max-w-7xl mx-auto p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-on-surface">{data?.federationName || 'Federation'}</h1>
-        <p className="text-sm text-on-surface-variant mt-0.5">Federation Dashboard · Aggregated across all cooperatives</p>
-      </div>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon="corporate_fare" label="Cooperatives" value={data?.totalCooperatives ?? 0} />
-        <StatCard icon="groups" label="Total Providers" value={data?.totalProviders ?? 0}
-          sub={`${data?.verifiedProviders ?? 0} verified`} />
-        <StatCard icon="calendar_month" label="Total Bookings" value={data?.totalBookings ?? 0}
-          sub={`${data?.activeDisputes ?? 0} disputes`} color="text-amber-600" />
-        <StatCard icon="payments" label="Federation Revenue" value={`₹${(data?.totalRevenue ?? 0).toFixed(0)}`}
-          sub={`Provider payouts ₹${(data?.totalProviderPayout ?? 0).toFixed(0)}`} color="text-[#006d30]" />
-      </div>
-
-      {/* Revenue split */}
-      <div className="rounded-xl border border-outline-variant bg-surface p-5">
-        <h2 className="font-heading text-base font-semibold text-on-surface mb-4">Revenue Split</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            { label: 'Federation Commission', value: data?.totalRevenue ?? 0, color: 'bg-primary' },
-            { label: 'Cooperative Commission', value: data?.totalCoopRevenue ?? 0, color: 'bg-secondary' },
-            { label: 'Provider Payouts', value: data?.totalProviderPayout ?? 0, color: 'bg-[#006d30]' },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="rounded-xl bg-surface-container-low px-4 py-3">
-              <div className={`w-2 h-2 rounded-full ${color} mb-2`} />
-              <p className="text-xs text-on-surface-variant">{label}</p>
-              <p className="font-heading text-xl font-bold text-on-surface">₹{value.toFixed(0)}</p>
-            </div>
+      <div className="space-y-4">
+        <div className="animate-pulse h-6 w-48 rounded-xl bg-surface-container" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse h-16 rounded-xl bg-surface-container" />
           ))}
         </div>
       </div>
+    );
+  }
 
-      {/* Cooperative breakdown table */}
-      <div className="rounded-xl border border-outline-variant bg-surface overflow-hidden">
-        <div className="px-5 py-4 border-b border-outline-variant">
-          <h2 className="font-heading text-base font-semibold text-on-surface">Cooperative Breakdown</h2>
+  const coopCount = data?.totalCooperatives ?? 0;
+  const provCount = data?.totalProviders ?? 0;
+  const bookCount = data?.totalBookings ?? 0;
+  const revAmount = data?.totalRevenue ?? 0;
+  const coopRev = data?.totalCoopRevenue ?? 0;
+  const provPayout = data?.totalProviderPayout ?? 0;
+
+  return (
+    <div className="space-y-4 sm:space-y-6 text-on-surface">
+      {/* ── Header ── */}
+      <div className="border-b border-outline-variant/60 pb-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+            {data?.federationName || 'Nationwide Cooperative Mahasangh'}
+          </h1>
+          <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
+            Apex Federation
+          </span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px] text-left">
-            <thead>
-              <tr className="border-b border-outline-variant bg-surface-container-low">
-                {['Cooperative', 'Region', 'Providers', 'Verified', 'Bookings', 'Revenue'].map((h) => (
-                  <th key={h} className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(data?.coopStats || []).length === 0 ? (
-                <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-on-surface-variant">No cooperatives linked yet.</td></tr>
-              ) : (
-                (data?.coopStats || []).map((c) => (
-                  <tr key={c.id} className="border-b border-outline-variant hover:bg-surface-container-low/50 transition-colors">
-                    <td className="px-5 py-3 font-semibold text-sm text-on-surface">{c.name}</td>
-                    <td className="px-5 py-3 text-sm text-on-surface-variant">{c.region || '—'}</td>
-                    <td className="px-5 py-3 text-sm text-on-surface">{c.providers}</td>
-                    <td className="px-5 py-3">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#e6f9ec] text-[#006d30] px-2.5 py-0.5 text-xs font-semibold">
-                        <Icon name="verified" className="text-[12px]" />{c.verifiedProviders}
-                      </span>
+        <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
+          Federation Dashboard &middot; Aggregated across all linked state and district societies
+        </p>
+      </div>
+
+      {/* ── 4 Sleek Compact Horizontal KPI Stat Tiles ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        <div className="p-3 sm:p-3.5 rounded-xl border border-outline-variant/60 bg-surface shadow-2xs flex items-center justify-between gap-2">
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-[11px] font-semibold text-on-surface-variant tracking-normal">Cooperatives</p>
+            <p className="text-xl sm:text-2xl font-black text-on-surface tracking-tight">{coopCount}</p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
+            <Building2 size={15} />
+          </div>
+        </div>
+
+        <div className="p-3 sm:p-3.5 rounded-xl border border-outline-variant/60 bg-surface shadow-2xs flex items-center justify-between gap-2">
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-[11px] font-semibold text-on-surface-variant tracking-normal">Total Providers</p>
+            <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">{provCount}</p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
+            <Users size={15} />
+          </div>
+        </div>
+
+        <div className="p-3 sm:p-3.5 rounded-xl border border-outline-variant/60 bg-surface shadow-2xs flex items-center justify-between gap-2">
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-[11px] font-semibold text-on-surface-variant tracking-normal">Total Bookings</p>
+            <p className="text-xl sm:text-2xl font-black text-on-surface tracking-tight">{bookCount}</p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shrink-0">
+            <CalendarCheck size={15} />
+          </div>
+        </div>
+
+        <div className="p-3 sm:p-3.5 rounded-xl border border-outline-variant/60 bg-surface shadow-2xs flex items-center justify-between gap-2">
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-[11px] font-semibold text-on-surface-variant tracking-normal">Apex Revenue</p>
+            <p className="text-xl sm:text-2xl font-black text-primary tracking-tight">₹{revAmount.toFixed(0)}</p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold shrink-0">
+            <IndianRupee size={15} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Revenue Split (Compact 3-Card Row) ── */}
+      <div className="rounded-2xl border border-outline-variant/60 bg-surface p-4 sm:p-5 space-y-3 shadow-2xs">
+        <h2 className="text-xs sm:text-sm font-bold text-on-surface flex items-center gap-1.5">
+          <TrendingUp size={15} className="text-primary" />
+          Nodal Fair Wage Revenue Split
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
+          <div className="rounded-xl bg-surface-container-low border border-outline-variant/40 p-3 space-y-1">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-primary" />
+              <p className="text-[11px] font-medium text-on-surface-variant">Federation Commission</p>
+            </div>
+            <p className="text-lg sm:text-xl font-black text-primary">₹{revAmount.toFixed(0)}</p>
+          </div>
+
+          <div className="rounded-xl bg-surface-container-low border border-outline-variant/40 p-3 space-y-1">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <p className="text-[11px] font-medium text-on-surface-variant">Cooperative Retention</p>
+            </div>
+            <p className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">₹{coopRev.toFixed(0)}</p>
+          </div>
+
+          <div className="rounded-xl bg-surface-container-low border border-outline-variant/40 p-3 space-y-1">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <p className="text-[11px] font-medium text-on-surface-variant">Provider Payouts (Direct)</p>
+            </div>
+            <p className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400">₹{provPayout.toFixed(0)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Cooperative Breakdown ── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs sm:text-sm font-bold text-on-surface flex items-center gap-1.5">
+            <Landmark size={15} className="text-primary" />
+            Affiliated Cooperatives Breakdown
+          </h2>
+          <span className="text-xs text-on-surface-variant font-medium">
+            {(data?.coopStats || []).length} societies linked
+          </span>
+        </div>
+
+        {/* ── Mobile Cooperative Cards (< 768px) ── */}
+        <div className="md:hidden space-y-2.5">
+          {(data?.coopStats || []).length === 0 ? (
+            <div className="p-6 rounded-2xl border border-dashed border-outline-variant text-center text-xs text-on-surface-variant bg-surface">
+              No cooperatives linked yet.
+            </div>
+          ) : (
+            (data?.coopStats || []).map((c) => (
+              <div
+                key={c.id}
+                className="p-3.5 rounded-2xl border border-outline-variant/60 bg-surface space-y-2.5 shadow-2xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-bold text-sm text-on-surface">{c.name}</h3>
+                    <p className="text-[11px] text-on-surface-variant">{c.region || 'Delhi NCR'}</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] border border-emerald-500/20">
+                    <ShieldCheck size={11} /> {c.verifiedProviders} Verified
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-outline-variant/40 text-xs">
+                  <div className="flex items-center gap-3 text-on-surface-variant text-[11.5px]">
+                    <span><strong>{c.providers}</strong> Providers</span>
+                    <span>&middot;</span>
+                    <span><strong>{c.bookings}</strong> Bookings</span>
+                  </div>
+                  <span className="font-black text-primary">₹{c.revenue.toFixed(0)}</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ── Desktop Table (>= 768px) ── */}
+        <div className="hidden md:block rounded-2xl border border-outline-variant/60 bg-surface overflow-hidden shadow-2xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-outline-variant/60 bg-surface-container-low text-[10.5px] font-bold text-on-surface-variant uppercase">
+                  <th className="px-5 py-3">Cooperative</th>
+                  <th className="px-5 py-3">Region</th>
+                  <th className="px-5 py-3">Providers</th>
+                  <th className="px-5 py-3">Verified</th>
+                  <th className="px-5 py-3">Bookings</th>
+                  <th className="px-5 py-3 text-right">Revenue</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/40">
+                {(data?.coopStats || []).length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-8 text-center text-xs text-on-surface-variant">
+                      No cooperatives linked yet.
                     </td>
-                    <td className="px-5 py-3 text-sm text-on-surface">{c.bookings}</td>
-                    <td className="px-5 py-3 font-semibold text-sm text-primary">₹{c.revenue.toFixed(0)}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  (data?.coopStats || []).map((c) => (
+                    <tr key={c.id} className="hover:bg-surface-container-low transition-colors">
+                      <td className="px-5 py-3 font-bold text-on-surface">{c.name}</td>
+                      <td className="px-5 py-3 text-on-surface-variant">{c.region || '—'}</td>
+                      <td className="px-5 py-3 text-on-surface font-semibold">{c.providers}</td>
+                      <td className="px-5 py-3">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 text-[11px] font-bold border border-emerald-500/20">
+                          <ShieldCheck size={12} />
+                          <span>{c.verifiedProviders}</span>
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-on-surface">{c.bookings}</td>
+                      <td className="px-5 py-3 font-black text-primary text-right">₹{c.revenue.toFixed(0)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

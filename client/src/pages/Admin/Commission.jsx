@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../../lib/api";
 import {
   Percent, Save, IndianRupee, TrendingUp, Users,
-  Download, Printer, Sliders, ShieldCheck, CheckCircle2,
+  Printer, ShieldCheck, CheckCircle2,
   Building2, Sparkles, RefreshCw
 } from "lucide-react";
 import FairWageBreakdown from "../../components/FairWageBreakdown";
@@ -63,52 +63,52 @@ export default function Commission() {
   const simWorker = simVal - simCoop - simWelfare;
 
   const summaryCards = [
-    { label: "Current Rate", value: `${current}%`, Icon: Percent, bg: "bg-[#e8edff]", ic: "text-[#00288e]" },
-    { label: "Avg Booking Value", value: `₹${booking.toLocaleString("en-IN")}`, Icon: IndianRupee, bg: "bg-amber-50", ic: "text-amber-800" },
-    { label: "Cooperative Earns", value: `₹${commission.toFixed(0)}`, Icon: TrendingUp, bg: "bg-emerald-50", ic: "text-emerald-700" },
-    { label: "Provider Earns", value: `₹${provider.toFixed(0)}`, Icon: Users, bg: "bg-[#e8edff]", ic: "text-[#00288e]" },
+    { label: "Current Rate", value: `${current}%`, Icon: Percent, bg: "bg-primary/10", ic: "text-primary" },
+    { label: "Avg Booking Value", value: `₹${booking.toLocaleString("en-IN")}`, Icon: IndianRupee, bg: "bg-amber-500/10", ic: "text-amber-600 dark:text-amber-400" },
+    { label: "Cooperative Earns", value: `₹${commission.toFixed(0)}`, Icon: TrendingUp, bg: "bg-emerald-500/10", ic: "text-emerald-600 dark:text-emerald-400" },
+    { label: "Provider Earns", value: `₹${provider.toFixed(0)}`, Icon: Users, bg: "bg-primary/10", ic: "text-primary" },
   ];
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-6 pt-8 pb-24 lg:pb-10 space-y-6 text-slate-900">
+    <div className="space-y-4 sm:space-y-6 text-on-surface">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/60 pb-3">
         <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-slate-900" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
             Analytics &amp; Fair Wage Commission
           </h1>
-          <p className="text-[14px] text-slate-500 mt-0.5">
+          <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
             Configure cooperative retention commission, social security splits, and member wage payouts.
           </p>
         </div>
 
         <button
           onClick={() => window.print()}
-          className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all shrink-0"
+          className="self-start sm:self-auto px-3.5 py-2 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all shrink-0"
         >
-          <Printer size={14} className="text-[#00288e]" />
-          <span>Download Commission Report</span>
+          <Printer size={14} className="text-primary" />
+          <span>Download Report</span>
         </button>
       </div>
 
-      {/* Summary cards */}
+      {/* Summary cards (Compact Sleek Horizontal Tiles) */}
       {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse rounded-2xl border border-slate-200 bg-white h-24" />
+            <div key={i} className="animate-pulse rounded-xl border border-outline-variant bg-surface p-3.5 h-16" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           {summaryCards.map(({ label, value, Icon, bg, ic }) => (
-            <div key={label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs hover:border-slate-300 transition-all">
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-                <div className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
-                  <Icon size={15} strokeWidth={2.5} className={ic} />
-                </div>
+            <div key={label} className="rounded-xl border border-outline-variant/60 bg-surface p-3 sm:p-3.5 shadow-2xs hover:border-primary/40 transition-all flex items-center justify-between gap-2">
+              <div className="min-w-0 space-y-0.5">
+                <p className="text-[11px] font-semibold text-on-surface-variant tracking-normal truncate">{label}</p>
+                <p className="text-xl sm:text-2xl font-black tracking-tight text-on-surface">{value}</p>
               </div>
-              <p className="text-[24px] font-black tracking-tight text-slate-900">{value}</p>
+              <div className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
+                <Icon size={15} strokeWidth={2.2} className={ic} />
+              </div>
             </div>
           ))}
         </div>
@@ -124,17 +124,17 @@ export default function Commission() {
       />
 
       {/* Main Grid: Rate Editor & Category Simulation */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-5 items-start">
         {/* Rate Editor */}
-        <div className="lg:col-span-3 rounded-2xl border border-slate-200 bg-white p-6 space-y-5 shadow-2xs">
-          <div className="flex items-center justify-between">
+        <div className="lg:col-span-3 rounded-2xl border border-outline-variant/60 bg-surface p-4 sm:p-6 space-y-4 shadow-2xs">
+          <div className="flex items-center justify-between gap-2">
             <div>
-              <h2 className="text-base font-bold text-slate-900">Cooperative Commission Rate</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <h2 className="text-sm sm:text-base font-bold text-on-surface">Cooperative Commission Rate</h2>
+              <p className="text-[11.5px] text-on-surface-variant mt-0.5">
                 Applied uniformly to every booking settled through the cooperative escrow.
               </p>
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200">
+            <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold border border-emerald-500/20 shrink-0">
               Active: {current}%
             </span>
           </div>
@@ -142,23 +142,23 @@ export default function Commission() {
           <div className="relative">
             <input
               type="number"
-              className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 pr-12 text-[28px] font-black text-slate-900 outline-none transition-all focus:border-[#00288e] focus:bg-white focus:ring-2 focus:ring-[#00288e]/20"
+              className="h-12 sm:h-14 w-full rounded-2xl border border-outline-variant bg-surface-container-low px-4 pr-12 text-2xl sm:text-[28px] font-black text-on-surface outline-none transition-all focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20"
               value={rate}
               min="0"
               max="25"
               step="0.5"
               onChange={(e) => setRate(e.target.value)}
             />
-            <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[22px] font-bold text-slate-400">%</span>
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xl sm:text-[22px] font-bold text-on-surface-variant">%</span>
           </div>
 
-          <div className="flex items-center justify-between pt-1">
-            <p className="text-xs text-slate-500">Recommended statutory benchmark: 5% - 10%</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+            <p className="text-xs text-on-surface-variant">Recommended statutory benchmark: 5% - 10%</p>
             <button
-              className={`h-10 inline-flex items-center gap-2 px-6 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
+              className={`h-10 inline-flex items-center justify-center gap-2 px-6 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
                 saved
-                  ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
-                  : "bg-[#00288e] text-white hover:bg-[#001f70]"
+                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30"
+                  : "bg-primary text-on-primary hover:opacity-90 active:scale-98"
               }`}
               disabled={saving}
               onClick={save}
@@ -170,10 +170,10 @@ export default function Commission() {
         </div>
 
         {/* Live Category Simulator */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 space-y-4 shadow-2xs">
+        <div className="lg:col-span-2 rounded-2xl border border-outline-variant/60 bg-surface p-4 sm:p-6 space-y-3.5 shadow-2xs">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Trade Category Simulator</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Test real-time wage take-home across trades.</p>
+            <h2 className="text-sm sm:text-base font-bold text-on-surface">Trade Category Simulator</h2>
+            <p className="text-[11.5px] text-on-surface-variant mt-0.5">Test real-time wage take-home across trades.</p>
           </div>
 
           {/* Trade Category Selector */}
@@ -185,10 +185,10 @@ export default function Commission() {
                   setSelectedCategory(cat.name);
                   setSimPrice(cat.avgPrice);
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
                   selectedCategory === cat.name
-                    ? "bg-[#00288e] text-white shadow-2xs"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    ? "bg-primary text-on-primary shadow-2xs"
+                    : "bg-surface-container-low border border-outline-variant/60 text-on-surface hover:bg-surface-container"
                 }`}
               >
                 <span>{cat.icon}</span>
@@ -197,22 +197,22 @@ export default function Commission() {
             ))}
           </div>
 
-          <div className="space-y-2 pt-2 text-xs">
-            <div className="flex items-center justify-between py-2 border-b border-slate-100">
-              <span className="text-slate-500">Customer Invoice Value</span>
-              <span className="font-bold text-slate-900">₹{simVal}.00</span>
+          <div className="space-y-2 pt-1 text-xs">
+            <div className="flex items-center justify-between py-1.5 border-b border-outline-variant/40">
+              <span className="text-on-surface-variant">Customer Invoice Value</span>
+              <span className="font-bold text-on-surface">₹{simVal}.00</span>
             </div>
-            <div className="flex items-center justify-between py-2 border-b border-slate-100">
-              <span className="text-slate-500">Cooperative Retention ({current}%)</span>
-              <span className="font-bold text-emerald-700">₹{simCoop.toFixed(2)}</span>
+            <div className="flex items-center justify-between py-1.5 border-b border-outline-variant/40">
+              <span className="text-on-surface-variant">Cooperative Retention ({current}%)</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{simCoop.toFixed(2)}</span>
             </div>
-            <div className="flex items-center justify-between py-2 border-b border-slate-100">
-              <span className="text-slate-500">Welfare &amp; Insurance (5%)</span>
-              <span className="font-bold text-amber-700">₹{simWelfare.toFixed(2)}</span>
+            <div className="flex items-center justify-between py-1.5 border-b border-outline-variant/40">
+              <span className="text-on-surface-variant">Welfare &amp; Insurance (5%)</span>
+              <span className="font-bold text-amber-600 dark:text-amber-400">₹{simWelfare.toFixed(2)}</span>
             </div>
-            <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-emerald-50 border border-emerald-200">
-              <span className="font-bold text-emerald-900">Worker Net Take-Home</span>
-              <span className="text-base font-black text-emerald-700">₹{simWorker.toFixed(2)}</span>
+            <div className="flex items-center justify-between py-2.5 px-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <span className="font-bold text-emerald-700 dark:text-emerald-300">Worker Net Take-Home</span>
+              <span className="text-base font-black text-emerald-600 dark:text-emerald-400">₹{simWorker.toFixed(2)}</span>
             </div>
           </div>
         </div>

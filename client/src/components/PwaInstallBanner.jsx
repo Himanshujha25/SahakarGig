@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Download, X, Handshake, Smartphone } from 'lucide-react';
 
 // Detect iOS — Safari on iOS never fires beforeinstallprompt
@@ -14,11 +14,15 @@ export default function PwaInstallBanner() {
   const [showBanner, setShowBanner] = useState(false);
   const [isIosDevice, setIsIosDevice] = useState(false);
 
+  const dismissedRef = useRef(!!localStorage.getItem('sg_pwa_dismissed'));
+  const showRef = useRef(false);
+  useEffect(() => { showRef.current = showBanner; }, [showBanner]);
+
   useEffect(() => {
     // Don't show if already installed as PWA
     if (isInStandaloneMode()) return;
     // Don't show if user previously dismissed
-    if (localStorage.getItem('sg_pwa_dismissed')) return;
+    if (dismissedRef.current) return;
 
     const ios = isIos();
     setIsIosDevice(ios);
@@ -39,13 +43,28 @@ export default function PwaInstallBanner() {
 
     // Fallback: show after 4 s if the event never fired (dev mode, already prompted, etc.)
     const fallback = setTimeout(() => {
-      if (!localStorage.getItem('sg_pwa_dismissed')) setShowBanner(true);
+      if (!dismissedRef.current) setShowBanner(true);
     }, 4000);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
       clearTimeout(fallback);
     };
+  }, []);
+
+  // Auto-hide once the user scrolls into the page (never covers bottom content
+  // like the bookings pagination / last card); reappears near the top.
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY || document.documentElement.scrollTop;
+      if (y > 160) {
+        if (showRef.current) setShowBanner(false);
+      } else if (!showRef.current && !dismissedRef.current) {
+        setShowBanner(true);
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   const handleInstall = async () => {
@@ -68,14 +87,15 @@ export default function PwaInstallBanner() {
 
   const handleDismiss = () => {
     setShowBanner(false);
+    dismissedRef.current = true;
     localStorage.setItem('sg_pwa_dismissed', 'true');
   };
 
   if (!showBanner) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-6 z-40 max-w-md bg-white border border-[#00288e]/20 rounded-2xl shadow-[0_8px_30px_rgba(0,40,142,0.18)] p-4 flex items-center gap-3 animate-slide-up">
-      <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center text-white shrink-0 shadow-md">
+    <div className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-6 z-40 max-w-md bg-surface border border-primary/20 rounded-2xl shadow-[0_8px_30px_rgba(0,40,142,0.15)] p-4 flex items-center gap-3 animate-slide-up">
+      <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center text-on-primary shrink-0 shadow-md">
         <Handshake size={20} strokeWidth={2.5} />
       </div>
 
@@ -95,7 +115,7 @@ export default function PwaInstallBanner() {
         <button
           id="pwa-install-btn"
           onClick={handleInstall}
-          className="px-3 py-1.5 rounded-xl border border-primary/25 bg-[#e8edff] text-[#00288e] text-[12px] font-bold hover:border-primary hover:bg-[#d7e3ff] hover:shadow-[0_3px_10px_rgba(0,40,142,0.18)] flex items-center gap-1 active:scale-[0.98] transition-all duration-200"
+          className="px-3 py-1.5 rounded-xl border border-primary/25 bg-primary-container/60 text-primary text-[12px] font-bold hover:border-primary hover:bg-primary-container hover:shadow-[0_3px_10px_rgba(0,40,142,0.18)] flex items-center gap-1 active:scale-[0.98] transition-all duration-200"
         >
           <Download size={13} />
           {isIosDevice ? 'How?' : 'Install'}

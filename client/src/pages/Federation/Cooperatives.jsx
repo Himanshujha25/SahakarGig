@@ -54,6 +54,30 @@ export default function FederationCooperatives() {
     setTimeout(() => setToastMsg(""), 4000);
   }
 
+  function exportReport() {
+    const rows = [
+      ["Cooperative Name", "Registration ID", "Region", "Status", "Providers", "Bookings", "Commission Rate"],
+      ...coops.map((c) => [
+        c.name || "",
+        c.registrationId || "",
+        c.region || "Delhi NCR",
+        c.status || "active",
+        c.providers || 0,
+        c.bookings || 0,
+        `${c.commissionRate || 8}%`,
+      ]),
+    ];
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.map(x => `"${x}"`).join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `cooperatives_directory_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Directory report exported as CSV.");
+  }
+
   // Register New Cooperative
   async function handleRegister(e) {
     e.preventDefault();
@@ -173,71 +197,152 @@ export default function FederationCooperatives() {
         </div>
       )}
 
-      {/* Header & Main Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-outline-variant pb-5">
+      {/* ── HEADER & ACTIONS ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/60 pb-3">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-1">
-            <Building2 size={16} />
-            <span>Federation Governance</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+              Cooperative Societies Directory
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
+              {coops.length} Registered
+            </span>
           </div>
-          <h1 className="font-heading text-2xl lg:text-3xl font-bold text-on-surface">
-            Cooperative Societies Directory
-          </h1>
-          <p className="text-sm text-on-surface-variant mt-0.5">
-            Register new primary cooperatives, monitor institutional KPIs, and manage member onboarding.
+          <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
+            Register primary cooperatives, monitor institutional KPIs, and manage member onboarding.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1.5 flex-wrap self-start sm:self-auto">
           <button
-            onClick={downloadKpiReport}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-outline-variant bg-surface text-xs font-bold text-on-surface hover:bg-surface-container-low transition-all cursor-pointer"
-            title="Download monthly KPI report"
+            onClick={exportReport}
+            className="px-3 py-1.5 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
           >
-            <Download size={14} />
-            <span>Export KPI Report</span>
+            <Download size={13} className="text-primary" />
+            <span>Export Report</span>
           </button>
           <button
             onClick={() => setLinkOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-primary/30 bg-[#e8edff] text-[#00288e] text-xs font-bold hover:bg-[#d7e3ff] transition-all cursor-pointer"
+            className="px-3 py-1.5 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
           >
-            <Link2 size={14} />
-            <span>Link Existing Coop</span>
+            <Link2 size={13} className="text-primary" />
+            <span>Link Coop</span>
           </button>
           <button
             onClick={() => setRegisterOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-on-primary font-heading text-xs font-bold hover:shadow-lg active:scale-95 transition-all cursor-pointer"
+            className="px-3.5 py-1.5 rounded-xl bg-primary hover:opacity-90 text-on-primary text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-98"
           >
-            <Plus size={15} strokeWidth={2.5} />
-            <span>Register New Cooperative</span>
+            <Plus size={14} strokeWidth={2.5} />
+            <span>Register New</span>
           </button>
         </div>
       </div>
 
-      {/* Search & Statistics */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+      {/* ── Search & Statistics ── */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
         <div className="flex items-center gap-2 text-xs font-bold text-on-surface-variant">
           <span>{coops.length} Total Societies</span>
-          <span>·</span>
-          <span className="text-[#006d30]">{coops.filter((c) => c.status !== "suspended").length} Active</span>
-          <span>·</span>
-          <span className="text-error">{coops.filter((c) => c.status === "suspended").length} Suspended</span>
+          <span>&middot;</span>
+          <span className="text-emerald-600 dark:text-emerald-400">{coops.filter((c) => c.status !== "suspended").length} Active</span>
+          <span>&middot;</span>
+          <span className="text-rose-600 dark:text-rose-400">{coops.filter((c) => c.status === "suspended").length} Suspended</span>
         </div>
 
         <div className="relative w-full sm:w-72">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search cooperative by name, reg ID..."
-            className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface text-xs font-semibold text-on-surface outline-none focus:border-primary"
+            className="w-full h-9 pl-8 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-medium text-on-surface outline-none focus:border-primary shadow-2xs"
           />
         </div>
       </div>
 
-      {/* Cooperatives Table */}
-      <div className="rounded-2xl border border-outline-variant bg-surface overflow-hidden shadow-xs">
+      {/* ── MOBILE SOCIETY CARDS VIEW (< 768px) ── */}
+      <div className="md:hidden space-y-2.5">
+        {loading ? (
+          <div className="p-8 text-center text-xs text-on-surface-variant">
+            <RefreshCw size={22} className="animate-spin mx-auto text-primary mb-2" />
+            Loading societies...
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-8 rounded-2xl border border-dashed border-outline-variant text-center text-xs text-on-surface-variant bg-surface">
+            No cooperatives found. Click &quot;Register New&quot; to onboard.
+          </div>
+        ) : (
+          filtered.map((c) => {
+            const isSuspended = c.status === "suspended";
+            return (
+              <div
+                key={c._id}
+                onClick={() => navigate(`/federation/cooperatives/${c._id}`)}
+                className="p-3.5 rounded-2xl border border-outline-variant/60 bg-surface space-y-2.5 shadow-2xs cursor-pointer hover:border-primary/40 transition-all"
+              >
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
+                      <Building2 size={16} />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <h3 className="text-sm font-bold text-on-surface truncate">{c.name}</h3>
+                      <p className="text-[11px] text-on-surface-variant truncate font-medium">
+                        {c.contactEmail || c.adminId?.email || "Admin Configured"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="inline-block font-mono text-[11px] font-bold text-primary px-2 py-0.5 rounded-md bg-primary/10 shrink-0">
+                    {c.registrationId || "DL-COOP-01"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-outline-variant/40 text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {isSuspended ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 font-bold text-[10px]">
+                        <XCircle size={11} /> Suspended
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold text-[10px]">
+                        <ShieldCheck size={11} /> Active &middot; {c.providerCount || 0} Members
+                      </span>
+                    )}
+                    <span className="text-[11px] text-on-surface-variant font-medium">
+                      {c.region || "Delhi"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={(e) => openInvite(c, e)}
+                      className="p-1.5 rounded-lg border border-outline-variant bg-surface-container-low text-primary hover:bg-surface-container transition-all cursor-pointer"
+                      title="Invite link"
+                    >
+                      <Share2 size={12} />
+                    </button>
+                    <button
+                      onClick={(e) => toggleStatus(c, e)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                        isSuspended
+                          ? "bg-emerald-600 text-white"
+                          : "border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10"
+                      }`}
+                    >
+                      {isSuspended ? "Activate" : "Suspend"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ── DESKTOP COOPERATIVES TABLE (>= 768px) ── */}
+      <div className="hidden md:block rounded-2xl border border-outline-variant bg-surface overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[750px]">
             <thead>

@@ -178,9 +178,13 @@ async function updateProfile(req, res) {
   res.json(p);
 }
 
+const { uploadMedia } = require('../lib/cloudinary');
+
 async function uploadDoc(req, res) {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-  const fileUrl = `/uploads/${req.file.filename}`;
+  const cloudRes = await uploadMedia(req.file.path || req.file.buffer, { folder: 'sahakargig/docs' });
+  const fileUrl = cloudRes.url || `/uploads/${req.file.filename}`;
+
   const p = await Provider.findOneAndUpdate(
     { _id: req.params.id, userId: req.user.userId },
     { $push: { documents: fileUrl } },
@@ -192,10 +196,12 @@ async function uploadDoc(req, res) {
 
 async function uploadAvatar(req, res) {
   if (!req.file) return res.status(400).json({ message: 'No image uploaded' });
-  const avatarUrl = `/uploads/${req.file.filename}`;
+  const cloudRes = await uploadMedia(req.file.path || req.file.buffer, { folder: 'sahakargig/avatars' });
+  const avatarUrl = cloudRes.url || `/uploads/${req.file.filename}`;
+
   const p = await Provider.findOneAndUpdate(
     { _id: req.params.id, userId: req.user.userId },
-    { avatar: avatarUrl },
+    { avatar: avatarUrl, avatarUrl },
     { new: true }
   );
   if (!p) return res.status(404).json({ message: 'Provider not found' });
@@ -212,18 +218,23 @@ async function uploadAvatarBase64(req, res) {
   const user = await User.findById(req.user.userId);
   if (!user) return res.status(404).json({ message: 'User not found' });
 
-  user.avatarUrl = avatar;
-  user.profileImage = avatar;
-  await user.save();
-  await Provider.findOneAndUpdate({ userId: user._id }, { avatar, avatarUrl: avatar }, { new: true });
+  // Upload to Cloudinary CDN with automatic WebP compression
+  const cloudRes = await uploadMedia(avatar, { folder: 'sahakargig/avatars' });
+  const avatarUrl = cloudRes.url || avatar;
 
-  res.json({ success: true, avatarUrl: avatar, message: 'Photo saved successfully.' });
+  user.avatarUrl = avatarUrl;
+  user.profileImage = avatarUrl;
+  await user.save();
+  await Provider.findOneAndUpdate({ userId: user._id }, { avatar: avatarUrl, avatarUrl }, { new: true });
+
+  res.json({ success: true, avatarUrl, message: 'Photo optimized and saved to Cloudinary CDN successfully.' });
 }
 
 async function uploadAvatarFile(req, res) {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
-  const avatarUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+  const cloudRes = await uploadMedia(req.file.path || req.file.buffer, { folder: 'sahakargig/avatars' });
+  const avatarUrl = cloudRes.url || `http://localhost:5000/uploads/${req.file.filename}`;
 
   const User = require('../models/User');
   const user = await User.findById(req.user.userId);
@@ -234,7 +245,7 @@ async function uploadAvatarFile(req, res) {
   await user.save();
   await Provider.findOneAndUpdate({ userId: user._id }, { avatar: avatarUrl, avatarUrl }, { new: true });
 
-  res.json({ success: true, avatarUrl, message: 'Image uploaded to disk via Multer successfully.' });
+  res.json({ success: true, avatarUrl, message: 'Image uploaded and optimized on Cloudinary CDN successfully.' });
 }
 
 async function inviteWorker(req, res) {

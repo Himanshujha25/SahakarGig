@@ -3,7 +3,7 @@ import api from "../../lib/api";
 import {
   AlertTriangle, CheckCircle2, XCircle, ShieldAlert, MessageSquare,
   Search, RefreshCw, User, Users, IndianRupee, Clock, ArrowRight,
-  BadgeAlert, ArrowUpRight, Scale, X, Send, CornerUpRight
+  BadgeAlert, ArrowUpRight, Scale, X, Send, CornerUpRight, ChevronDown
 } from "lucide-react";
 
 export default function FederationDisputes() {
@@ -109,33 +109,51 @@ export default function FederationDisputes() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-outline-variant pb-5">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-1">
-            <Scale size={16} />
-            <span>Appellate Tribunal &amp; Arbitration</span>
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between gap-3 border-b border-outline-variant/60 pb-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+              Dispute Resolution Center
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
+              {disputes.length} Disputes
+            </span>
           </div>
-          <h1 className="font-heading text-2xl lg:text-3xl font-bold text-on-surface">
-            Dispute Resolution Center
-          </h1>
-          <p className="text-sm text-on-surface-variant mt-0.5">
+          <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
             Fair cooperative arbitration for service quality issues, escrow refunds, and worker penalties.
           </p>
         </div>
 
         <button
           onClick={load}
-          className="p-2 rounded-xl border border-outline-variant text-on-surface hover:bg-surface-container transition-colors cursor-pointer self-start sm:self-auto"
+          className="p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-low text-on-surface hover:bg-surface-container transition-colors cursor-pointer shadow-2xs shrink-0"
           title="Refresh disputes"
         >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
 
-      {/* Tabs & Search */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 w-full sm:w-auto">
+      {/* ── Tabs & Search (Dropdown on Mobile, Pills on Desktop) ── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+        {/* Mobile Dropdown Select (< 640px) */}
+        <div className="sm:hidden relative w-full">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="w-full h-10 px-3.5 pr-8 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-bold text-on-surface outline-none focus:border-primary shadow-2xs appearance-none"
+          >
+            <option value="all">All Disputes ({disputes.length})</option>
+            <option value="open">Open &amp; Unassigned</option>
+            <option value="investigating">Under Investigation</option>
+            <option value="resolved">Resolved / Arbitrated</option>
+            <option value="escalated">Escalated to Ministry</option>
+          </select>
+          <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+        </div>
+
+        {/* Desktop Segmented Pill Tabs (>= 640px) */}
+        <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {[
             { key: "all", label: "All Disputes" },
             { key: "open", label: "Open & Unassigned" },
@@ -146,10 +164,10 @@ export default function FederationDisputes() {
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 filter === tab.key
-                  ? "bg-[#e8edff] text-[#00288e] border border-[#00288e]/30 shadow-2xs"
-                  : "text-on-surface-variant hover:bg-surface-container-low"
+                  ? "bg-primary text-on-primary shadow-2xs"
+                  : "text-on-surface-variant hover:bg-surface-container border border-outline-variant/40"
               }`}
             >
               <span>{tab.label}</span>
@@ -158,19 +176,107 @@ export default function FederationDisputes() {
         </div>
 
         <div className="relative w-full sm:w-72">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search dispute, customer, worker..."
-            className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface text-xs font-semibold text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="w-full h-9 pl-8 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-medium text-on-surface outline-none focus:border-primary shadow-2xs"
           />
         </div>
       </div>
 
-      {/* Disputes Table */}
-      <div className="rounded-2xl border border-outline-variant bg-surface overflow-hidden shadow-xs">
+      {/* ── MOBILE DISPUTES CARDS (< 768px) ── */}
+      <div className="md:hidden space-y-2.5">
+        {loading ? (
+          <div className="p-8 text-center text-xs text-on-surface-variant">
+            <RefreshCw size={22} className="animate-spin mx-auto text-primary mb-2" />
+            Loading disputes...
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-8 rounded-2xl border border-dashed border-outline-variant text-center text-xs text-on-surface-variant bg-surface">
+            <ShieldAlert size={32} className="mx-auto text-emerald-500 mb-1.5" />
+            <p className="font-bold text-on-surface">Zero active disputes in this queue</p>
+            <p className="text-[11px] text-on-surface-variant mt-0.5">Cooperative fulfillment is operating with high trust index.</p>
+          </div>
+        ) : (
+          filtered.map((d) => {
+            const resStatus = d.disputeResolution?.status || (d.status === "disputed" ? "open" : "resolved");
+            return (
+              <div
+                key={d._id}
+                className="p-3.5 rounded-2xl border border-outline-variant/60 bg-surface space-y-2.5 shadow-2xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-xs font-bold text-primary">
+                        #{d._id.slice(-6).toUpperCase()}
+                      </span>
+                      <span className="text-xs font-bold text-on-surface">
+                        &middot; {d.service || d.targetCategory}
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                      ₹{d.price || 250} Escrow Protected
+                    </p>
+                  </div>
+
+                  {resStatus === "open" ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-[10px] border border-rose-500/20">
+                      <BadgeAlert size={11} /> Open
+                    </span>
+                  ) : resStatus === "investigating" ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] border border-amber-500/20">
+                      Investigating
+                    </span>
+                  ) : resStatus === "escalated" ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-[10px] border border-purple-500/20">
+                      Escalated
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] border border-emerald-500/20">
+                      Resolved
+                    </span>
+                  )}
+                </div>
+
+                {/* Parties Details */}
+                <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-1 text-xs">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-on-surface-variant">Customer:</span>
+                    <span className="font-bold text-on-surface">{d.householdId?.name || "Customer"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-on-surface-variant">Worker:</span>
+                    <span className="font-bold text-on-surface">{d.providerId?.userId?.name || "Worker"} ({d.cooperativeId?.name || "Society"})</span>
+                  </div>
+                </div>
+
+                {/* Issue reason */}
+                <p className="text-[11.5px] text-on-surface font-medium line-clamp-2">
+                  <strong className="text-on-surface-variant">Issue:</strong> {d.issue || d.disputeCategory || "Work quality issue"}
+                </p>
+
+                {/* Action button */}
+                <div className="pt-2 border-t border-outline-variant/40 flex justify-end">
+                  <button
+                    onClick={() => openDetail(d)}
+                    className="w-full sm:w-auto px-3.5 py-1.5 rounded-xl bg-primary text-on-primary text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 shadow-2xs active:scale-98"
+                  >
+                    <span>Review &amp; Arbitrate</span>
+                    <ArrowRight size={13} />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ── DESKTOP DISPUTES TABLE (>= 768px) ── */}
+      <div className="hidden md:block rounded-2xl border border-outline-variant bg-surface overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[750px]">
             <thead>
@@ -263,48 +369,48 @@ export default function FederationDisputes() {
 
       {/* ── Dispute Detail & Arbitration Decision Modal ── */}
       {selectedDispute && (
-        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setSelectedDispute(null)}>
-          <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-surface border border-outline-variant rounded-3xl shadow-2xl p-6 lg:p-8 space-y-6 animate-scale-in" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-outline-variant pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-error-container text-on-error-container flex items-center justify-center font-bold">
-                  <Scale size={20} />
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4" onClick={() => setSelectedDispute(null)}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-surface border border-outline-variant rounded-3xl shadow-2xl p-4 sm:p-6 space-y-4 animate-scale-in" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-outline-variant/60 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-error-container text-on-error-container flex items-center justify-center font-bold">
+                  <Scale size={18} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-on-surface">Arbitration Tribunal — Dispute #{selectedDispute._id.slice(-6).toUpperCase()}</h2>
-                  <p className="text-xs text-on-surface-variant">Service: {selectedDispute.service} · Escrow Value: ₹{selectedDispute.price}</p>
+                  <h2 className="text-sm sm:text-base font-bold text-on-surface">Arbitration Tribunal &middot; #{selectedDispute._id.slice(-6).toUpperCase()}</h2>
+                  <p className="text-[11px] text-on-surface-variant">Escrow Value: ₹{selectedDispute.price} &middot; {selectedDispute.service}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedDispute(null)} className="p-2 rounded-xl text-on-surface-variant hover:bg-surface-container cursor-pointer">
-                <X size={18} />
+              <button onClick={() => setSelectedDispute(null)} className="p-1.5 rounded-xl text-on-surface-variant hover:bg-surface-container cursor-pointer">
+                <X size={16} />
               </button>
             </div>
 
             {/* Parties Info Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/60 space-y-1">
-                <span className="text-[11px] font-bold uppercase text-on-surface-variant">Household Customer</span>
-                <p className="text-sm font-bold text-on-surface">{selectedDispute.householdId?.name || "Customer"}</p>
-                <p className="text-xs text-on-surface-variant">{selectedDispute.householdId?.phone || selectedDispute.householdId?.email}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/60 space-y-0.5">
+                <span className="text-[10px] font-bold uppercase text-on-surface-variant">Household Customer</span>
+                <p className="text-xs font-bold text-on-surface">{selectedDispute.householdId?.name || "Customer"}</p>
+                <p className="text-[11px] text-on-surface-variant">{selectedDispute.householdId?.phone || selectedDispute.householdId?.email}</p>
               </div>
-              <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/60 space-y-1">
-                <span className="text-[11px] font-bold uppercase text-on-surface-variant">Service Provider</span>
-                <p className="text-sm font-bold text-on-surface">{selectedDispute.providerId?.userId?.name || "Worker"}</p>
-                <p className="text-xs text-primary">{selectedDispute.cooperativeId?.name || "Cooperative Society"}</p>
+              <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/60 space-y-0.5">
+                <span className="text-[10px] font-bold uppercase text-on-surface-variant">Service Provider</span>
+                <p className="text-xs font-bold text-on-surface">{selectedDispute.providerId?.userId?.name || "Worker"}</p>
+                <p className="text-[11px] text-primary">{selectedDispute.cooperativeId?.name || "Cooperative Society"}</p>
               </div>
             </div>
 
             {/* Dispute Complaint Details & Evidence */}
-            <div className="p-4 rounded-2xl bg-error/5 border border-error/20 space-y-2">
-              <span className="text-xs font-bold text-error uppercase tracking-wider flex items-center gap-1.5">
-                <AlertTriangle size={14} /> Claimed Issue / Reason
+            <div className="p-3 rounded-xl bg-rose-500/5 border border-rose-500/20 space-y-1">
+              <span className="text-[10.5px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider flex items-center gap-1">
+                <AlertTriangle size={12} /> Claimed Issue / Reason
               </span>
-              <p className="text-sm font-semibold text-on-surface">
+              <p className="text-xs font-semibold text-on-surface">
                 {selectedDispute.issue || selectedDispute.disputeCategory || "Work not completed as promised"}
               </p>
               {selectedDispute.disputeEvidence?.length > 0 && (
-                <div className="pt-2 border-t border-error/10 flex items-center gap-2">
-                  <span className="text-xs font-bold text-on-surface-variant">Uploaded Evidence:</span>
+                <div className="pt-1.5 border-t border-rose-500/10 flex items-center gap-2">
+                  <span className="text-[10.5px] font-bold text-on-surface-variant">Evidence:</span>
                   {selectedDispute.disputeEvidence.map((url, idx) => (
                     <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs font-bold text-primary underline">
                       Evidence #{idx + 1}
@@ -314,40 +420,23 @@ export default function FederationDisputes() {
               )}
             </div>
 
-            {/* Chat History Snippet */}
-            {selectedDispute.chat?.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
-                  <MessageSquare size={13} /> In-Booking Communication Log ({selectedDispute.chat.length} messages)
-                </span>
-                <div className="p-3 max-h-36 overflow-y-auto rounded-xl bg-surface-container-lowest border border-outline-variant space-y-2 text-xs">
-                  {selectedDispute.chat.map((c, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <span className="font-bold text-primary shrink-0">{c.sender?.name || "User"}:</span>
-                      <span className="text-on-surface">{c.message}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Arbitration Decision Form */}
-            <form onSubmit={handleArbitrationSubmit} className="space-y-4 border-t border-outline-variant pt-4">
-              <span className="text-sm font-bold text-on-surface block">Federation Arbitration Verdict</span>
+            <form onSubmit={handleArbitrationSubmit} className="space-y-3 border-t border-outline-variant/60 pt-3 text-xs">
+              <span className="text-xs font-bold text-on-surface block">Arbitration Verdict &amp; Escrow Resolution</span>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[
-                  { key: "refund_household", label: "Full / Partial Refund to Customer", desc: "Refund escrow payment back to customer wallet/card" },
+                  { key: "refund_household", label: "Full / Partial Refund to Customer", desc: "Refund escrow back to customer wallet/card" },
                   { key: "release_provider", label: "Release Escrow to Provider", desc: "Dismiss dispute, pay worker with full earnings" },
-                  { key: "penalty_provider", label: "Apply Penalty to Worker", desc: "Deduct penalty fee and record warning on trust score" },
+                  { key: "penalty_provider", label: "Apply Penalty to Worker", desc: "Deduct penalty fee and record warning" },
                   { key: "warning", label: "Mutual Resolution & Warning", desc: "Mark resolved with formal warning notice" },
                 ].map((opt) => (
                   <label
                     key={opt.key}
-                    className={`p-3.5 rounded-2xl border text-left cursor-pointer transition-all ${
+                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                       selectedDecision === opt.key
-                        ? "border-primary bg-primary-container text-on-primary-container ring-1 ring-primary"
-                        : "border-outline-variant bg-surface hover:bg-surface-container-low"
+                        ? "border-primary bg-primary/10 text-primary ring-1 ring-primary"
+                        : "border-outline-variant/60 bg-surface-container-low hover:bg-surface-container"
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -358,22 +447,22 @@ export default function FederationDisputes() {
                         onChange={() => setSelectedDecision(opt.key)}
                         className="accent-primary"
                       />
-                      <span className="text-xs font-bold">{opt.label}</span>
+                      <span className="text-[11.5px] font-bold">{opt.label}</span>
                     </div>
-                    <p className="text-[11px] text-on-surface-variant mt-1 ml-5">{opt.desc}</p>
+                    <p className="text-[10px] text-on-surface-variant mt-0.5 ml-5">{opt.desc}</p>
                   </label>
                 ))}
               </div>
 
               {selectedDecision === "refund_household" && (
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant">Refund Amount (₹)</label>
+                  <label className="text-[11px] font-bold text-on-surface-variant">Refund Amount (₹)</label>
                   <input
                     type="number"
                     value={refundAmount}
                     onChange={(e) => setRefundAmount(e.target.value)}
                     max={selectedDispute.price}
-                    className="w-full h-10 px-3.5 rounded-xl border border-outline-variant bg-surface text-xs font-bold text-on-surface outline-none focus:border-primary"
+                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-bold text-on-surface outline-none focus:border-primary"
                     required
                   />
                 </div>
@@ -381,53 +470,53 @@ export default function FederationDisputes() {
 
               {selectedDecision === "penalty_provider" && (
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant">Penalty Amount (₹)</label>
+                  <label className="text-[11px] font-bold text-on-surface-variant">Penalty Amount (₹)</label>
                   <input
                     type="number"
                     value={penaltyAmount}
                     onChange={(e) => setPenaltyAmount(e.target.value)}
-                    className="w-full h-10 px-3.5 rounded-xl border border-outline-variant bg-surface text-xs font-bold text-on-surface outline-none focus:border-primary"
+                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-bold text-on-surface outline-none focus:border-primary"
                     required
                   />
                 </div>
               )}
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-on-surface-variant">Arbitration Reason &amp; Order Notes</label>
+                <label className="text-[11px] font-bold text-on-surface-variant">Arbitration Reason &amp; Order Notes</label>
                 <textarea
                   value={decisionNotes}
                   onChange={(e) => setDecisionNotes(e.target.value)}
-                  rows={3}
+                  rows={2}
                   placeholder="State the regulatory basis and order details for this decision..."
-                  className="w-full p-3 rounded-xl border border-outline-variant bg-surface text-xs text-on-surface outline-none focus:border-primary font-medium"
+                  className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-container-low text-xs text-on-surface outline-none focus:border-primary font-medium resize-none"
                   required
                 />
               </div>
 
-              <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center justify-between pt-2 border-t border-outline-variant/60 flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={handleEscalate}
                   disabled={actionBusy}
-                  className="px-4 py-2.5 rounded-xl border border-purple-300 bg-purple-50 text-purple-900 text-xs font-bold hover:bg-purple-100 transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300 text-xs font-bold hover:bg-purple-500/20 transition-all cursor-pointer flex items-center gap-1"
                 >
-                  <CornerUpRight size={14} /> Escalate to Super-Admin
+                  <CornerUpRight size={13} /> Escalate
                 </button>
 
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setSelectedDispute(null)}
-                    className="px-4 py-2.5 rounded-xl border border-outline-variant text-xs font-bold text-on-surface hover:bg-surface-container cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl border border-outline-variant text-xs font-bold text-on-surface hover:bg-surface-container cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={actionBusy}
-                    className="px-5 py-2.5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:shadow-lg transition-all cursor-pointer disabled:opacity-50"
+                    className="px-4 py-1.5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:opacity-90 transition-all cursor-pointer shadow-2xs disabled:opacity-50"
                   >
-                    {actionBusy ? "Executing Decision…" : "Execute Arbitration Order"}
+                    {actionBusy ? "Executing…" : "Execute Order"}
                   </button>
                 </div>
               </div>

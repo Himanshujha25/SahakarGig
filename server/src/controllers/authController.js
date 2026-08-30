@@ -7,6 +7,7 @@ const Provider = require('../models/Provider');
 const Federation = require('../models/Federation');
 const { signToken } = require('../utils/helpers');
 const { sendOtpEmail } = require('../utils/email');
+const { uploadMedia } = require('../lib/cloudinary');
 
 const OTP_TTL_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
@@ -65,6 +66,32 @@ async function verifyOtp(email, code, purpose) {
 }
 
 
+async function googleAuth(req, res) {
+  const { email, name, avatarUrl, googleId } = req.body;
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail || !EMAIL_RE.test(normalizedEmail)) {
+    return res.status(400).json({ message: 'Valid Google email is required.' });
+  }
+
+  let user = await User.findOne({ email: normalizedEmail });
+  if (!user) {
+    // Instant frictionless household creation with Google identity
+    const randomPass = crypto.randomBytes(16).toString('hex');
+    const passwordHash = await bcrypt.hash(randomPass, 10);
+    user = await User.create({
+      name: String(name || normalizedEmail.split('@')[0] || 'Google User').trim(),
+      email: normalizedEmail,
+      passwordHash,
+      role: 'Household',
+      avatarUrl: avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      emailVerified: true,
+    });
+  }
+
+  const token = signToken(user);
+  res.json({ token, user: publicUser(user) });
+}
+
 async function signup(req, res) {
   const {
     name, phone, email, password, role, address, geoLocation,
@@ -97,6 +124,7 @@ async function signup(req, res) {
   try {
     user = await User.create({
       name: String(name || '').trim(), phone, email: normalizedEmail, passwordHash, role, address, geoLocation,
+      avatarUrl: req.body.avatarUrl || '',
       emailVerified: true, // only ever true here — proven by the confirmed signup OTP
     });
   } catch (e) {
@@ -126,12 +154,35 @@ async function signup(req, res) {
   }
 
   if (role === 'Cooperative Admin') {
+    const coopName = cooperative?.name || req.body.coopName || `${name}'s Cooperative`;
+    const regId = cooperative?.registrationId || req.body.registrationId || `MSCS-${Date.now()}`;
+    const region = cooperative?.region || req.body.district || req.body.region || 'Delhi NCR';
+    const state = req.body.state || cooperative?.state || 'Delhi';
+    const district = req.body.district || cooperative?.district || '';
+    const addressStr = req.body.address || cooperative?.address || '';
+    const presidentName = req.body.presidentName || cooperative?.presidentName || name;
+    const sector = req.body.sector || cooperative?.sector || 'Gig & Domestic Labor Services';
+    const memberCount = Number(req.body.memberCount) || 25;
+    const payoutBank = req.body.payoutBank || {};
+    const documents = Array.isArray(req.body.documents) ? req.body.documents : [];
+
     await Cooperative.create({
-      name: cooperative?.name || `${name}'s Cooperative`,
-      registrationId: cooperative?.registrationId || `REG-${Date.now()}`,
-      region: cooperative?.region || '',
+      name: coopName,
+      registrationId: regId,
+      region,
+      district,
+      state,
+      address: addressStr,
+      contactEmail: normalizedEmail,
+      contactPhone: phone || '',
+      presidentName,
+      sector,
+      memberCount,
+      payoutBank,
       adminId: user._id,
       commissionRate: cooperative?.commissionRate || 8,
+      status: 'pending',
+      documents,
     });
   }
 
@@ -139,7 +190,50 @@ async function signup(req, res) {
     if (!cooperativeId) return res.status(400).json({ message: 'Provider must select a cooperative' });
     const coop = await Cooperative.findById(cooperativeId);
     if (!coop) return res.status(400).json({ message: 'Cooperative not found' });
-    const provider = await Provider.create({ userId: user._id, cooperativeId, geoLocation });
+
+    const skills = Array.isArray(req.body.skills) && req.body.skills.length > 0 
+      ? req.body.skills 
+      : (req.body.primarySkill ? [req.body.primarySkill] : ['Electrician']);
+      
+    const hourlyRate = Number(req.body.hourlyRate) || 350;
+    const experienceYears = Number(req.body.experienceYears) || 1;
+    const bio = String(req.body.bio || '').trim();
+    const payoutUpi = String(req.body.payoutUpi || '').trim();
+    const addressStr = String(req.body.address || '').trim();
+    const avatar = String(req.body.avatar || req.body.avatarUrl || '').trim();
+    
+    // Normalize and persist submitted document details
+    const documentDetails = Array.isArray(req.body.documentDetails) 
+      ? req.body.documentDetails.map(d => ({
+          docType: d.docType || 'Document',
+          docNumber: d.docNumber || '',
+          docUrl: d.docUrl || '',
+          status: 'pending',
+          uploadedAt: new Date()
+        }))
+      : [];
+
+    const provider = await Provider.create({
+      userId: user._id,
+      cooperativeId,
+      skills,
+      hourlyRate,
+      experienceYears,
+      bio,
+      payoutUpi,
+      address: addressStr,
+      avatar,
+      geoLocation,
+      verified: false,
+      verificationStatus: 'pending',
+      documentDetails,
+      verificationHistory: [{
+        action: 'Application Submitted',
+        date: new Date(),
+        adminName: 'System',
+        notes: `Application registered under ${coop.name} with ${documentDetails.length} uploaded credentials.`
+      }]
+    });
     await Cooperative.findByIdAndUpdate(cooperativeId, { $push: { memberProviderIds: provider._id } });
   }
 
@@ -163,7 +257,25 @@ async function login(req, res) {
 async function me(req, res) {
   const user = await User.findById(req.user.userId).select('-passwordHash');
   if (!user) return res.status(404).json({ message: 'Account not found' });
-  res.json({ ...user.toObject(), id: user._id, emailVerified: !!user.emailVerified });
+
+  let extra = {};
+  if (user.role === 'Provider') {
+    const provider = await Provider.findOne({ userId: user._id }).populate('cooperativeId', 'name registrationId status');
+    if (provider) {
+      extra.provider = provider;
+      extra.verified = provider.verified;
+      extra.verificationStatus = provider.verificationStatus;
+      extra.cooperativeName = provider.cooperativeId?.name || '';
+    }
+  } else if (user.role === 'Cooperative Admin') {
+    const coop = await Cooperative.findOne({ adminId: user._id });
+    if (coop) {
+      extra.cooperative = coop;
+      extra.coopStatus = coop.status;
+    }
+  }
+
+  res.json({ ...user.toObject(), id: user._id, emailVerified: !!user.emailVerified, ...extra });
 }
 
 /* --------------------------- Update profile ----------------------------- */
@@ -175,7 +287,15 @@ async function updateMe(req, res) {
 
   if (name !== undefined && typeof name === 'string' && name.trim()) me.name = name.trim();
   if (phone !== undefined) me.phone = phone;
-  if (req.body.avatarUrl !== undefined) me.avatarUrl = String(req.body.avatarUrl).trim();
+  if (req.body.avatarUrl !== undefined) {
+    let finalAvatar = String(req.body.avatarUrl).trim();
+    if (finalAvatar.startsWith('data:image')) {
+      const cloudRes = await uploadMedia(finalAvatar, { folder: 'sahakargig/avatars' });
+      if (cloudRes.url) finalAvatar = cloudRes.url;
+    }
+    me.avatarUrl = finalAvatar;
+    me.profileImage = finalAvatar;
+  }
   if (req.body.bio !== undefined) me.bio = String(req.body.bio).trim();
   if (req.body.designation !== undefined) me.designation = String(req.body.designation).trim();
   if (req.body.location !== undefined) me.location = String(req.body.location).trim();
@@ -536,7 +656,7 @@ async function deleteFamily(req, res) {
 }
 
 module.exports = {
-  signup, login, me, updateMe,
+  signup, login, googleAuth, me, updateMe,
   sendOtp, resetPassword, changePassword, verifyEmail,
   forgotPasswordInitiate,
   listAddresses, addAddress, updateAddress, deleteAddress,

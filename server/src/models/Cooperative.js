@@ -7,8 +7,18 @@ const coopSchema = new mongoose.Schema(
     region: { type: String },
     district: { type: String },
     state: { type: String, default: 'Delhi' },
+    address: { type: String, default: '' },
     contactEmail: { type: String },
     contactPhone: { type: String },
+    presidentName: { type: String, default: '' },
+    sector: { type: String, default: 'Gig & Domestic Labor Services' },
+    memberCount: { type: Number, default: 25 },
+    payoutBank: {
+      accountNumber: String,
+      ifsc: String,
+      bankName: String,
+      holderName: String,
+    },
     adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     memberProviderIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Provider' }],
     commissionRate: { type: Number, default: 8 },
@@ -16,7 +26,7 @@ const coopSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ['active', 'pending', 'suspended'],
-      default: 'active',
+      default: 'pending',
     },
     statusReason: { type: String, default: '' },
     inviteCode: { type: String },
@@ -26,6 +36,13 @@ const coopSchema = new mongoose.Schema(
       url: { type: String },
       uploadedAt: { type: Date },
     },
+    documents: [
+      {
+        docType: { type: String }, // 'Registration Certificate', 'Society Bylaws', 'Society PAN Card'
+        docUrl: { type: String },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
     meetingMinutes: [
       {
         title: { type: String, required: true },

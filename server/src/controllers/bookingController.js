@@ -6,6 +6,7 @@ const Review = require('../models/Review');
 const { emitTo, broadcastAll } = require('../socket');
 const { haversine } = require('../utils/helpers');
 const notify = require('../utils/notify');
+const { uploadMedia } = require('../lib/cloudinary');
 
 const BROADCAST_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -190,7 +191,12 @@ async function getBooking(req, res) {
   if (!isHousehold && !provider && !isAdmin)
     return res.status(403).json({ message: 'Forbidden' });
 
-  res.json(b);
+  const obj = b.toObject();
+  // Provider should not see the raw completion OTP before completion
+  if (!isHousehold && !isAdmin && b.status !== 'completed') {
+    delete obj.completionOtp;
+  }
+  res.json(obj);
 }
 
 async function householdBookings(req, res) {
@@ -214,7 +220,13 @@ async function providerBookings(req, res) {
     .sort('-createdAt')
     .skip((page - 1) * limit)
     .limit(limit);
-  res.json(b);
+
+  const sanitized = b.map((doc) => {
+    const obj = doc.toObject();
+    if (obj.status !== 'completed') delete obj.completionOtp;
+    return obj;
+  });
+  res.json(sanitized);
 }
 
 async function acceptBooking(req, res) {
@@ -233,27 +245,111 @@ async function acceptBooking(req, res) {
 }
 
 async function updateStatus(req, res) {
-  const { status } = req.body;
+  const { status, beforePhoto, startPhoto, beforeDescription, startDescription, afterPhoto, completionPhoto, afterDescription, completionDescription, otp } = req.body;
   const allowed = ['in-progress', 'completed'];
   if (!allowed.includes(status)) return res.status(400).json({ message: `Status must be one of: ${allowed.join(', ')}` });
+
   const b = await Booking.findById(req.params.id)
     .populate('householdId', 'name phone')
     .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } });
   if (!b) return res.status(404).json({ message: 'Not found' });
   const provider = await Provider.findOne({ userId: req.user.userId, _id: b.providerId });
   if (!provider) return res.status(403).json({ message: 'Forbidden' });
-  b.status = status;
-  await b.save();
-  await notify(b.householdId._id.toString(), 'booking_status', `Booking status: ${status}`, b._id);
-  emitTo(b.householdId._id.toString(), 'booking:updated', b);
-  emitTo(req.user.userId, 'booking:updated', b);
 
-  // Recurring series — auto-create the next occurrence after this one completes.
-  if (status === 'completed' && b.recurrence?.enabled && b.providerId) {
-    await spawnNextOccurrence(b);
+  // 1. WORK IN-PROGRESS TRANSITION: Requires Before Photo + Site Description
+  if (status === 'in-progress') {
+    const rawPhoto = beforePhoto || startPhoto;
+    const description = beforeDescription || startDescription;
+    if (!rawPhoto) {
+      return res.status(400).json({ message: 'Please upload an on-site photo before starting work.' });
+    }
+    if (!description || !description.trim()) {
+      return res.status(400).json({ message: 'Please provide a brief problem description or site diagnosis.' });
+    }
+
+    // Auto-upload photo to Cloudinary CDN for instant performance
+    const cloudRes = await uploadMedia(rawPhoto, { folder: 'sahakargig/proofs/before' });
+    const photo = cloudRes.url || rawPhoto;
+
+    // Generate secure 4-digit completion OTP for household verification
+    const generatedOtp = String(Math.floor(1000 + Math.random() * 9000));
+
+    b.startWorkProof = {
+      photo,
+      description: description.trim(),
+      startedAt: new Date(),
+    };
+    b.completionOtp = generatedOtp;
+    b.otpVerified = false;
+    b.status = 'in-progress';
+    await b.save();
+
+    await notify(
+      b.householdId._id.toString(),
+      'booking_otp',
+      `Worker started work. Your Job Completion OTP is ${generatedOtp}. Share this only after inspecting finished work.`,
+      b._id
+    );
+
+    // Socket emit to household with OTP
+    const hhPayload = b.toObject();
+    emitTo(b.householdId._id.toString(), 'booking:updated', hhPayload);
+
+    // Socket emit to provider (OTP hidden until customer shares it)
+    const provPayload = b.toObject();
+    delete provPayload.completionOtp;
+    emitTo(req.user.userId, 'booking:updated', provPayload);
+
+    return res.json(provPayload);
   }
 
-  res.json(b);
+  // 2. WORK COMPLETION TRANSITION: Requires After Photo + Resolution Notes + Customer OTP
+  if (status === 'completed') {
+    const rawPhoto = afterPhoto || completionPhoto;
+    const description = afterDescription || completionDescription;
+    if (!rawPhoto) {
+      return res.status(400).json({ message: 'Please upload a photo of the completed work / solved problem.' });
+    }
+    if (!otp || String(otp).trim().length < 4) {
+      return res.status(400).json({ message: 'Please enter the 4-digit customer verification OTP.' });
+    }
+
+    if (b.completionOtp && String(otp).trim() !== b.completionOtp) {
+      return res.status(400).json({
+        message: 'Invalid Completion OTP. Please enter the 4-digit code shown on the customer’s screen.',
+      });
+    }
+
+    // Auto-upload photo to Cloudinary CDN for instant performance
+    const cloudRes = await uploadMedia(rawPhoto, { folder: 'sahakargig/proofs/after' });
+    const photo = cloudRes.url || rawPhoto;
+
+    b.completionProof = {
+      photo,
+      description: (description && description.trim()) ? description.trim() : 'Work completed and verified on site.',
+      completedAt: new Date(),
+    };
+    b.otpVerified = true;
+    b.status = 'completed';
+    await b.save();
+
+    await notify(
+      b.householdId._id.toString(),
+      'booking_status',
+      'Service completed & OTP verified successfully! You can now rate and review.',
+      b._id
+    );
+
+    emitTo(b.householdId._id.toString(), 'booking:updated', b);
+    emitTo(req.user.userId, 'booking:updated', b);
+
+    // Recurring series — auto-create next occurrence after completion
+    if (b.recurrence?.enabled && b.providerId) {
+      await spawnNextOccurrence(b);
+    }
+
+    return res.json(b);
+  }
 }
 
 // Creates the next booking of a recurring series (same provider + service).
@@ -353,7 +449,17 @@ async function disputeBooking(req, res) {
   b.status = 'disputed';
   b.issue = reason;
   if (category) b.disputeCategory = category;
-  if (Array.isArray(evidence) && evidence.length) b.disputeEvidence = evidence.map((e) => String(e).slice(0, 2000));
+
+  if (Array.isArray(evidence) && evidence.length) {
+    const cloudEvidence = await Promise.all(
+      evidence.map(async (item) => {
+        const res = await uploadMedia(item, { folder: 'sahakargig/disputes' });
+        return res.url || item;
+      })
+    );
+    b.disputeEvidence = cloudEvidence;
+  }
+
   await b.save();
   const coop = await Cooperative.findById(b.cooperativeId);
   if (coop?.adminId) await notify(coop.adminId.toString(), 'dispute', 'A booking was disputed', b._id);

@@ -6,6 +6,10 @@ const providerSchema = new mongoose.Schema(
     cooperativeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cooperative', required: true },
     skills: [String],
     hourlyRate: { type: Number, default: 0 },
+    experienceYears: { type: Number, default: 1 },
+    bio: { type: String, default: '' },
+    payoutUpi: { type: String, default: '' },
+    address: { type: String, default: '' },
     verified: { type: Boolean, default: false },
     verificationStatus: {
       type: String,
@@ -17,7 +21,7 @@ const providerSchema = new mongoose.Schema(
     documents: [String],
     documentDetails: [
       {
-        docType: { type: String }, // 'Aadhaar Card', 'PAN Card', 'Skill Certificate', 'Trade License', 'e-Shram Card'
+        docType: { type: String }, // 'Aadhaar Card', 'PAN Card', 'Voter ID', 'Driving License', 'Skill Certificate', 'Trade License', 'Police Verification Certificate', 'e-Shram Card'
         docNumber: { type: String },
         docUrl: { type: String },
         uploadedAt: { type: Date, default: Date.now },
@@ -44,3 +48,4 @@ providerSchema.index({ cooperativeId: 1, trustScore: -1 });
 providerSchema.index({ userId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Provider', providerSchema);
+

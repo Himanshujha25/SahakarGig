@@ -23,6 +23,18 @@ export default function JobDetail() {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [providerUserId, setProviderUserId] = useState(null);
 
+  // Start Work Modal State (Before Photo + Diagnosis)
+  const [showStartModal, setShowStartModal] = useState(false);
+  const [beforePhotoPreview, setBeforePhotoPreview] = useState(null);
+  const [beforeDescription, setBeforeDescription] = useState("");
+  const [startWorkError, setStartWorkError] = useState(null);
+  const beforeFileInputRef = useRef(null);
+
+  // Complete Work Modal State (After Photo + Notes + OTP)
+  const [afterPhotoPreview, setAfterPhotoPreview] = useState(null);
+  const [afterDescription, setAfterDescription] = useState("");
+  const afterFileInputRef = useRef(null);
+
   // Discard / Escalation Modal State
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [discardCategory, setDiscardCategory] = useState("customer_unreachable");
@@ -105,14 +117,62 @@ export default function JobDetail() {
     }
   }
 
-  async function markInProgress() {
+  function handleBeforePhotoUpload(e) {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setStartWorkError("Image size must be under 5MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBeforePhotoPreview(reader.result);
+        setStartWorkError(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function handleAfterPhotoUpload(e) {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setOtpError("Image size must be under 5MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAfterPhotoPreview(reader.result);
+        setOtpError(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  async function submitStartWork(e) {
+    if (e) e.preventDefault();
+    if (!beforePhotoPreview) {
+      setStartWorkError("Please take or upload an on-site photo of the issue before starting.");
+      return;
+    }
+    if (!beforeDescription.trim()) {
+      setStartWorkError("Please enter a short description of the problem or site condition.");
+      return;
+    }
+
     setBusy(true);
+    setStartWorkError(null);
     try {
-      await api.patch(`/bookings/${id}/status`, { status: "in-progress" });
+      await api.patch(`/bookings/${id}/status`, {
+        status: "in-progress",
+        beforePhoto: beforePhotoPreview,
+        beforeDescription: beforeDescription.trim(),
+      });
+      setShowStartModal(false);
       await load();
+      alert("Work started successfully! A 4-digit verification OTP has been generated on the customer's device.");
     } catch (err) {
-      console.error("Failed to mark in-progress:", err);
-      alert(err?.response?.data?.message || "Failed to update status to In-Progress.");
+      setStartWorkError(err?.response?.data?.message || "Failed to start work. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -120,15 +180,28 @@ export default function JobDetail() {
 
   async function submitOtpCompletion(e) {
     if (e) e.preventDefault();
+    if (!afterPhotoPreview) {
+      setOtpError("Please take or upload a photo showing the completed work / solved problem.");
+      return;
+    }
+    if (!afterDescription.trim()) {
+      setOtpError("Please write a brief summary of the resolution work done.");
+      return;
+    }
     if (!otpCode || otpCode.length < 4) {
-      setOtpError("Please enter the complete 4-digit code provided by the customer.");
+      setOtpError("Please enter the complete 4-digit verification code provided by the customer.");
       return;
     }
 
     setBusy(true);
     setOtpError(null);
     try {
-      await api.patch(`/bookings/${id}/status`, { status: "completed", otp: otpCode });
+      await api.patch(`/bookings/${id}/status`, {
+        status: "completed",
+        afterPhoto: afterPhotoPreview,
+        afterDescription: afterDescription.trim(),
+        otp: otpCode.trim(),
+      });
       setShowOtpModal(false);
       setOtpCode("");
       await load();
@@ -298,10 +371,10 @@ export default function JobDetail() {
               <span>Discard Order</span>
             </button>
             <button
-              onClick={markInProgress}
+              onClick={() => { setStartWorkError(null); setShowStartModal(true); }}
               className="px-3.5 py-1.5 rounded-xl bg-[#00288e] text-white font-bold text-xs hover:bg-[#001f70] transition-all cursor-pointer shadow-2xs"
             >
-              Mark On Site
+              Start Work
             </button>
           </div>
         </div>
@@ -347,10 +420,10 @@ export default function JobDetail() {
                   1. Accepted ✓
                 </div>
                 <div className={`py-2 px-1 rounded-xl border ${["in-progress", "completed"].includes(b.status) ? "bg-purple-50 border-purple-200 text-purple-700" : "bg-slate-50 border-slate-200 text-slate-400"}`}>
-                  2. In-Service
+                  2. In-Service (Before Photo)
                 </div>
                 <div className={`py-2 px-1 rounded-xl border ${b.status === "completed" ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-slate-50 border-slate-200 text-slate-400"}`}>
-                  3. OTP Settled
+                  3. OTP Verified ✓
                 </div>
               </div>
             </div>
@@ -389,6 +462,73 @@ export default function JobDetail() {
               </div>
             </div>
 
+            {/* ── WORK VERIFICATION & PROOF SECTION ── */}
+            {(b.startWorkProof?.photo || b.completionProof?.photo || b.status === "in-progress") && (
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <Camera size={14} className="text-[#00288e]" />
+                    <span>Work Proofs &amp; Quality Audit</span>
+                  </h4>
+                  {b.otpVerified && (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1 border border-emerald-300">
+                      <ShieldCheck size={11} /> OTP Verified
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Before Work Proof */}
+                  {b.startWorkProof?.photo ? (
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between text-[10.5px]">
+                        <span className="font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                          1. Before Work Photo
+                        </span>
+                        <span className="text-slate-400">
+                          {new Date(b.startWorkProof.startedAt || b.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="h-28 rounded-lg overflow-hidden border border-slate-100 bg-slate-900 flex items-center justify-center">
+                        <img src={b.startWorkProof.photo} alt="Before Work" className="w-full h-full object-cover" />
+                      </div>
+                      <p className="text-[11px] text-slate-600 italic line-clamp-2">
+                        "{b.startWorkProof.description || "Initial condition recorded"}"
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {/* After Work Proof */}
+                  {b.completionProof?.photo ? (
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between text-[10.5px]">
+                        <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          2. Solved Problem Photo
+                        </span>
+                        <span className="text-slate-400">
+                          {new Date(b.completionProof.completedAt || b.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="h-28 rounded-lg overflow-hidden border border-slate-100 bg-slate-900 flex items-center justify-center">
+                        <img src={b.completionProof.photo} alt="Completed Work" className="w-full h-full object-cover" />
+                      </div>
+                      <p className="text-[11px] text-slate-600 italic line-clamp-2">
+                        "{b.completionProof.description || "Problem solved and verified"}"
+                      </p>
+                    </div>
+                  ) : b.status === "in-progress" ? (
+                    <div className="p-3 rounded-xl bg-purple-50/70 border border-dashed border-purple-200 flex flex-col items-center justify-center text-center space-y-1.5">
+                      <Key size={18} className="text-purple-600 animate-pulse" />
+                      <p className="text-xs font-bold text-purple-900">OTP Generated on Customer Screen</p>
+                      <p className="text-[10.5px] text-purple-700">
+                        Ask customer for their 4-digit code after completing repair.
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            )}
+
             {/* Escrow Fee Summary */}
             <div className="p-3 rounded-xl bg-slate-50/60 border border-slate-100 text-[11px] flex items-center justify-between text-slate-500 font-medium">
               <span>Nodal Escrow Protected: ₹{grossPrice}</span>
@@ -423,11 +563,11 @@ export default function JobDetail() {
               <div className="space-y-2">
                 <button
                   disabled={busy}
-                  onClick={markInProgress}
+                  onClick={() => { setStartWorkError(null); setShowStartModal(true); }}
                   className="w-full py-3.5 rounded-2xl bg-[#00288e] hover:bg-[#001f70] text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <Check size={16} strokeWidth={2.5} />
-                  <span>Mark In-Progress (Arrived On Site)</span>
+                  <Camera size={16} strokeWidth={2.5} />
+                  <span>Upload Before-Photo &amp; Start Work</span>
                 </button>
 
                 <button
@@ -445,11 +585,11 @@ export default function JobDetail() {
               <div className="space-y-2">
                 <button
                   disabled={busy}
-                  onClick={() => setShowOtpModal(true)}
+                  onClick={() => { setOtpError(null); setShowOtpModal(true); }}
                   className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Key size={16} strokeWidth={2.5} />
-                  <span>Complete Job with Household OTP</span>
+                  <span>Upload Solved Photo &amp; Enter Customer OTP</span>
                 </button>
 
                 <button
@@ -464,7 +604,7 @@ export default function JobDetail() {
 
             {b.status === "completed" && (
               <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-0.5">
-                <p className="text-xs font-bold text-emerald-900">Job Settled Successfully ✓</p>
+                <p className="text-xs font-bold text-emerald-900">Job Settled &amp; Verified Successfully ✓</p>
                 <p className="text-[11px] text-slate-500">₹{netPay} has been credited to your withdrawable wallet balance.</p>
               </div>
             )}
@@ -561,18 +701,116 @@ export default function JobDetail() {
         </div>
       </div>
 
-      {/* ── MODAL 1: OTP COMPLETION VERIFICATION ── */}
+      {/* ── MODAL 1: START WORK & BEFORE-PHOTO INSPECTION ── */}
+      {showStartModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowStartModal(false)}>
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 lg:p-7 space-y-4 border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 text-[#00288e] flex items-center justify-center font-bold">
+                  <Camera size={18} />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Start Work &amp; Initial Inspection</h2>
+                  <p className="text-xs text-slate-500">Record initial problem condition before repairing</p>
+                </div>
+              </div>
+              <button onClick={() => setShowStartModal(false)} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={submitStartWork} className="space-y-4 text-xs">
+              {/* Photo Upload */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-700 block">1. Take / Upload "Before Work" Photo (Required)</label>
+                <input
+                  ref={beforeFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBeforePhotoUpload}
+                  style={{ display: "none" }}
+                />
+
+                {beforePhotoPreview ? (
+                  <div className="relative rounded-2xl overflow-hidden border border-slate-200 h-44 bg-slate-900 flex items-center justify-center">
+                    <img src={beforePhotoPreview} alt="Before Work Preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setBeforePhotoPreview(null)}
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-black cursor-pointer"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => beforeFileInputRef.current?.click()}
+                    className="p-5 rounded-2xl border-2 border-dashed border-slate-300 hover:border-[#00288e] bg-slate-50 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all"
+                  >
+                    <Camera size={26} className="text-[#00288e]" />
+                    <p className="font-bold text-slate-800 text-xs">Tap to Capture / Upload Before Photo</p>
+                    <p className="text-[11px] text-slate-400">Photo of broken pipe, damaged switch, or site condition</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Diagnosis Description */}
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">2. Problem Diagnosis / Site Note (Required)</label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="e.g. Broken water inlet valve leaking heavily; starting replacement..."
+                  value={beforeDescription}
+                  onChange={(e) => setBeforeDescription(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#00288e] focus:bg-white text-slate-900"
+                />
+              </div>
+
+              {startWorkError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold text-center">
+                  ⚠️ {startWorkError}
+                </div>
+              )}
+
+              <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-[#00288e] text-[11px] font-semibold">
+                🔒 Once started, a secure 4-digit completion OTP will be generated on the customer's screen.
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowStartModal(false)}
+                  className="px-4 py-2.5 rounded-full border border-slate-200 font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="px-6 py-2.5 rounded-full bg-[#00288e] hover:bg-[#001f70] text-white font-bold shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {busy ? "Starting Work…" : "Confirm & Start Work ✓"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 2: COMPLETE JOB & OTP QUALITY VERIFICATION ── */}
       {showOtpModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowOtpModal(false)}>
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 lg:p-7 space-y-4 border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 lg:p-7 space-y-4 border border-slate-200 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
                   <Key size={18} />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">Verify Completion OTP</h2>
-                  <p className="text-xs text-slate-500">Provided by customer upon work inspection</p>
+                  <h2 className="text-base font-bold text-slate-900">Job Completion &amp; OTP Verification</h2>
+                  <p className="text-xs text-slate-500">Upload solved photo &amp; verify customer OTP</p>
                 </div>
               </div>
               <button onClick={() => setShowOtpModal(false)} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer">
@@ -581,8 +819,57 @@ export default function JobDetail() {
             </div>
 
             <form onSubmit={submitOtpCompletion} className="space-y-4 text-xs">
-              <div className="space-y-1.5 text-center py-2">
-                <label className="font-bold text-slate-700 block">Enter 4-Digit Customer OTP</label>
+              {/* After Photo Upload */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-700 block">1. Take / Upload "Solved Problem / Completed" Photo (Required)</label>
+                <input
+                  ref={afterFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAfterPhotoUpload}
+                  style={{ display: "none" }}
+                />
+
+                {afterPhotoPreview ? (
+                  <div className="relative rounded-2xl overflow-hidden border border-slate-200 h-44 bg-slate-900 flex items-center justify-center">
+                    <img src={afterPhotoPreview} alt="After Work Preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setAfterPhotoPreview(null)}
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-black cursor-pointer"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => afterFileInputRef.current?.click()}
+                    className="p-5 rounded-2xl border-2 border-dashed border-slate-300 hover:border-emerald-600 bg-slate-50 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all"
+                  >
+                    <Camera size={26} className="text-emerald-600" />
+                    <p className="font-bold text-slate-800 text-xs">Tap to Capture / Upload Solved Photo</p>
+                    <p className="text-[11px] text-slate-400">Photo of repaired fixture, clean room, or fixed appliance</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Completion Notes */}
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">2. Work Done &amp; Resolution Summary (Required)</label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="e.g. Replaced leaking valve with new brass unit, tested for water pressure, zero leakage."
+                  value={afterDescription}
+                  onChange={(e) => setAfterDescription(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-emerald-600 focus:bg-white text-slate-900"
+                />
+              </div>
+
+              {/* OTP Input */}
+              <div className="space-y-1.5 text-center py-2 bg-emerald-50/60 rounded-2xl border border-emerald-100 p-3">
+                <label className="font-bold text-emerald-950 block text-xs">3. Enter 4-Digit Customer Verification OTP</label>
+                <p className="text-[11px] text-slate-500 mb-1">Ask the customer to read the 4-digit code on their tracking screen</p>
                 <input
                   type="text"
                   maxLength={4}
@@ -593,7 +880,7 @@ export default function JobDetail() {
                     setOtpCode(e.target.value.trim());
                     setOtpError(null);
                   }}
-                  className="w-48 mx-auto text-center tracking-[0.5em] text-2xl font-black p-3 rounded-2xl border-2 border-slate-300 focus:border-emerald-600 bg-slate-50 outline-none"
+                  className="w-48 mx-auto text-center tracking-[0.5em] text-2xl font-black p-2.5 rounded-2xl border-2 border-slate-300 focus:border-emerald-600 bg-white outline-none"
                 />
               </div>
 
@@ -604,7 +891,7 @@ export default function JobDetail() {
               )}
 
               <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold text-center">
-                ✨ Entering this OTP instantly releases ₹{netPay} into your withdrawable wallet.
+                ✨ Submitting verified OTP instantly credits ₹{netPay} into your withdrawable wallet.
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
@@ -620,7 +907,7 @@ export default function JobDetail() {
                   disabled={busy}
                   className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md cursor-pointer disabled:opacity-50"
                 >
-                  {busy ? "Verifying…" : "Verify & Complete ✓"}
+                  {busy ? "Verifying…" : "Verify OTP & Settle Job ✓"}
                 </button>
               </div>
             </form>
@@ -628,7 +915,7 @@ export default function JobDetail() {
         </div>
       )}
 
-      {/* ── MODAL 2: DISCARD / ESCALATE WITH REASON & EVIDENCE ── */}
+      {/* ── MODAL 3: DISCARD / ESCALATE WITH REASON & EVIDENCE ── */}
       {showDiscardModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowDiscardModal(false)}>
           <div className="w-full max-w-lg bg-white rounded-3xl p-6 lg:p-7 space-y-4 border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>

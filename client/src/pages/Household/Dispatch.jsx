@@ -7,16 +7,20 @@ import { AIIcon, AIBadge } from "../../components/AIIcon";
 import {
   Radar, MapPin, Phone, Star, ShieldCheck, BadgeCheck, Lock,
   IndianRupee, ArrowRight, Zap, Handshake, CheckCircle2, Users, IdCard,
-  ChevronDown, Check, Building2, Sparkles, Search, Plus, X, Wrench, Hammer,
-  Paintbrush, ChefHat, HeartPulse, Car, Sprout, GraduationCap, Tv, Bug,
-  HardHat, Scissors, Tag, Layers
+  ChevronDown, ChevronRight, Check, Building2, Search, Plus, X,
+  Tag, Layers
 } from "lucide-react";
+import {
+  IconTool, IconBolt, IconHammer, IconPaint, IconSpray, IconChefHat,
+  IconHeartbeat, IconCar, IconPlant2, IconSchool, IconFridge, IconBug,
+  IconWall, IconScissors, IconApps
+} from "@tabler/icons-react";
 
 export const SERVICE_CATEGORIES = [
   {
     id: "Plumber",
     name: "Plumber",
-    Icon: Wrench,
+    Icon: IconTool,
     badgeBg: "bg-blue-500/10 text-blue-600 border-blue-200",
     desc: "Taps, pipe leakage, water tanks, motor repair, drainage",
     subServices: ["Tap Leakage Fix", "Pipe Blockage Clearing", "Water Tank Cleaning", "Flush & Basin Repair", "Water Motor Fitting"],
@@ -24,7 +28,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Electrician",
     name: "Electrician",
-    Icon: Zap,
+    Icon: IconBolt,
     badgeBg: "bg-amber-500/10 text-amber-600 border-amber-200",
     desc: "Wiring, switchboard, MCB, ceiling fans, inverter, lights",
     subServices: ["Fan Repair / Install", "Switchboard / MCB", "Short Circuit Repair", "Inverter Wiring", "Light / Chandelier Fitting"],
@@ -32,7 +36,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Carpenter",
     name: "Carpenter",
-    Icon: Hammer,
+    Icon: IconHammer,
     badgeBg: "bg-orange-500/10 text-orange-600 border-orange-200",
     desc: "Furniture repair, door locks, hinges, modular fittings",
     subServices: ["Door Lock / Handle Fix", "Furniture Assembly", "Hinges / Channel Repair", "Wooden Partition", "Cabinet & Drawer Repair"],
@@ -40,7 +44,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Painter",
     name: "Painter",
-    Icon: Paintbrush,
+    Icon: IconPaint,
     badgeBg: "bg-rose-500/10 text-rose-600 border-rose-200",
     desc: "Full wall painting, waterproofing, putty, touchup & polish",
     subServices: ["Room Wall Painting", "Waterproofing & Seepage", "Door / Wood Polish", "Putty & Crack Fill", "Exterior Wall Coating"],
@@ -48,7 +52,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Cleaner",
     name: "Cleaner",
-    Icon: Sparkles,
+    Icon: IconSpray,
     badgeBg: "bg-cyan-500/10 text-cyan-600 border-cyan-200",
     desc: "Deep house cleaning, sofa shampoo, kitchen & bathroom sanitize",
     subServices: ["Full Home Deep Clean", "Bathroom Sanitization", "Kitchen Chimney Clean", "Sofa & Carpet Shampoo", "Floor & Balcony Scrub"],
@@ -56,7 +60,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Cook",
     name: "Cook / Chef",
-    Icon: ChefHat,
+    Icon: IconChefHat,
     badgeBg: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
     desc: "Daily meal cooking, party catering, North/South Indian dishes",
     subServices: ["Daily Home Meals", "Party / Event Cooking", "Diet & Healthy Food", "Breakfast / Tiffin Prep", "Regional Specialities"],
@@ -64,7 +68,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Caregiver",
     name: "Caregiver",
-    Icon: HeartPulse,
+    Icon: IconHeartbeat,
     badgeBg: "bg-red-500/10 text-red-600 border-red-200",
     desc: "Elderly care, patient bedside assistance, baby sitting",
     subServices: ["Elderly Daily Care", "Post-Hospital Bedside Care", "Baby Sitting & Child Care", "Physio Assistance", "Medication Monitoring"],
@@ -72,7 +76,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Driver",
     name: "Driver",
-    Icon: Car,
+    Icon: IconCar,
     badgeBg: "bg-indigo-500/10 text-indigo-600 border-indigo-200",
     desc: "Personal chauffeur, local city drives, outstation road trips",
     subServices: ["Hourly City Driving", "Outstation Road Trip", "Airport Pickup / Drop", "Office Daily Commute", "Commercial Vehicle Drive"],
@@ -80,7 +84,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Gardener",
     name: "Gardener",
-    Icon: Sprout,
+    Icon: IconPlant2,
     badgeBg: "bg-green-500/10 text-green-600 border-green-200",
     desc: "Lawn mowing, plant pruning, potting, landscaping, fertilizing",
     subServices: ["Lawn Trimming / Mowing", "Pot Repotting & Soil", "Plant Pruning & Trimming", "Insecticide & Fertilizing", "Balcony Garden Setup"],
@@ -88,7 +92,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Tutor",
     name: "Tutor",
-    Icon: GraduationCap,
+    Icon: IconSchool,
     badgeBg: "bg-purple-500/10 text-purple-600 border-purple-200",
     desc: "School subjects, maths, science, home tuition & languages",
     subServices: ["Maths & Science (CBSE/ICSE)", "English & Hindi Tuition", "Primary School Tutoring", "Exam Prep & Revisions", "Language Lessons"],
@@ -96,7 +100,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Appliance Repair",
     name: "Appliance Repair",
-    Icon: Tv,
+    Icon: IconFridge,
     badgeBg: "bg-teal-500/10 text-teal-600 border-teal-200",
     desc: "AC service, washing machine, refrigerator, microwave repair",
     subServices: ["AC Service & Gas Refill", "Washing Machine Fix", "Refrigerator Cooling Fix", "Microwave / Oven Repair", "RO Water Purifier Service"],
@@ -104,7 +108,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Pest Control",
     name: "Pest Control",
-    Icon: Bug,
+    Icon: IconBug,
     badgeBg: "bg-yellow-500/10 text-yellow-600 border-yellow-200",
     desc: "Termite treatment, cockroach, rodent, mosquito protection",
     subServices: ["Cockroach Gel Treatment", "Termite Anti-Borer Drill", "Bed Bug Elimination", "Mosquito Fogging", "Rodent Trapping"],
@@ -112,7 +116,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Mason",
     name: "Mason / Civil Work",
-    Icon: HardHat,
+    Icon: IconWall,
     badgeBg: "bg-stone-500/10 text-stone-600 border-stone-200",
     desc: "Brickwork, tile fixing, plastering, minor civil construction",
     subServices: ["Floor Tile Replacement", "Wall Plastering / Repair", "Granite / Marble Fitting", "Minor Brick Construction", "Grouting & Sealing"],
@@ -120,7 +124,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Tailor",
     name: "Tailor / Laundry",
-    Icon: Scissors,
+    Icon: IconScissors,
     badgeBg: "bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-200",
     desc: "Stitching, clothes alteration, curtains, custom fitting",
     subServices: ["Dress / Shirt Alteration", "Curtain Stitching", "Zip & Button Replacement", "Custom Suit / Kurta Fit", "Ironing & Dry Clean Pickup"],
@@ -182,6 +186,36 @@ function CategoryDropdown({ value, onChange }) {
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  const [placement, setPlacement] = useState("down");
+  const [listMaxH, setListMaxH] = useState(288);
+
+  function handleToggle() {
+    setOpen((prev) => {
+      if (!prev) {
+        const el = ref.current;
+        if (el) {
+          const r = el.getBoundingClientRect();
+          const spaceBelow = window.innerHeight - r.bottom;
+          const spaceAbove = r.top;
+          const dir = spaceBelow >= 280 ? "down" : spaceAbove > spaceBelow ? "up" : "down";
+          setPlacement(dir);
+          const avail = dir === "up" ? spaceAbove : spaceBelow;
+          setListMaxH(Math.max(168, Math.round(avail - 124)));
+        }
+      }
+      return !prev;
+    });
+  }
+
   const filtered = SERVICE_CATEGORIES.filter((c) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
@@ -196,40 +230,69 @@ function CategoryDropdown({ value, onChange }) {
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={`h-13 w-full inline-flex items-center justify-between gap-3 px-4 rounded-xl border text-[14px] font-semibold transition-all duration-200 shadow-2xs ${
+        onClick={handleToggle}
+        className={`group h-14 sm:h-13 w-full inline-flex items-center justify-between gap-3 pl-3.5 pr-2.5 rounded-2xl border text-[14px] font-semibold transition-all duration-300 shadow-[0_1px_2px_rgba(4,9,29,0.05)] ${
           open
-            ? "border-primary bg-primary-container text-on-primary-container ring-2 ring-primary/20"
+            ? "border-primary/70 bg-primary-container/40 text-on-primary-container ring-4 ring-primary/10"
             : selected
-            ? "border-primary/40 bg-surface-container-lowest text-on-surface hover:border-primary/60"
-            : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/40 hover:bg-surface-container-low"
+            ? "border-primary/50 bg-surface-container-lowest text-on-surface hover:border-primary/70 hover:shadow-[0_6px_20px_-6px_rgba(0,40,142,0.25)]"
+            : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/50 hover:bg-surface-container-lowest hover:shadow-[0_6px_20px_-8px_rgba(0,40,142,0.30)]"
         }`}
       >
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           {selectedCategoryObj ? (
             <>
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${selectedCategoryObj.badgeBg}`}>
-                <selectedCategoryObj.Icon size={16} strokeWidth={2.5} />
+              <selectedCategoryObj.Icon
+                size={24}
+                stroke={1.5}
+                className="text-primary shrink-0 group-hover:scale-110 transition-transform duration-300"
+              />
+              <div className="min-w-0">
+                <p className="text-[10.5px] uppercase tracking-[0.14em] text-on-surface-variant/80 font-bold leading-none">
+                  Selected service
+                </p>
+                <p className="font-bold text-on-surface truncate text-[15px] sm:text-[14.5px] mt-1">
+                  {selectedCategoryObj.name}
+                </p>
               </div>
-              <span className="font-bold text-on-surface truncate text-[14.5px]">
-                {selectedCategoryObj.name}
-              </span>
             </>
           ) : (
-            <span className="font-normal text-on-surface-variant">Select a service category…</span>
+            <>
+              <IconApps
+                size={24}
+                stroke={1.5}
+                className="text-primary shrink-0 group-hover:scale-110 transition-transform duration-300"
+              />
+              <div className="min-w-0">
+                <p className="text-[15px] sm:text-[14.5px] font-bold text-on-surface truncate leading-tight">
+                  Select a service category
+                </p>
+                <p className="hidden sm:block text-[11.5px] text-on-surface-variant truncate mt-0.5 font-medium">
+                  Plumber &middot; Electrician &middot; Cook &middot; 11 more
+                </p>
+              </div>
+            </>
           )}
         </div>
-        <ChevronDown
-          size={18}
-          strokeWidth={2.5}
-          className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180 text-primary" : "text-on-surface-variant"}`}
-        />
+        <div
+          className={`w-8 h-8 shrink-0 rounded-[10px] flex items-center justify-center transition-all duration-300 ${
+            open
+              ? "bg-primary text-on-primary rotate-180 shadow-[0_2px_8px_-2px_rgba(0,40,142,0.5)]"
+              : "bg-surface-container-low text-on-surface-variant group-hover:bg-primary-container group-hover:text-primary"
+          }`}
+        >
+          <ChevronDown size={17} strokeWidth={2.5} />
+        </div>
       </button>
 
       {open && (
-        <div className="sg-dropdown-list absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-2xl border border-outline-variant/70 bg-surface shadow-[0_12px_40px_rgba(0,40,142,0.18)] overflow-hidden animate-slide-up">
+        <div
+          className={`sg-dropdown-list absolute left-0 right-0 z-50 rounded-2xl border border-outline-variant/80 bg-surface shadow-[0_28px_70px_-16px_rgba(2,6,23,0.35)] overflow-hidden ${
+            placement === "up" ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]"
+          } animate-dropdown-in`}
+        >
           {/* Built-in Search Bar */}
-          <div className="p-2.5 border-b border-outline-variant/50 bg-surface-container-low">
+          <div className="p-2.5 border-b border-outline-variant/60 bg-surface-container-low/70">
             <div className="relative">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
               <input
@@ -237,13 +300,13 @@ function CategoryDropdown({ value, onChange }) {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search service (e.g. plumber, wire, lock, paint)..."
-                className="w-full h-9 pl-9 pr-8 rounded-lg bg-surface border border-outline-variant text-[13px] text-on-surface placeholder:text-on-surface-variant/70 outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium"
+                className="w-full h-10 pl-9 pr-8 rounded-xl bg-surface-container-lowest border border-outline-variant text-[13px] text-on-surface placeholder:text-on-surface-variant/80 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 font-medium transition-all"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-0.5 rounded"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-1 rounded-md hover:bg-surface-container-high transition-colors"
                 >
                   <X size={13} />
                 </button>
@@ -252,10 +315,12 @@ function CategoryDropdown({ value, onChange }) {
           </div>
 
           {/* Categories List with Recognizable Logos */}
-          <div className="p-1.5 max-h-72 overflow-y-auto space-y-1">
+          <div className="p-1.5 overflow-y-auto overscroll-contain space-y-1" style={{ maxHeight: listMaxH }}>
             {filtered.length === 0 ? (
-              <div className="py-6 text-center text-[13px] text-on-surface-variant">
-                No services found matching &ldquo;{search}&rdquo;
+              <div className="py-8 text-center space-y-1">
+                <Search size={22} strokeWidth={1.5} className="mx-auto text-on-surface-variant/40" />
+                <p className="text-[13px] font-semibold text-on-surface">No services found</p>
+                <p className="text-[11.5px] text-on-surface-variant">&ldquo;{search}&rdquo; didn&apos;t match anything</p>
               </div>
             ) : (
               filtered.map((c) => {
@@ -270,32 +335,49 @@ function CategoryDropdown({ value, onChange }) {
                       setOpen(false);
                       setSearch("");
                     }}
-                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all duration-150 cursor-pointer ${
+                    className={`group/row w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all duration-150 cursor-pointer ${
                       isSel
-                        ? "bg-primary-container text-on-primary-container shadow-2xs"
+                        ? "bg-primary-container/70 text-on-primary-container shadow-2xs"
                         : "hover:bg-surface-container-low text-on-surface"
                     }`}
                   >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${c.badgeBg}`}>
-                        <IconComp size={17} strokeWidth={2.5} />
+                    <IconComp
+                      size={21}
+                      stroke={1.4}
+                      className="text-primary shrink-0 transition-transform duration-150 group-hover/row:scale-110"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13.5px] font-bold truncate leading-tight">
+                        {c.name}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[13.5px] font-bold truncate leading-tight">
-                          {c.name}
-                        </div>
-                        <div className="text-[11.5px] text-on-surface-variant/80 truncate leading-snug mt-0.5 font-normal">
-                          {c.desc}
-                        </div>
+                      <div className="text-[11.5px] text-on-surface-variant/80 truncate leading-snug mt-0.5 font-normal">
+                        {c.desc}
                       </div>
                     </div>
-                    {isSel && (
-                      <Check size={16} strokeWidth={2.5} className="text-primary shrink-0 ml-2" />
+                    {isSel ? (
+                      <span className="w-6 h-6 shrink-0 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-[0_2px_8px_-2px_rgba(0,40,142,0.5)]">
+                        <Check size={13} strokeWidth={3} />
+                      </span>
+                    ) : (
+                      <ChevronRight
+                        size={15}
+                        strokeWidth={2}
+                        className="shrink-0 text-on-surface-variant/50 opacity-0 -translate-x-1 transition-all duration-150 group-hover/row:opacity-100 group-hover/row:translate-x-0"
+                      />
                     )}
                   </button>
                 );
               })
             )}
+          </div>
+
+          {/* Footer */}
+          <div className="px-3.5 py-2 border-t border-outline-variant/60 bg-surface-container-low/70 flex items-center justify-between text-[11px] font-semibold text-on-surface-variant">
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+              {filtered.length} service{filtered.length === 1 ? "" : "s"}
+            </span>
+            <span className="font-medium text-on-surface-variant/70">Tap to select</span>
           </div>
         </div>
       )}
@@ -625,51 +707,62 @@ export default function Dispatch() {
   /* ── FORM ─────────────────────────────────────────────── */
   if (step === "form") {
     return (
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container text-on-primary-container text-xs font-bold border border-primary/20">
-              <Building2 size={13} />
-              <span>Ministry of Cooperation</span>
-              <span className="w-1 h-1 rounded-full bg-on-primary-container/40" />
-              <span>Geospatial Radar Engine</span>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-5 sm:space-y-8">
+        <div className="hidden sm:flex items-center gap-2 mb-1.5">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container text-on-primary-container text-xs font-bold border border-primary/20">
+            <Building2 size={13} />
+            <span>Ministry of Cooperation</span>
+            <span className="w-1 h-1 rounded-full bg-on-primary-container/40" />
+            <span>Geospatial Radar Engine</span>
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-[26px] sm:text-[34px] font-bold tracking-tight text-on-surface leading-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+              Geospatial Gig Dispatch
+            </h1>
+            <p className="text-[13.5px] sm:text-[15px] text-on-surface-variant mt-1.5">
+              First verified worker to accept gets the job.
+            </p>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-[12px] font-bold border border-secondary/20">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary" />
+              </span>
+              Live Network
             </span>
           </div>
-          <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tight text-on-surface" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
-            Geospatial Gig Dispatch
-          </h1>
-          <p className="text-[14px] sm:text-[15px] text-on-surface-variant mt-1">
-            Broadcast your request directly to nearby verified cooperative professionals. First ready worker to accept gets assigned.
-          </p>
         </div>
 
-        {/* How it works Full Width 3-Step Banner */}
-        <div className="grid gap-3.5 sm:grid-cols-3">
+        {/* How it works 3-Step Banner — desktop only to keep phone view minimal */}
+        <div className="hidden sm:grid grid-cols-3 gap-3.5">
           {[
             { Icon: Radar, title: "1. Broadcast", sub: "₹0 upfront — instant alert" },
             { Icon: Zap, title: "2. First-Accept", sub: "Nearest ready worker wins" },
             { Icon: Lock, title: "3. Escrow Pay", sub: "Pay only after assignment" },
           ].map(({ Icon, title, sub }) => (
-            <div key={title} className="flex items-center gap-3.5 rounded-2xl border border-outline-variant/60 bg-surface p-4 shadow-2xs">
-              <div className="w-10 h-10 rounded-xl bg-[#e8edff] text-[#00288e] flex items-center justify-center shrink-0">
+            <div key={title} className="flex items-center gap-3.5 rounded-2xl border border-outline-variant/60 bg-surface p-4">
+              <div className="w-10 h-10 rounded-xl bg-primary-container/50 text-primary flex items-center justify-center shrink-0">
                 <Icon size={18} strokeWidth={2.5} />
               </div>
               <div className="min-w-0">
-                <p className="text-[13.5px] font-bold text-on-surface">{title}</p>
+                <p className="text-[13.5px] font-bold text-on-surface leading-tight">{title}</p>
                 <p className="text-[11.5px] text-on-surface-variant truncate">{sub}</p>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           {/* Left Column: Dispatch Form (col-span-7) */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-7 space-y-5 sm:space-y-6">
 
-            <form onSubmit={broadcast} className="rounded-2xl border border-outline-variant/70 bg-surface p-6 sm:p-7 space-y-5 shadow-xs">
+            <form onSubmit={broadcast} className="rounded-2xl border border-outline-variant/70 bg-surface p-4 sm:p-7 space-y-5 shadow-xs">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="block text-[13px] font-semibold text-on-surface-variant">
+                  <span className="block text-[14px] sm:text-[13px] font-semibold text-on-surface-variant">
                     Service Category &amp; Skills Needed
                   </span>
                   {category && (
@@ -691,10 +784,10 @@ export default function Dispatch() {
               {category && (
                 <div className="rounded-xl border border-primary/20 bg-surface-container-low p-4 space-y-3 animate-fade-in">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[12.5px] font-bold text-on-surface flex items-center gap-1.5">
-                      <Tag size={14} className="text-primary" /> Request Specific Tasks / Add Services:
+                    <span className="text-[13.5px] sm:text-[12.5px] font-bold text-on-surface flex items-center gap-1.5">
+                      <Tag size={15} className="text-primary" /> Request Specific Tasks / Add Services:
                     </span>
-                    <span className="text-[11px] text-on-surface-variant">Tap to include in request</span>
+                    <span className="hidden sm:inline text-[11px] text-on-surface-variant">Tap to include in request</span>
                   </div>
 
                   {/* Pre-defined Popular Task Chips for the Selected Category */}
@@ -716,13 +809,13 @@ export default function Dispatch() {
                                   isSelected ? prev.filter((t) => t !== task) : [...prev, task]
                                 );
                               }}
-                              className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                              className={`px-3 py-1.5 rounded-lg text-[12.5px] sm:text-[12px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
                                 isSelected
                                   ? "bg-primary text-on-primary shadow-2xs"
                                   : "bg-surface border border-outline-variant/70 text-on-surface hover:border-primary/40 hover:bg-surface-container-high"
                               }`}
                             >
-                              {isSelected ? <Check size={12} strokeWidth={2.5} /> : <Plus size={12} />}
+                              {isSelected ? <Check size={13} strokeWidth={2.5} /> : <Plus size={13} />}
                               {task}
                             </button>
                           );
@@ -751,7 +844,7 @@ export default function Dispatch() {
                             }
                           }}
                           placeholder="Type custom task (e.g. Washroom leakage + motor wiring) & Enter..."
-                          className="flex-1 h-9 px-3 rounded-lg bg-surface border border-outline-variant text-[12.5px] text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium"
+                          className="flex-1 h-11 px-3 rounded-xl bg-surface border border-outline-variant text-[13.5px] text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium"
                           autoFocus
                         />
                         <button
@@ -765,7 +858,7 @@ export default function Dispatch() {
                             }
                             setShowAddCustom(false);
                           }}
-                          className="px-3.5 py-1.5 rounded-lg bg-primary text-on-primary text-[12px] font-bold cursor-pointer hover:opacity-90"
+                          className="px-3.5 py-2 rounded-lg bg-primary text-on-primary text-[12.5px] font-bold cursor-pointer hover:opacity-90"
                         >
                           Add
                         </button>
@@ -781,9 +874,9 @@ export default function Dispatch() {
                       <button
                         type="button"
                         onClick={() => setShowAddCustom(true)}
-                        className="inline-flex items-center gap-1.5 text-[12px] font-bold text-primary hover:underline cursor-pointer py-1"
+                        className="inline-flex items-center gap-1.5 text-[12.5px] sm:text-[12px] font-bold text-primary hover:underline cursor-pointer py-1"
                       >
-                        <Plus size={13} strokeWidth={2.5} /> + Add Custom Service / Task
+                        <Plus size={14} strokeWidth={2.5} /> + Add Custom Service / Task
                       </button>
                     )}
                   </div>
@@ -798,7 +891,7 @@ export default function Dispatch() {
                         {selectedTasks.map((t) => (
                           <span
                             key={t}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary-container text-on-primary-container text-[11.5px] font-bold shadow-2xs"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary-container text-on-primary-container text-[12px] font-bold shadow-2xs"
                           >
                             {t}
                             <button
@@ -818,14 +911,14 @@ export default function Dispatch() {
               )}
 
               <label className="block">
-                <span className="mb-1.5 block text-[13px] font-semibold text-on-surface-variant">Locality / Address</span>
+                <span className="mb-1.5 block text-[14px] sm:text-[13px] font-semibold text-on-surface-variant">Locality / Address</span>
                 <div className="relative">
-                  <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                  <MapPin size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
                   <input
                     value={locationText}
                     onChange={(e) => setLocationText(e.target.value)}
                     placeholder={locLoading ? "Detecting your location…" : "e.g. Indiranagar, Delhi"}
-                    className="h-12 w-full rounded-xl border border-outline-variant bg-surface-container-lowest pl-10 pr-28 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+                    className="h-14 w-full rounded-xl border border-outline-variant bg-surface-container-lowest pl-10 pr-28 text-[14.5px] sm:text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
                   />
                   <button
                     type="button"
@@ -845,44 +938,75 @@ export default function Dispatch() {
                         setLocLoading(false);
                       }
                     }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container text-[11.5px] font-bold hover:opacity-80 disabled:opacity-50 transition-all cursor-pointer"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container text-[12px] font-bold hover:opacity-80 disabled:opacity-50 transition-all cursor-pointer"
                   >
-                    <MapPin size={12} />
+                    <MapPin size={12.5} />
                     {locLoading ? "Detecting…" : "Use GPS"}
                   </button>
                 </div>
-                <p className="mt-1.5 text-[11.5px] text-on-surface-variant font-medium">
+                <p className="hidden sm:block mt-1.5 text-[11.5px] text-on-surface-variant font-medium">
                   Broadcasting within ~25 km radius · ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}){locAccuracy != null && ` · ±${locAccuracy}m GPS`}
                 </p>
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-[13px] font-semibold text-on-surface-variant">Offered Rate (₹/hr)</span>
+                <span className="mb-1.5 block text-[14px] sm:text-[13px] font-semibold text-on-surface-variant">Offered Rate (₹/hr)</span>
                 <div className="relative">
-                  <IndianRupee size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-                  <input
-                    type="number" min={50} value={priceStr}
-                    onChange={(e) => setPriceStr(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-outline-variant bg-surface-container-lowest pl-10 pr-4 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary font-semibold"
-                  />
+                  <IndianRupee size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <input
+                  type="number" min={50} value={priceStr}
+                  onChange={(e) => setPriceStr(e.target.value)}
+                  className="h-14 w-full rounded-xl border border-outline-variant bg-surface-container-lowest pl-10 pr-4 text-[16px] sm:text-[15px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary font-semibold"
+                />
                 </div>
-                <p className="mt-1.5 text-[11.5px] text-on-surface-variant font-medium">
+                <p className="hidden sm:block mt-1.5 text-[11.5px] text-on-surface-variant font-medium">
                   Your real offer — every in-range worker sees <strong className="text-on-surface">₹{offerPrice}/hr</strong>. The first to accept locks this exact rate in escrow.
                 </p>
-              </label>
-
-              <label className="flex items-center gap-3 rounded-xl bg-error-container/40 border border-error/20 px-4 py-3 cursor-pointer">
-                <input type="checkbox" checked={isEmergency} onChange={(e) => setIsEmergency(e.target.checked)} className="h-5 w-5 accent-[var(--color-error)]" />
-                <Zap size={16} className="text-error" />
-                <span className="text-[13px] font-bold text-on-error-container">Emergency Dispatch — Push priority alert to every ready worker</span>
               </label>
 
               {error && (
                 <div className="rounded-xl border border-error/30 bg-error-container px-4 py-3 text-[13px] font-semibold text-on-error-container">{error}</div>
               )}
 
+              {/* MOBILE: two compact pills */}
+              <div className="grid grid-cols-2 gap-2.5 sm:hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsEmergency((v) => !v)}
+                  className={`h-12 inline-flex items-center justify-center gap-1.5 px-3 rounded-full text-[13px] font-bold transition-all duration-200 cursor-pointer select-none whitespace-nowrap min-w-0 ${
+                    isEmergency
+                      ? "bg-[var(--color-error)] text-white"
+                      : "border border-error/30 bg-error-container/50 text-on-error-container hover:bg-error-container"
+                  } active:scale-95`}
+                >
+                  <Zap size={15} className={isEmergency ? "text-white fill-white" : "text-error"} strokeWidth={2.5} />
+                  <span className="truncate">{isEmergency ? "Emergency ON" : "Emergency"}</span>
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className={`h-12 inline-flex items-center justify-center gap-1.5 px-3 rounded-full text-[13px] font-bold text-white transition-all duration-200 cursor-pointer select-none whitespace-nowrap min-w-0 ${
+                    submitting
+                      ? "opacity-70 cursor-not-allowed bg-primary"
+                      : "bg-primary hover:bg-primary-container hover:text-on-primary-container active:scale-95"
+                  }`}
+                >
+                  <Radar size={15} strokeWidth={2.5} />
+                  <span className="truncate">{submitting ? "Broadcasting…" : "Broadcast"}</span>
+                </button>
+              </div>
+              <p className="text-[11.5px] text-on-surface-variant font-medium leading-snug sm:hidden">
+                Broadcast shares your <strong className="text-on-surface">₹{offerPrice}/hr</strong> offer live with every worker in range. Emergency pings them with top priority.
+              </p>
+
+              {/* DESKTOP: full-width emergency toggle + broadcast button */}
+              <label className="hidden sm:flex items-center gap-3 rounded-xl bg-error-container/40 border border-error/20 px-3.5 py-3 cursor-pointer">
+                <input type="checkbox" checked={isEmergency} onChange={(e) => setIsEmergency(e.target.checked)} className="h-5 w-5 shrink-0 accent-[var(--color-error)]" />
+                <Zap size={16} className="text-error shrink-0" />
+                <span className="text-[13px] font-bold text-on-error-container leading-snug">Emergency Dispatch — priority alert to every ready worker</span>
+              </label>
               <button type="submit" disabled={submitting}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary-container text-on-primary-container font-heading font-bold text-[14.5px] hover:bg-primary hover:text-on-primary active:scale-[0.99] disabled:opacity-60 transition-all cursor-pointer shadow-md">
+                className="hidden sm:inline-flex h-14 w-full items-center justify-center gap-1.5 px-4 whitespace-nowrap rounded-xl bg-primary text-on-primary font-heading font-bold text-[14.5px] hover:bg-primary-container hover:text-on-primary-container active:scale-[0.99] disabled:opacity-60 transition-all cursor-pointer shadow-md">
                 <Radar size={18} />
                 {submitting ? "Broadcasting Request…" : `Broadcast Job Request · ₹${offerPrice}/hr`}
               </button>
@@ -890,29 +1014,32 @@ export default function Dispatch() {
           </div>
 
           {/* Right Column: Live Network Preview & Security Shield (col-span-5) */}
-          <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
+          <div className="lg:col-span-5 space-y-5 sm:space-y-6 lg:sticky lg:top-8">
             {/* Live Geospatial Network Radar Card */}
-            <div className="rounded-2xl border border-primary/20 bg-surface-container-low p-6 space-y-4 shadow-sm">
+            <div className="rounded-2xl border border-primary/20 bg-surface-container-low p-4 sm:p-6 space-y-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[12px] font-extrabold uppercase tracking-wider text-primary flex items-center gap-2">
-                  <Radar size={16} /> Live Geospatial Coverage
+                  <Radar size={16} /> Live Geospatial
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary-container text-on-primary-container">
-                  Active Coverage
+                  Active
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/60 flex items-center gap-4 shadow-2xs">
-                <div className="w-12 h-12 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center shrink-0 font-bold text-[18px]">
+              <div className="p-4 sm:p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/60 flex items-center gap-3.5 shadow-2xs">
+                <div className="shrink-0 text-[20px] leading-none font-extrabold text-primary tabular-nums sm:hidden">
                   {dynamicWorkerCount}+
                 </div>
-                <div>
-                  <h4 className="text-[14px] font-bold text-on-surface">Cooperative {category || "Worker"}s Ready</h4>
-                  <p className="text-[12px] text-on-surface-variant">Verified in {locationText || "your local area"}</p>
+                <div className="hidden sm:flex w-12 h-12 shrink-0 rounded-xl bg-primary-container text-on-primary-container items-center justify-center font-bold text-[18px]">
+                  {dynamicWorkerCount}+
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-[14px] sm:text-[14px] font-bold text-on-surface">Cooperative {category || "Worker"}s Ready</h4>
+                  <p className="text-[12px] sm:text-[12px] text-on-surface-variant truncate">Verified in {locationText || "your local area"}</p>
                 </div>
               </div>
 
-              <div className="space-y-2.5 pt-1">
+              <div className="hidden sm:block space-y-2.5 pt-1">
                 {[
                   { title: "e-Shram Govt. Verified", desc: "100% UAN & PMSBY insurance check" },
                   { title: "Razorpay Escrow Safety", desc: "Zero advance payment until job assigned" },
@@ -921,7 +1048,7 @@ export default function Dispatch() {
                    <div key={idx} className="flex items-start gap-2.5 text-[12.5px] text-on-surface-variant">
                     <ShieldCheck size={16} className="text-primary shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-on-surface font-semibold">{item.title}:</strong> {item.desc}
+                      <strong className="text-on-surface font-semibold">{item.title}:</strong> <span>{item.desc}</span>
                     </div>
                   </div>
                 ))}
@@ -944,18 +1071,18 @@ export default function Dispatch() {
       { label: "W", at: "top-1/2 left-1 -translate-y-1/2" },
     ];
     return (
-      <div className="w-full px-6 pt-10 pb-10 flex flex-col items-center text-center">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-10 flex flex-col items-center text-center">
         <div className="mb-2">
           <AIBadge text="AI Live Scan & Broadcast Engine" />
         </div>
-        <h1 className="text-[22px] font-bold tracking-tight text-on-surface mb-2" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+        <h1 className="text-[22px] font-bold tracking-tight text-on-surface mb-1.5" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
           Searching nearby certified{" "}{(booking?.targetCategory || "workers")}…
         </h1>
-        <p className="text-[13px] text-on-surface-variant mb-8">{booking?.locationText}</p>
+        <p className="text-[13px] sm:text-[13px] text-on-surface-variant mb-8 truncate max-w-[90vw]">{booking?.locationText}</p>
 
         {/* ── PREMIUM LIVE RADAR ── */}
         <div
-          className="sg-radar-wrap relative h-80 w-80 md:h-96 md:w-96 rounded-full"
+          className="sg-radar-wrap relative h-72 w-72 sm:h-80 sm:w-80 md:h-96 md:w-96 rounded-full"
           style={{
             background:
               "radial-gradient(circle at 50% 50%, rgba(16, 60, 78, 0.55), rgba(6, 18, 33, 0.92) 72%)",
@@ -1069,26 +1196,28 @@ export default function Dispatch() {
             <span className="text-cyan-300">{liveWorkers}</span>
             <span className="normal-case font-semibold text-cyan-100/80">gig worker{liveWorkers === 1 ? "" : "s"} broadcasting to</span>
           </div>
-          {pins.length > 0 && pins.length < liveWorkers && (
-            <p className="text-[12px] text-on-surface-variant">
-              {liveWorkers - pins.length} more worker{liveWorkers - pins.length === 1 ? "" : "s"} nearby (GPS off — they appear live the moment they stream location)
-            </p>
-          )}
-          {pins.length === 0 && liveWorkers > 0 && (
-            <p className="text-[12px] text-on-surface-variant">
-              {liveWorkers} worker{liveWorkers === 1 ? " is" : "s are"} in range — watching their live GPS, keep waiting…
-            </p>
-          )}
-          {pins.length === 0 && liveWorkers === 0 && (
-            <p className="text-[12px] text-on-surface-variant">
-              No workers with matching skills nearby yet — radar updates live…
-            </p>
-          )}
-          <p className="text-[12px] text-on-surface-variant">
-            Offer <strong className="text-on-surface">₹{booking?.price || offerPrice}/hr</strong> · no payment charged yet — escrow locks only after a worker accepts
+          <div className="hidden sm:block">
+            {pins.length > 0 && pins.length < liveWorkers && (
+              <p className="text-[12px] text-on-surface-variant">
+                {liveWorkers - pins.length} more worker{liveWorkers - pins.length === 1 ? "" : "s"} nearby (GPS off — they appear live the moment they stream location)
+              </p>
+            )}
+            {pins.length === 0 && liveWorkers > 0 && (
+              <p className="text-[12px] text-on-surface-variant">
+                {liveWorkers} worker{liveWorkers === 1 ? " is" : "s are"} in range — watching their live GPS, keep waiting…
+              </p>
+            )}
+            {pins.length === 0 && liveWorkers === 0 && (
+              <p className="text-[12px] text-on-surface-variant">
+                No workers with matching skills nearby yet — radar updates live…
+              </p>
+            )}
+          </div>
+          <p className="text-[12.5px] sm:text-[12px] text-on-surface-variant">
+            Offer <strong className="text-on-surface">₹{booking?.price || offerPrice}/hr</strong> · escrow locks only after a worker accepts
           </p>
-          <p className="text-[12px] text-on-surface-variant">Waiting for the first worker to accept…</p>
-          <p className="text-[11px] text-on-surface-variant/80">
+          <p className="text-[12.5px] sm:text-[12px] text-on-surface-variant font-semibold">Waiting for the first worker to accept…</p>
+          <p className="hidden sm:block text-[11px] text-on-surface-variant/80">
             This offer auto-cancels ~5 min after you leave this page. Cancel now to stop it instantly.
           </p>
           <div className="mt-2 flex flex-col items-center gap-1.5">
@@ -1118,7 +1247,7 @@ export default function Dispatch() {
   /* ── DISCLOSURE (assigned) ────────────────────────────── */
   const pd = providerDetails;
   return (
-    <div className="w-full max-w-3xl mx-auto px-6 pt-8 pb-10 space-y-6">
+    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-10 space-y-6">
       <div>
         <p className="text-[14px] font-semibold text-secondary mb-1">
           <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={15} /> Worker Accepted — Provider Unlocked</span>
@@ -1240,7 +1369,7 @@ export default function Dispatch() {
       {/* Secured escrow payment */}
       <div className="rounded-2xl border border-outline-variant/60 bg-surface p-5 md:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-[#e8edff] text-[#00288e] flex items-center justify-center">
+          <div className="w-11 h-11 rounded-xl bg-primary-container/50 text-primary flex items-center justify-center">
             <Lock size={18} />
           </div>
           <div>
@@ -1255,7 +1384,7 @@ export default function Dispatch() {
       </div>
 
       <button onClick={() => navigate(`/household/booking/${booking?._id}`)}
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface px-5 text-[13px] font-semibold text-on-surface hover:border-primary/40 hover:text-[#00288e] transition-all">
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface px-5 text-[13px] font-semibold text-on-surface hover:border-primary/40 hover:text-primary transition-all">
         <BadgeCheck size={16} /> Track live status & chat
       </button>
     </div>

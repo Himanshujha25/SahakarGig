@@ -90,22 +90,37 @@ export default function WorkerDetail() {
     })();
   }, [workerId]);
 
-  // Dynamic Properties (Pure real data)
+  // Dynamic Properties
   const name = providerData?.userId?.name || providerData?.name || rawName || "Worker Member";
   const email = providerData?.userId?.email || providerData?.email || rawEmail || "";
   const phone = providerData?.userId?.phone || providerData?.phone || rawPhone || "";
   const skillCategory = (providerData?.skills || [skill])[0] || skill;
   const isVerified = providerData?.verified ?? true;
 
-  // Real Avatar resolution
+  // Real Avatar resolution - check actual uploaded avatars
   const passedAvatar = searchParams.get("avatar") || searchParams.get("avatarUrl");
-  const avatarUrl = !imageError && (
+  const storedProviderAvatar = localStorage.getItem("sg_provider_avatar");
+  const storedCustomWorkerAvatar = localStorage.getItem("sg_worker_avatar_" + workerId);
+
+  const rawResolvedAvatar =
     customWorkerAvatar ||
-    passedAvatar ||
-    providerData?.userId?.avatarUrl ||
+    storedCustomWorkerAvatar ||
     providerData?.avatarUrl ||
-    null
-  );
+    providerData?.avatar ||
+    providerData?.userId?.avatarUrl ||
+    providerData?.userId?.profileImage ||
+    providerData?.profileImage ||
+    passedAvatar ||
+    storedProviderAvatar ||
+    "";
+
+  const formattedAvatar = rawResolvedAvatar
+    ? (rawResolvedAvatar.startsWith("http") || rawResolvedAvatar.startsWith("data:")
+        ? rawResolvedAvatar
+        : `http://localhost:5000${rawResolvedAvatar}`)
+    : "";
+
+  const avatarUrl = !imageError && formattedAvatar ? formattedAvatar : null;
 
   // Trust score formatting
   const rawTrust = Number(providerData?.trustScore ?? 4.8);
@@ -139,25 +154,23 @@ export default function WorkerDetail() {
       const s = (b.status || "").toLowerCase();
       return s === "in_progress" || s === "assigned" || s === "accepted";
     }
-    return (b.status || "").toLowerCase() === bookingFilter.toLowerCase();
+    if (bookingFilter === "completed") return (b.status || "").toLowerCase() === "completed";
+    if (bookingFilter === "cancelled") return (b.status || "").toLowerCase() === "cancelled";
+    return true;
   });
 
   const sortedBookings = [...filteredBookings].sort((a, b) => {
     if (sortBy === "date_desc") {
-      const da = new Date(a.scheduledTime || a.createdAt || a.date || 0).getTime();
-      const db = new Date(b.scheduledTime || b.createdAt || b.date || 0).getTime();
-      return db - da;
+      return new Date(b.scheduledTime || b.createdAt || 0) - new Date(a.scheduledTime || a.createdAt || 0);
     }
     if (sortBy === "date_asc") {
-      const da = new Date(a.scheduledTime || a.createdAt || a.date || 0).getTime();
-      const db = new Date(b.scheduledTime || b.createdAt || b.date || 0).getTime();
-      return da - db;
+      return new Date(a.scheduledTime || a.createdAt || 0) - new Date(b.scheduledTime || b.createdAt || 0);
     }
     if (sortBy === "amount_desc") {
-      return (b.price || b.payout || 0) - (a.price || a.payout || 0);
+      return (b.price || b.amount || 0) - (a.price || a.amount || 0);
     }
     if (sortBy === "amount_asc") {
-      return (a.price || a.payout || 0) - (b.price || b.payout || 0);
+      return (a.price || a.amount || 0) - (b.price || b.amount || 0);
     }
     if (sortBy === "rating_desc") {
       return (b.rating || 5) - (a.rating || 5);
@@ -165,77 +178,84 @@ export default function WorkerDetail() {
     return 0;
   });
 
-  const totalPages = Math.max(1, Math.ceil(sortedBookings.length / pageSize));
+  const totalPages = Math.ceil(sortedBookings.length / pageSize) || 1;
   const paginatedBookings = sortedBookings.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  // Full View Search Filtered List
-  const fullViewList = bookingHistory.filter(b => {
-    const q = fullViewSearch.toLowerCase().trim();
-    if (!q) return true;
-    const bId = (b._id || b.id || "").toLowerCase();
-    const srv = (b.service || "").toLowerCase();
-    const cust = (b.householdId?.name || b.customerName || "").toLowerCase();
-    const st = (b.status || "").toLowerCase();
-    return bId.includes(q) || srv.includes(q) || cust.includes(q) || st.includes(q);
+  // Full view search filtering
+  const fullViewList = sortedBookings.filter(b => {
+    const s = fullViewSearch.toLowerCase().trim();
+    if (!s) return true;
+    const sId = (b._id || b.id || "").toLowerCase();
+    const sSvc = (b.service || "").toLowerCase();
+    const sCust = (b.householdId?.name || b.customerName || "").toLowerCase();
+    return sId.includes(s) || sSvc.includes(s) || sCust.includes(s);
   });
 
-  // Phone-Scannable QR URL
-  const verifyLinkUrl = `https://sahakargig.org/verify/provider/${workerId}?name=${encodeURIComponent(name)}&skill=${encodeURIComponent(skillCategory)}`;
-  const scannableQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&margin=10&data=${encodeURIComponent(verifyLinkUrl)}`;
-
-  function showToast(msg) {
-    setToastMsg(msg);
+  function showToast(text) {
+    setToastMsg(text);
     setTimeout(() => setToastMsg(""), 3500);
   }
 
+  // Handle Photo Upload
   function handleWorkerPhotoUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      alert("Photo size should be less than 3MB.");
-      return;
-    }
     const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target.result;
-      setCustomWorkerAvatar(base64);
+    reader.onloadend = () => {
+      const b64 = reader.result;
+      setCustomWorkerAvatar(b64);
       setImageError(false);
-      localStorage.setItem("sg_worker_avatar_" + workerId, base64);
-      try {
-        await api.patch(`/providers/${workerId}`, { avatarUrl: base64 });
-      } catch (err) {
-        console.warn("Could not sync avatar to MongoDB:", err);
-      }
-      showToast("Worker photo updated successfully!");
+      localStorage.setItem("sg_worker_avatar_" + workerId, b64);
+      showToast("Worker photo uploaded and saved.");
     };
     reader.readAsDataURL(file);
   }
 
-  async function handleRemoveWorkerPhoto() {
-    setCustomWorkerAvatar("");
-    setImageError(true);
-    localStorage.removeItem("sg_worker_avatar_" + workerId);
-    localStorage.removeItem("sg_provider_avatar");
-    try {
-      await api.patch(`/providers/${workerId}`, { avatarUrl: "" });
-    } catch (err) {
-      console.warn("Could not clear avatar in MongoDB:", err);
-    }
-    showToast("Worker photo reset to initials.");
-  }
-
+  // Handle Send Direct Message
   function handleSendMessage(e) {
     e.preventDefault();
     if (!messageText.trim()) return;
-    showToast(`Alert message dispatched to ${name}!`);
+
+    const newMsg = {
+      id: "msg_" + Date.now(),
+      target: workerId,
+      title: "Admin Notice",
+      body: messageText.trim(),
+      type: "direct",
+      expiresAt: Date.now() + 60 * 60 * 1000,
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      const existingMsgs = JSON.parse(localStorage.getItem("sg_coop_messages") || "[]");
+      localStorage.setItem("sg_coop_messages", JSON.stringify([newMsg, ...existingMsgs]));
+      window.dispatchEvent(new Event("storage"));
+      window.dispatchEvent(new Event("coop_message_updated"));
+    } catch {}
+
     setMessageText("");
+    showToast(`Direct message sent to ${name}.`);
   }
+
+  // Scannable Pass Payload
+  const scannablePayload = JSON.stringify({
+    cooperative: coopName,
+    workerId: workerId,
+    name: name,
+    skill: skillCategory,
+    rate: `₹${hourlyRate}/hr`,
+    eShram: eShramNo || "DL-90812903",
+    status: isBlocked ? "SUSPENDED" : "VERIFIED_ACTIVE",
+    escrowInsurance: "ACTIVE_COVERED"
+  });
+
+  const scannableQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(scannablePayload)}`;
 
   function renderStatusBadge(status) {
     const st = (status || "completed").toLowerCase();
     if (st === "completed") {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[11px] whitespace-nowrap shadow-2xs">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold text-[10.5px] whitespace-nowrap">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           Completed
         </span>
@@ -243,23 +263,15 @@ export default function WorkerDetail() {
     }
     if (st === "cancelled") {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[11px] whitespace-nowrap shadow-2xs">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 font-bold text-[10.5px] whitespace-nowrap">
           <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
           Cancelled
         </span>
       );
     }
-    if (st === "disputed") {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-bold text-[11px] whitespace-nowrap shadow-2xs">
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-          Disputed
-        </span>
-      );
-    }
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-[#00288e] border border-blue-200 font-bold text-[11px] whitespace-nowrap shadow-2xs">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#00288e] animate-pulse" />
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-bold text-[10.5px] whitespace-nowrap">
+        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
         In Progress
       </span>
     );
@@ -274,68 +286,68 @@ export default function WorkerDetail() {
     .toUpperCase() || "WK";
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-6 pt-6 pb-20 space-y-6 text-slate-900 font-sans">
+    <div className="space-y-4 sm:space-y-6 text-on-surface">
       {/* Toast Alert */}
       {toastMsg && (
-        <div className="fixed top-5 right-5 z-[99999] px-4 py-3 rounded-2xl bg-slate-900 text-white font-bold text-xs shadow-2xl flex items-center gap-2 border border-slate-700 animate-fade-in">
-          <CheckCircle2 size={16} className="text-emerald-400" />
+        <div className="fixed top-5 right-5 z-[99999] px-4 py-3 rounded-2xl bg-surface border border-outline-variant text-on-surface font-bold text-xs shadow-2xl flex items-center gap-2 animate-fade-in">
+          <CheckCircle2 size={16} className="text-emerald-500" />
           <span>{toastMsg}</span>
         </div>
       )}
 
       {/* ── HEADER & BREADCRUMB ── */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <button
           onClick={() => navigate("/admin/providers")}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#00288e] cursor-pointer transition-colors"
+          className="inline-flex items-center gap-1 text-xs font-bold text-on-surface-variant hover:text-primary cursor-pointer transition-colors"
         >
           <ArrowLeft size={14} />
-          <span>Back to Worker Roster</span>
+          <span>Back to Member Roster</span>
         </button>
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/60 pb-3">
           <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
                 {name}
               </h1>
               {isVerified ? (
-                <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1">
-                  <CheckCircle2 size={13} className="text-emerald-600" />
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold flex items-center gap-1">
+                  <CheckCircle2 size={12} className="text-emerald-500" />
                   Verified Member
                 </span>
               ) : (
-                <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-bold">
                   Verification Pending
                 </span>
               )}
             </div>
 
-            <p className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-[#00288e]">{skillCategory} Specialist</span>
-              <span>•</span>
+            <p className="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1.5 flex-wrap">
+              <span className="font-bold text-primary">{skillCategory} Specialist</span>
+              <span>&middot;</span>
               <span>{coopName}</span>
-              {email && <span>• {email}</span>}
-              {phone && <span>• {phone}</span>}
+              {phone && <span>&middot; {phone}</span>}
+              {email && <span>&middot; {email}</span>}
             </p>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Compact Actions */}
+          <div className="flex items-center gap-1.5 flex-wrap self-start sm:self-auto">
             <button
               onClick={() => setShowStatementModal(true)}
-              className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all"
+              className="px-3 py-1.5 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all"
             >
-              <Printer size={14} className="text-[#00288e]" />
-              <span>Download Statement</span>
+              <Printer size={13} className="text-primary" />
+              <span>Statement</span>
             </button>
 
             <button
               onClick={() => setShowQrModal(true)}
-              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all"
+              className="px-3 py-1.5 rounded-xl bg-primary hover:opacity-90 text-on-primary text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-98"
             >
-              <QrCode size={14} className="text-emerald-400" />
-              <span>Digital Pass QR</span>
+              <QrCode size={13} />
+              <span>Pass QR</span>
             </button>
 
             <button
@@ -343,24 +355,14 @@ export default function WorkerDetail() {
                 setIsEscrowLocked(!isEscrowLocked);
                 showToast(isEscrowLocked ? "Member payouts resumed." : "Member payouts placed on hold for review.");
               }}
-              className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
                 isEscrowLocked
-                  ? "bg-amber-50 border-amber-200 text-amber-800 shadow-2xs"
-                  : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 shadow-2xs"
+                  : "bg-surface-container-low border-outline-variant text-on-surface hover:bg-surface-container"
               }`}
-              title={isEscrowLocked ? "Click to resume member payouts" : "Click to temporarily hold member payouts"}
             >
-              {isEscrowLocked ? (
-                <>
-                  <PauseCircle size={14} className="text-amber-600" />
-                  <span>Payouts On Hold</span>
-                </>
-              ) : (
-                <>
-                  <PauseCircle size={14} className="text-slate-500" />
-                  <span>Hold Payouts</span>
-                </>
-              )}
+              <PauseCircle size={13} />
+              <span>{isEscrowLocked ? "Payouts Held" : "Hold Payout"}</span>
             </button>
 
             <button
@@ -368,94 +370,88 @@ export default function WorkerDetail() {
                 setIsBlocked(!isBlocked);
                 showToast(isBlocked ? `${name} reactivated.` : `${name} suspended.`);
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
                 isBlocked
                   ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                  : "bg-red-50 hover:bg-red-100 border border-red-200 text-red-700"
+                  : "bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-600 dark:text-rose-400"
               }`}
             >
               <Ban size={13} />
-              <span>{isBlocked ? "Reactivate" : "Suspend Worker"}</span>
+              <span>{isBlocked ? "Reactivate" : "Suspend"}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── 4 KPI STAT TILES ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-1">
-          <div className="flex items-start justify-between mb-2">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Earned</p>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-              <DollarSign size={15} />
-            </div>
+      {/* ── 4 KPI STAT TILES (Sleek Compact Horizontal Cards) ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        <div className="p-3 sm:p-3.5 rounded-xl border border-outline-variant/60 bg-surface shadow-2xs flex items-center justify-between gap-2">
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-[11px] font-semibold text-on-surface-variant tracking-normal">Total Earned</p>
+            <p className="text-xl sm:text-2xl font-black text-on-surface tracking-tight">₹{totalEarnedAmount.toLocaleString('en-IN')}</p>
           </div>
-          <p className="text-2xl font-black text-slate-900">₹{totalEarnedAmount.toLocaleString('en-IN')}</p>
-          <p className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5">
-            <TrendingUp size={11} /> +18.4% this month
-          </p>
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
+            <DollarSign size={15} />
+          </div>
         </div>
 
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-1">
-          <div className="flex items-start justify-between mb-2">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Completed Jobs</p>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#00288e] flex items-center justify-center font-bold">
-              <Briefcase size={15} />
-            </div>
+        <div className="p-3 sm:p-3.5 rounded-xl border border-outline-variant/60 bg-surface shadow-2xs flex items-center justify-between gap-2">
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-[11px] font-semibold text-on-surface-variant tracking-normal">Completed Jobs</p>
+            <p className="text-xl sm:text-2xl font-black text-on-surface tracking-tight">{completedJobsCount}</p>
           </div>
-          <p className="text-2xl font-black text-slate-900">{completedJobsCount}</p>
-          <p className="text-[11px] font-semibold text-slate-500">100% Completion Rate</p>
+          <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
+            <Briefcase size={15} />
+          </div>
         </div>
 
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-1">
-          <div className="flex items-start justify-between mb-2">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Trust Score</p>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
-              <Star size={15} className="fill-amber-500 text-amber-500" />
-            </div>
+        <div className="p-3 sm:p-3.5 rounded-xl border border-outline-variant/60 bg-surface shadow-2xs flex items-center justify-between gap-2">
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-[11px] font-semibold text-on-surface-variant tracking-normal">Trust Score</p>
+            <p className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tight">{trustScore} <span className="text-[11px] text-on-surface-variant font-normal">/ 5</span></p>
           </div>
-          <p className="text-2xl font-black text-slate-900">{trustScore} <span className="text-xs font-semibold text-slate-400">/ 5.0</span></p>
-          <p className="text-[11px] font-semibold text-amber-700">Top 5% Verified Member</p>
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shrink-0">
+            <Star size={15} className="fill-amber-500 text-amber-500" />
+          </div>
         </div>
 
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-1">
-          <div className="flex items-start justify-between mb-2">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Escrow Protected</p>
-            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold">
-              <ShieldCheck size={15} />
-            </div>
+        <div className="p-3 sm:p-3.5 rounded-xl border border-outline-variant/60 bg-surface shadow-2xs flex items-center justify-between gap-2">
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-[11px] font-semibold text-on-surface-variant tracking-normal">Escrow Protected</p>
+            <p className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 tracking-tight">₹{escrowNet.toLocaleString('en-IN')}</p>
           </div>
-          <p className="text-2xl font-black text-slate-900">₹{escrowNet.toLocaleString('en-IN')}</p>
-          <p className="text-[11px] font-semibold text-purple-700">Nodal Escrow Protected</p>
+          <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold shrink-0">
+            <ShieldCheck size={15} />
+          </div>
         </div>
       </div>
 
       {/* ── BALANCED TWO-COLUMN GRID ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
 
         {/* ── LEFT COLUMN: Identity Pass & Welfare Schemes (Span 4) ── */}
-        <div className="lg:col-span-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-5">
+        <div className="lg:col-span-4 rounded-2xl border border-outline-variant/60 bg-surface p-4 sm:p-5 shadow-2xs space-y-4">
           {/* Top Pass Header */}
-          <div className="flex items-center justify-between text-xs font-bold text-slate-400 border-b border-slate-100 pb-3">
-            <span className="flex items-center gap-1.5 text-[#00288e]">
-              <Building2 size={15} />
-              Cooperative Identity Pass
+          <div className="flex items-center justify-between text-xs font-bold text-on-surface-variant border-b border-outline-variant/60 pb-2.5">
+            <span className="flex items-center gap-1.5 text-primary">
+              <Building2 size={14} />
+              Identity Pass
             </span>
             <span className="font-mono text-[11px]">ID: {workerId.slice(-8).toUpperCase()}</span>
           </div>
 
           {/* Avatar & Profile */}
-          <div className="flex flex-col items-center justify-center text-center space-y-3">
+          <div className="flex flex-col items-center justify-center text-center space-y-2.5">
             <div className="relative">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt={name}
                   onError={() => setImageError(true)}
-                  className="w-24 h-24 rounded-full object-cover border-4 border-slate-100 shadow-md"
+                  className="w-20 h-20 rounded-2xl object-cover border-2 border-primary/30 shadow-md"
                 />
               ) : (
-                <div className="w-24 h-24 rounded-full bg-[#00288e] text-white flex items-center justify-center text-2xl font-bold shadow-md border-4 border-slate-100">
+                <div className="w-20 h-20 rounded-2xl bg-primary text-on-primary flex items-center justify-center text-xl font-bold shadow-md">
                   {initials}
                 </div>
               )}
@@ -463,10 +459,10 @@ export default function WorkerDetail() {
               <button
                 type="button"
                 onClick={() => workerPhotoInputRef.current?.click()}
-                className="absolute bottom-0 right-0 p-2 rounded-full bg-slate-900 text-white hover:bg-slate-800 shadow-md cursor-pointer transition-all"
+                className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-on-primary shadow-md cursor-pointer transition-all hover:scale-105"
                 title="Upload Photo"
               >
-                <Camera size={13} />
+                <Camera size={12} />
               </button>
             </div>
 
@@ -479,97 +475,93 @@ export default function WorkerDetail() {
             />
 
             <div className="space-y-0.5">
-              <h2 className="text-base font-bold text-slate-900">{name}</h2>
-              <p className="text-xs font-bold text-[#00288e]">{skillCategory} Specialist</p>
-              <p className="text-[11px] text-slate-400">{coopName}</p>
+              <h2 className="text-base font-bold text-on-surface">{name}</h2>
+              <p className="text-xs font-bold text-primary">{skillCategory} Specialist</p>
+              <p className="text-[11px] text-on-surface-variant">{coopName}</p>
             </div>
-
-         
           </div>
 
           {/* Credentials Summary */}
-          <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
-            <div className="flex items-center justify-between py-1 border-b border-slate-50">
-              <span className="text-slate-500">e-Shram National UAN</span>
-              <span className="font-mono font-bold text-slate-900">{eShramNo || "—"}</span>
+          <div className="space-y-2 pt-2 border-t border-outline-variant/40 text-xs">
+            <div className="flex items-center justify-between py-1 border-b border-outline-variant/20">
+              <span className="text-on-surface-variant">e-Shram National UAN</span>
+              <span className="font-mono font-bold text-on-surface">{eShramNo || "—"}</span>
             </div>
-            <div className="flex items-center justify-between py-1 border-b border-slate-50">
-              <span className="text-slate-500">Cooperative License</span>
-              <span className="font-mono font-bold text-slate-900">{coopLicenseNo || "—"}</span>
+            <div className="flex items-center justify-between py-1 border-b border-outline-variant/20">
+              <span className="text-on-surface-variant">Cooperative License</span>
+              <span className="font-mono font-bold text-on-surface">{coopLicenseNo || "—"}</span>
             </div>
-            <div className="flex items-center justify-between py-1 border-b border-slate-50">
-              <span className="text-slate-500">Hourly Base Rate</span>
-              <span className="font-bold text-emerald-700">₹{hourlyRate}/hr</span>
+            <div className="flex items-center justify-between py-1 border-b border-outline-variant/20">
+              <span className="text-on-surface-variant">Hourly Base Rate</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{hourlyRate}/hr</span>
             </div>
             <div className="flex items-center justify-between py-1">
-              <span className="text-slate-500">Emergency Contact</span>
-              <span className="font-bold text-slate-900">{emergencyPhone || "—"}</span>
+              <span className="text-on-surface-variant">Emergency Contact</span>
+              <span className="font-bold text-on-surface">{emergencyPhone || "—"}</span>
             </div>
           </div>
 
           {/* Welfare Schemes Summary */}
-          <div className="space-y-2.5 pt-3 border-t border-slate-100">
+          <div className="space-y-2 pt-2 border-t border-outline-variant/40">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                <ShieldCheck size={15} className="text-emerald-700" />
+              <h3 className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
+                <ShieldCheck size={14} className="text-emerald-600 dark:text-emerald-400" />
                 Welfare Schemes
               </h3>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-200">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
                 Active Enrolled
               </span>
             </div>
 
-            <div className="space-y-2 text-xs">
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+            <div className="space-y-1.5 text-xs">
+              <div className="p-2 rounded-xl bg-surface-container-low border border-outline-variant/40 flex items-center justify-between">
                 <div>
-                  <p className="font-bold text-slate-900 text-[11.5px]">PMSBY Accident Cover</p>
-                  <p className="text-[10px] text-slate-400">₹2,00,000 Govt. cover</p>
+                  <p className="font-bold text-on-surface text-[11px]">PMSBY Accident Cover</p>
+                  <p className="text-[10px] text-on-surface-variant">₹2,00,000 Govt. cover</p>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[9.5px]">ACTIVE ✓</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[9.5px]">ACTIVE ✓</span>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+              <div className="p-2 rounded-xl bg-surface-container-low border border-outline-variant/40 flex items-center justify-between">
                 <div>
-                  <p className="font-bold text-slate-900 text-[11.5px]">PM-JAY Ayushman Bharat</p>
-                  <p className="text-[10px] text-slate-400">₹5,00,000 Hospital cover</p>
+                  <p className="font-bold text-on-surface text-[11px]">PM-JAY Ayushman Bharat</p>
+                  <p className="text-[10px] text-on-surface-variant">₹5,00,000 Hospital cover</p>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[9.5px]">ENROLLED ✓</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[9.5px]">ENROLLED ✓</span>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+              <div className="p-2 rounded-xl bg-surface-container-low border border-outline-variant/40 flex items-center justify-between">
                 <div>
-                  <p className="font-bold text-slate-900 text-[11.5px]">Cooperative Emergency Pool</p>
-                  <p className="text-[10px] text-slate-400">10% Reserve Fund</p>
+                  <p className="font-bold text-on-surface text-[11px]">Cooperative Emergency Pool</p>
+                  <p className="text-[10px] text-on-surface-variant">10% Reserve Fund</p>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-[#00288e] font-bold text-[9.5px]">BENEFICIARY</span>
+                <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold text-[9.5px]">BENEFICIARY</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* ── RIGHT COLUMN: Service Records & Revenue Split (Span 8) ── */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="lg:col-span-8 space-y-4">
 
           {/* 📜 Service Records & Dispatch Logs */}
-          <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
-            <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-3">
+          <div className="rounded-2xl border border-outline-variant/60 bg-surface overflow-hidden shadow-2xs">
+            <div className="p-4 border-b border-outline-variant/60 bg-surface-container-low flex items-center justify-between flex-wrap gap-2.5">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Clock size={16} className="text-[#00288e]" />
-                  Service Records &amp; Booking Dispatch Logs
+                <h3 className="text-xs sm:text-sm font-bold text-on-surface flex items-center gap-1.5">
+                  <Clock size={15} className="text-primary" />
+                  Service Records &amp; Dispatch Logs
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">Completed and ongoing customer booking ledger for {name}</p>
+                <p className="text-[11px] text-on-surface-variant mt-0.5">Booking history for {name}</p>
               </div>
 
-              {/* Controls: Filter Pills, Sort By Dropdown & Full View */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Status Filter Pills */}
+              {/* Controls */}
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <div className="flex items-center gap-1 flex-wrap">
                   {[
                     { id: "all", label: `All (${bookingHistory.length})` },
-                    { id: "completed", label: `Completed (${completedJobsCount})` },
-                    { id: "in_progress", label: `In Progress (${inProgressBookings.length})` },
-                    { id: "cancelled", label: `Cancelled (${cancelledBookings.length})` },
+                    { id: "completed", label: `Done (${completedJobsCount})` },
+                    { id: "in_progress", label: `Active (${inProgressBookings.length})` },
                   ].map((f) => (
                     <button
                       key={f.id}
@@ -577,10 +569,10 @@ export default function WorkerDetail() {
                         setBookingFilter(f.id);
                         setCurrentPage(1);
                       }}
-                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                         bookingFilter === f.id
-                          ? "bg-[#00288e] text-white shadow-2xs"
-                          : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
+                          ? "bg-primary text-on-primary shadow-2xs"
+                          : "bg-surface border border-outline-variant text-on-surface-variant hover:bg-surface-container"
                       }`}
                     >
                       {f.label}
@@ -588,170 +580,185 @@ export default function WorkerDetail() {
                   ))}
                 </div>
 
-                {/* Sort By Dropdown */}
-                <div className="flex items-center gap-1 pl-1">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="h-8 rounded-xl border border-slate-200 bg-white px-2 text-xs font-bold text-slate-700 outline-none hover:border-slate-300 cursor-pointer"
-                  >
-                    <option value="date_desc">Newest First</option>
-                    <option value="date_asc">Oldest First</option>
-                    <option value="amount_desc">Highest Payout</option>
-                    <option value="amount_asc">Lowest Payout</option>
-                    <option value="rating_desc">Top Rated</option>
-                  </select>
-                </div>
-
-                {/* Full View Button */}
                 <button
                   type="button"
                   onClick={() => setShowFullViewModal(true)}
-                  className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-[#00288e] transition-all cursor-pointer shadow-2xs"
+                  className="p-1 rounded-lg border border-outline-variant bg-surface hover:bg-surface-container text-on-surface-variant hover:text-primary transition-all cursor-pointer shadow-2xs"
                   title="Expand to Full View"
                 >
-                  <Maximize2 size={14} />
+                  <Maximize2 size={13} />
                 </button>
               </div>
             </div>
 
-            {/* Bookings Table */}
+            {/* Bookings Display */}
             {sortedBookings.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase">
-                      <th className="px-4 py-3">Booking ID</th>
-                      <th className="px-4 py-3">Date &amp; Time</th>
-                      <th className="px-4 py-3">Service</th>
-                      <th className="px-4 py-3">Customer</th>
-                      <th className="px-4 py-3">Gross Amount</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Rating</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {paginatedBookings.map((row, idx) => {
-                      const st = (row.status || "completed").toLowerCase();
-                      const rawDate = row.scheduledTime || row.createdAt || row.date || row.timestamp;
-                      let formattedDate = "—";
-                      let formattedTime = "";
-                      if (rawDate) {
-                        const d = new Date(rawDate);
-                        if (!isNaN(d.getTime())) {
-                          formattedDate = d.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" });
-                          formattedTime = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-                        }
+              <>
+                {/* ── MOBILE BOOKING CARDS (< 768px) ── */}
+                <div className="md:hidden divide-y divide-outline-variant/40 p-2 space-y-2">
+                  {paginatedBookings.map((row, idx) => {
+                    const st = (row.status || "completed").toLowerCase();
+                    const rawDate = row.scheduledTime || row.createdAt || row.date || row.timestamp;
+                    let formattedDate = "—";
+                    if (rawDate) {
+                      const d = new Date(rawDate);
+                      if (!isNaN(d.getTime())) {
+                        formattedDate = d.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
                       }
+                    }
 
-                      return (
-                        <tr key={row._id || row.id || idx} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="px-4 py-3 font-mono font-bold text-[#00288e]">
-                            {(row._id || row.id || `TX-${idx}`).slice(-8).toUpperCase()}
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">
-                            <span className="font-bold text-slate-900">{formattedDate}</span>
-                            {formattedTime && <span className="block text-[10.5px] text-slate-400 font-medium">{formattedTime}</span>}
-                          </td>
-                          <td className="px-4 py-3 font-bold text-slate-900">{row.service || skillCategory}</td>
-                          <td className="px-4 py-3 text-slate-600">{row.householdId?.name || row.customerName || "—"}</td>
-                          <td className="px-4 py-3 font-bold text-emerald-700">₹{(row.price || row.payout || 0).toLocaleString('en-IN')}</td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            {renderStatusBadge(row.status)}
-                          </td>
-                          <td className="px-4 py-3 text-right font-bold text-amber-600">
-                            {st === "cancelled" ? "—" : row.rating ? `${row.rating} ⭐` : "5.0 ⭐"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                    return (
+                      <div key={row._id || row.id || idx} className="p-2.5 rounded-xl bg-surface-container-low space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-on-surface">{row.service || skillCategory}</span>
+                          <span className="font-black text-emerald-600 dark:text-emerald-400">₹{(row.price || row.payout || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-on-surface-variant">
+                          <span>{row.householdId?.name || row.customerName || "Customer"} &middot; {formattedDate}</span>
+                          <div>{renderStatusBadge(row.status)}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* ── DESKTOP BOOKINGS TABLE (>= 768px) ── */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-outline-variant/40 bg-surface-container-low text-[10.5px] font-bold text-on-surface-variant uppercase">
+                        <th className="px-4 py-2.5">Booking ID</th>
+                        <th className="px-4 py-2.5">Date &amp; Time</th>
+                        <th className="px-4 py-2.5">Service</th>
+                        <th className="px-4 py-2.5">Customer</th>
+                        <th className="px-4 py-2.5">Gross Amount</th>
+                        <th className="px-4 py-2.5">Status</th>
+                        <th className="px-4 py-2.5 text-right">Rating</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/30">
+                      {paginatedBookings.map((row, idx) => {
+                        const st = (row.status || "completed").toLowerCase();
+                        const rawDate = row.scheduledTime || row.createdAt || row.date || row.timestamp;
+                        let formattedDate = "—";
+                        let formattedTime = "";
+                        if (rawDate) {
+                          const d = new Date(rawDate);
+                          if (!isNaN(d.getTime())) {
+                            formattedDate = d.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" });
+                            formattedTime = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+                          }
+                        }
+
+                        return (
+                          <tr key={row._id || row.id || idx} className="hover:bg-surface-container-low transition-colors">
+                            <td className="px-4 py-2.5 font-mono font-bold text-primary">
+                              {(row._id || row.id || `TX-${idx}`).slice(-8).toUpperCase()}
+                            </td>
+                            <td className="px-4 py-2.5 text-on-surface-variant">
+                              <span className="font-bold text-on-surface">{formattedDate}</span>
+                              {formattedTime && <span className="block text-[10px] text-on-surface-variant">{formattedTime}</span>}
+                            </td>
+                            <td className="px-4 py-2.5 font-bold text-on-surface">{row.service || skillCategory}</td>
+                            <td className="px-4 py-2.5 text-on-surface-variant">{row.householdId?.name || row.customerName || "—"}</td>
+                            <td className="px-4 py-2.5 font-bold text-emerald-600 dark:text-emerald-400">₹{(row.price || row.payout || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-4 py-2.5 whitespace-nowrap">
+                              {renderStatusBadge(row.status)}
+                            </td>
+                            <td className="px-4 py-2.5 text-right font-bold text-amber-600 dark:text-amber-400">
+                              {st === "cancelled" ? "—" : row.rating ? `${row.rating} ⭐` : "5.0 ⭐"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
 
                 {/* Pagination */}
                 {sortedBookings.length > pageSize && (
-                  <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 flex-wrap gap-2 text-xs">
-                    <span className="text-slate-500">
-                      Showing {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, sortedBookings.length)} of {sortedBookings.length} logs
+                  <div className="flex items-center justify-between px-4 py-2.5 border-t border-outline-variant/40 flex-wrap gap-2 text-xs">
+                    <span className="text-on-surface-variant text-[11px]">
+                      {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, sortedBookings.length)} of {sortedBookings.length} logs
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="px-3 py-1 rounded-lg border border-slate-200 bg-white font-bold disabled:opacity-40 hover:bg-slate-50 cursor-pointer flex items-center gap-1"
+                        className="px-2.5 py-0.5 rounded-lg border border-outline-variant bg-surface font-bold disabled:opacity-40 hover:bg-surface-container cursor-pointer flex items-center gap-1 text-[11px]"
                       >
-                        <ChevronLeft size={13} />
+                        <ChevronLeft size={12} />
                         <span>Prev</span>
                       </button>
-                      <span className="px-3 py-1 rounded-lg bg-[#00288e] text-white font-bold text-xs">
+                      <span className="px-2 py-0.5 rounded-lg bg-primary text-on-primary font-bold text-[11px]">
                         {currentPage} / {totalPages}
                       </span>
                       <button
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
-                        className="px-3 py-1 rounded-lg border border-slate-200 bg-white font-bold disabled:opacity-40 hover:bg-slate-50 cursor-pointer flex items-center gap-1"
+                        className="px-2.5 py-0.5 rounded-lg border border-outline-variant bg-surface font-bold disabled:opacity-40 hover:bg-surface-container cursor-pointer flex items-center gap-1 text-[11px]"
                       >
                         <span>Next</span>
-                        <ChevronRight size={13} />
+                        <ChevronRight size={12} />
                       </button>
                     </div>
                   </div>
                 )}
-              </div>
+              </>
             ) : (
-              <div className="p-8 text-center text-xs text-slate-500 space-y-1">
-                <Briefcase size={24} className="mx-auto text-slate-300 mb-2" />
-                <p className="font-bold text-slate-700">No booking records found</p>
+              <div className="p-6 text-center text-xs text-on-surface-variant space-y-1">
+                <Briefcase size={20} className="mx-auto text-on-surface-variant/40 mb-1" />
+                <p className="font-bold text-on-surface">No booking records found</p>
                 <p>No dispatch logs match the selected filter for {name}.</p>
               </div>
             )}
           </div>
 
           {/* 💰 Revenue Split & Direct Message Console */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             {/* Cooperative Revenue & Commission Split */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3 shadow-2xs">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
-                <DollarSign size={15} className="text-[#00288e]" />
+            <div className="rounded-2xl border border-outline-variant/60 bg-surface p-4 space-y-2.5 shadow-2xs">
+              <h3 className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-1.5 border-b border-outline-variant/40 pb-2">
+                <DollarSign size={14} className="text-primary" />
                 Fair Wage Revenue Split
               </h3>
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500">Worker Disbursal (85%)</span>
-                  <span className="font-bold text-emerald-700">₹{workerPayoutShare.toLocaleString('en-IN')}</span>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex items-center justify-between p-2 rounded-xl bg-surface-container-low border border-outline-variant/40">
+                  <span className="text-on-surface-variant">Worker Disbursal (85%)</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{workerPayoutShare.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500">Cooperative Retention (10%)</span>
-                  <span className="font-bold text-blue-700">₹{coopReserveShare.toLocaleString('en-IN')}</span>
+                <div className="flex items-center justify-between p-2 rounded-xl bg-surface-container-low border border-outline-variant/40">
+                  <span className="text-on-surface-variant">Cooperative Retention (10%)</span>
+                  <span className="font-bold text-primary">₹{coopReserveShare.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500">Welfare Fund Pool (5%)</span>
-                  <span className="font-bold text-amber-700">₹{welfareFundShare.toLocaleString('en-IN')}</span>
+                <div className="flex items-center justify-between p-2 rounded-xl bg-surface-container-low border border-outline-variant/40">
+                  <span className="text-on-surface-variant">Welfare Fund Pool (5%)</span>
+                  <span className="font-bold text-amber-600 dark:text-amber-400">₹{welfareFundShare.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
 
             {/* Direct Admin Alert Dispatcher */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3 shadow-2xs">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
-                <MessageSquare size={15} className="text-[#00288e]" />
-                Direct Admin Alert Console
+            <div className="rounded-2xl border border-outline-variant/60 bg-surface p-4 space-y-2.5 shadow-2xs">
+              <h3 className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-1.5 border-b border-outline-variant/40 pb-2">
+                <MessageSquare size={14} className="text-primary" />
+                Direct Alert Console
               </h3>
               <form onSubmit={handleSendMessage} className="space-y-2">
                 <textarea
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
-                  placeholder={`Send direct dispatch instructions or compliance notice to ${name}...`}
+                  placeholder={`Send direct instructions to ${name}...`}
                   rows={2}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-900 outline-none focus:border-[#00288e] focus:bg-white resize-none"
+                  className="w-full rounded-xl border border-outline-variant bg-surface-container-low p-2.5 text-xs text-on-surface outline-none focus:border-primary resize-none"
                   required
                 />
                 <button
                   type="submit"
-                  className="w-full py-2 rounded-xl bg-[#00288e] hover:bg-[#001f70] text-white text-xs font-bold shadow-2xs cursor-pointer flex items-center justify-center gap-1.5 transition-all"
+                  className="w-full py-2 rounded-xl bg-primary hover:opacity-90 text-on-primary text-xs font-bold shadow-2xs cursor-pointer flex items-center justify-center gap-1.5 transition-all"
                 >
-                  <Send size={13} />
+                  <Send size={12} />
                   <span>Send Direct Message</span>
                 </button>
               </form>
@@ -763,22 +770,22 @@ export default function WorkerDetail() {
       {/* ── MODAL 1: ENLARGED SCANNABLE QR PASS ── */}
       {showQrModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowQrModal(false)}>
-          <div className="w-full max-w-sm bg-white rounded-3xl p-6 text-center space-y-4 border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h3 className="text-sm font-bold text-slate-900">Official Verification Pass</h3>
-              <button onClick={() => setShowQrModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
-                <X size={18} />
+          <div className="w-full max-w-sm bg-surface rounded-3xl p-5 text-center space-y-3.5 border border-outline-variant shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-outline-variant/60 pb-2">
+              <h3 className="text-xs font-bold text-on-surface">Verification Pass</h3>
+              <button onClick={() => setShowQrModal(false)} className="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container cursor-pointer">
+                <X size={16} />
               </button>
             </div>
 
-            <div className="p-4 bg-white rounded-2xl border-2 border-dashed border-slate-200 inline-block shadow-inner">
-              <img src={scannableQrUrl} alt="QR Code" className="w-56 h-56 mx-auto object-contain" />
+            <div className="p-3 bg-white rounded-2xl border border-outline-variant inline-block shadow-inner">
+              <img src={scannableQrUrl} alt="QR Code" className="w-48 h-48 mx-auto object-contain" />
             </div>
 
-            <div className="space-y-1 text-xs">
-              <p className="font-bold text-slate-900">{name}</p>
-              <p className="text-[11px] text-slate-500 font-mono">ID: {workerId}</p>
-              <p className="text-[10px] text-emerald-700 font-semibold pt-1">Scan with any smartphone camera for instant credential verification</p>
+            <div className="space-y-0.5 text-xs">
+              <p className="font-bold text-on-surface">{name}</p>
+              <p className="text-[11px] text-on-surface-variant font-mono">ID: {workerId}</p>
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold pt-0.5">Scannable official member verification pass</p>
             </div>
           </div>
         </div>
@@ -787,214 +794,58 @@ export default function WorkerDetail() {
       {/* ── MODAL 2: FULL VIEW EXPANDED DISPATCH LEDGER ── */}
       {showFullViewModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowFullViewModal(false)}>
-          <div className="w-full max-w-5xl bg-white text-slate-900 rounded-3xl p-6 lg:p-8 space-y-5 border border-slate-200 shadow-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#00288e] text-white flex items-center justify-center font-bold">
-                  <Clock size={20} />
+          <div className="w-full max-w-4xl bg-surface text-on-surface rounded-3xl p-5 sm:p-6 space-y-4 border border-outline-variant shadow-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-outline-variant/60 pb-3 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-primary text-on-primary flex items-center justify-center font-bold">
+                  <Clock size={18} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">Full Service History &amp; Dispatch Ledger</h2>
-                  <p className="text-xs text-slate-500">Comprehensive dispatch records for {name} ({fullViewList.length} Total Logs)</p>
+                  <h2 className="text-sm sm:text-base font-bold text-on-surface">Service History &amp; Dispatch Ledger</h2>
+                  <p className="text-[11px] text-on-surface-variant">Dispatch records for {name} ({fullViewList.length} Total Logs)</p>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Printer size={13} />
-                  <span>Print</span>
-                </button>
-                <button onClick={() => setShowFullViewModal(false)} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer">
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-
-            {/* Search Filter Bar */}
-            <div className="relative shrink-0">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
-              <input
-                type="text"
-                value={fullViewSearch}
-                onChange={(e) => setFullViewSearch(e.target.value)}
-                placeholder="Search across Booking ID, Service Category, Customer name, or Status..."
-                className="w-full h-10 rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-xs text-slate-900 outline-none focus:border-[#00288e] focus:bg-white"
-              />
-            </div>
-
-            {/* Scrollable Expanded Table */}
-            <div className="overflow-y-auto overflow-x-auto flex-1 rounded-2xl border border-slate-200">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50 sticky top-0 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase">
-                  <tr>
-                    <th className="px-4 py-3">Booking ID</th>
-                    <th className="px-4 py-3">Scheduled / Creation Date</th>
-                    <th className="px-4 py-3">Service Requested</th>
-                    <th className="px-4 py-3">Customer</th>
-                    <th className="px-4 py-3">Gross Value</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Rating</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {fullViewList.map((row, idx) => {
-                    const st = (row.status || "completed").toLowerCase();
-                    const rawDate = row.scheduledTime || row.createdAt || row.date || row.timestamp;
-                    let formattedDate = "—";
-                    let formattedTime = "";
-                    if (rawDate) {
-                      const d = new Date(rawDate);
-                      if (!isNaN(d.getTime())) {
-                        formattedDate = d.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" });
-                        formattedTime = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-                      }
-                    }
-
-                    return (
-                      <tr key={row._id || row.id || idx} className="hover:bg-slate-50/60">
-                        <td className="px-4 py-3 font-mono font-bold text-[#00288e]">
-                          {(row._id || row.id || `TX-${idx}`).slice(-8).toUpperCase()}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">
-                          <span className="font-bold text-slate-900">{formattedDate}</span>
-                          {formattedTime && <span className="block text-[10.5px] text-slate-400 font-medium">{formattedTime}</span>}
-                        </td>
-                        <td className="px-4 py-3 font-bold text-slate-900">{row.service || skillCategory}</td>
-                        <td className="px-4 py-3 text-slate-600">{row.householdId?.name || row.customerName || "—"}</td>
-                        <td className="px-4 py-3 font-bold text-emerald-700">₹{(row.price || row.payout || 0).toLocaleString('en-IN')}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {renderStatusBadge(row.status)}
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold text-amber-600">
-                          {st === "cancelled" ? "—" : row.rating ? `${row.rating} ⭐` : "5.0 ⭐"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-slate-200 text-xs text-slate-500 shrink-0">
-              <span>Showing {fullViewList.length} of {bookingHistory.length} total booking logs</span>
-              <button
-                onClick={() => setShowFullViewModal(false)}
-                className="px-4 py-2 rounded-full border border-slate-200 font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
-              >
-                Close Full View
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL 3: PRINTABLE STATEMENT & DISBURSAL LEDGER ── */}
-      {showStatementModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowStatementModal(false)}>
-          <div className="w-full max-w-3xl bg-white text-slate-900 rounded-3xl p-6 lg:p-8 space-y-5 border border-slate-200 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#00288e] text-white flex items-center justify-center font-bold">
-                  <Printer size={20} />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">Official Member Statement &amp; Disbursal Certificate</h2>
-                  <p className="text-xs text-slate-500">Certified earnings statement for {name}</p>
-                </div>
-              </div>
-              <button onClick={() => setShowStatementModal(false)} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer">
+              <button onClick={() => setShowFullViewModal(false)} className="p-1.5 rounded-xl text-on-surface-variant hover:bg-surface-container cursor-pointer">
                 <X size={18} />
               </button>
             </div>
 
-            <div className="p-6 rounded-2xl border border-slate-300 bg-slate-50/60 space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-300 pb-4">
-                <div>
-                  <h3 className="text-lg font-black text-slate-900">SAHAKARGIG COOPERATIVE FEDERATION</h3>
-                  <p className="text-xs text-slate-700 font-bold">{coopName}</p>
-                  <p className="text-[11px] text-slate-500">Govt Registration: {coopLicenseNo || "DL-COOP-2026-001"}</p>
-                </div>
-                <div className="text-right">
-                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
-                    VERIFIED MEMBER
-                  </span>
-                  <p className="text-[11px] text-slate-500 mt-1">Date: {new Date().toLocaleDateString("en-IN")}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Worker Member</span>
-                  <p className="font-bold text-slate-900 mt-0.5">{name}</p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Trade Skill</span>
-                  <p className="font-bold text-slate-900 mt-0.5">{skillCategory}</p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">e-Shram UAN</span>
-                  <p className="font-mono font-bold text-slate-900 mt-0.5">{eShramNo || "—"}</p>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Net Disbursed</span>
-                  <p className="font-bold text-emerald-700 mt-0.5">₹{totalEarnedAmount.toLocaleString('en-IN')}</p>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10.5px]">
-                    <tr>
-                      <th className="px-3 py-2.5">Booking Ref</th>
-                      <th className="px-3 py-2.5">Service</th>
-                      <th className="px-3 py-2.5">Gross Amount</th>
-                      <th className="px-3 py-2.5">Member Share (85%)</th>
-                      <th className="px-3 py-2.5 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {completedBookings.map((b, i) => (
-                      <tr key={b._id || b.id || i}>
-                        <td className="px-3 py-2 font-mono font-bold text-slate-900">{(b._id || b.id || `TX-${i}`).slice(-8).toUpperCase()}</td>
-                        <td className="px-3 py-2">{b.service || skillCategory}</td>
-                        <td className="px-3 py-2 font-bold">₹{b.price || b.amount || 0}</td>
-                        <td className="px-3 py-2 font-bold text-emerald-700">₹{Math.round((b.price || b.amount || 0) * 0.85)}</td>
-                        <td className="px-3 py-2 text-right font-semibold text-emerald-700">Disbursed ✓</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-slate-300 text-xs text-slate-500">
-                <div>
-                  <p className="font-semibold text-slate-700">Digitally Certified via SahakarGig Nodal Escrow</p>
-                  <p className="text-[10px]">Ministry of Cooperation Multi-State Framework</p>
-                </div>
-                <div className="text-right">
-                  <div className="w-28 h-8 border-b border-slate-400 mb-1" />
-                  <p className="text-[10px] font-bold text-slate-700">Authorized Signatory</p>
-                </div>
-              </div>
+            <div className="relative shrink-0">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
+              <input
+                type="text"
+                value={fullViewSearch}
+                onChange={(e) => setFullViewSearch(e.target.value)}
+                placeholder="Search ledger by transaction ID, service, or customer name..."
+                className="w-full h-9 pl-8 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs text-on-surface outline-none focus:border-primary"
+              />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
-              <button
-                onClick={() => setShowStatementModal(false)}
-                className="px-4 py-2.5 rounded-full border border-slate-200 font-bold text-slate-600 hover:bg-slate-100 cursor-pointer text-xs"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => window.print()}
-                className="px-6 py-2.5 rounded-full bg-[#00288e] text-white font-bold hover:bg-[#001f70] shadow-md cursor-pointer text-xs flex items-center gap-1.5"
-              >
-                <Printer size={14} />
-                <span>Print / Save PDF</span>
-              </button>
+            <div className="flex-1 overflow-y-auto border border-outline-variant/60 rounded-xl">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="sticky top-0 bg-surface-container-low border-b border-outline-variant/60 text-[10px] font-bold text-on-surface-variant uppercase">
+                  <tr>
+                    <th className="px-3 py-2">ID</th>
+                    <th className="px-3 py-2">Date</th>
+                    <th className="px-3 py-2">Service</th>
+                    <th className="px-3 py-2">Customer</th>
+                    <th className="px-3 py-2">Gross Amount</th>
+                    <th className="px-3 py-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/40">
+                  {fullViewList.map((row, idx) => (
+                    <tr key={row._id || idx} className="hover:bg-surface-container-low transition-colors">
+                      <td className="px-3 py-2 font-mono font-bold text-primary text-[11px]">{(row._id || `TX-${idx}`).slice(-8).toUpperCase()}</td>
+                      <td className="px-3 py-2 text-[11px] text-on-surface-variant">{row.scheduledTime ? new Date(row.scheduledTime).toLocaleDateString("en-IN", { month: "short", day: "numeric" }) : "—"}</td>
+                      <td className="px-3 py-2 font-bold text-on-surface">{row.service || skillCategory}</td>
+                      <td className="px-3 py-2 text-on-surface-variant">{row.householdId?.name || "Customer"}</td>
+                      <td className="px-3 py-2 font-bold text-emerald-600 dark:text-emerald-400">₹{(row.price || 0).toLocaleString('en-IN')}</td>
+                      <td className="px-3 py-2">{renderStatusBadge(row.status)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

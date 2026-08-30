@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import api from "../lib/api";
-import { Bot, X, Send, Mic, Zap, ArrowRight, RefreshCw, Building2, Sparkles, MessageCircle } from "lucide-react";
+import { Bot, X, Send, Mic, Zap, ArrowRight, Droplets, ShieldCheck, FileText } from "lucide-react";
 
 const KNOWLEDGE_BASE = [
   {
@@ -64,6 +65,13 @@ const KNOWLEDGE_BASE = [
     actionCategory: "Carpenter",
     isEmergency: false,
   }
+];
+
+const SUGGESTIONS = [
+  { icon: Zap, label: "Electrical Help" },
+  { icon: Droplets, label: "Plumbing Leak" },
+  { icon: ShieldCheck, label: "Escrow Payout" },
+  { icon: FileText, label: "e-Shram Welfare" },
 ];
 
 function extractUserName(str) {
@@ -219,6 +227,7 @@ function processQueryIntent(query) {
 }
 
 export default function AIChatbot() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -236,6 +245,15 @@ export default function AIChatbot() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
 
   async function handleSend(userText) {
     const query = userText || input;
@@ -291,53 +309,68 @@ export default function AIChatbot() {
 
   function triggerDispatch(cat, emergency) {
     setIsOpen(false);
-    navigate(`/household/dispatch?category=${encodeURIComponent(cat)}&emergency=${emergency ? "true" : "false"}`);
+    const targetUrl = `/household/dispatch?category=${encodeURIComponent(cat)}&emergency=${emergency ? "true" : "false"}`;
+    if (!user) {
+      navigate(`/signup?role=Household&redirect=${encodeURIComponent(targetUrl)}`);
+      return;
+    }
+    navigate(targetUrl);
   }
 
   return (
     <>
-      {/* Orvia UI Floating Support Button — Circular Icon Only */}
+      {/* Floating Support Button — Circular Icon Only */}
       {!isOpen && (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[#1e6b65] text-white shadow-2xl hover:bg-[#145e58] hover:scale-110 active:scale-95 transition-all cursor-pointer border border-white/30 flex items-center justify-center group"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 rounded-full bg-primary text-on-primary shadow-[0_8px_30px_rgba(0,0,0,0.35)] hover:opacity-90 hover:scale-110 active:scale-95 transition-all cursor-pointer border border-white/10 flex items-center justify-center group"
           title="Saarthi AI Assistant"
         >
-          <Bot size={26} className="text-[#84cc16] group-hover:rotate-12 transition-transform" />
+          <span className="absolute top-1 right-1 w-3 h-3 rounded-full bg-[#84cc16] ring-2 ring-surface" />
+          <Bot size={24} className="group-hover:rotate-12 transition-transform" />
         </button>
       )}
 
-      {/* Orvia Styled Floating Chat Drawer */}
+      {/* Backdrop Blur + Scroll Lock */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[350px] sm:w-[390px] h-[520px] rounded-3xl border border-outline-variant bg-surface shadow-2xl flex flex-col overflow-hidden animate-alert-in">
-          
-          {/* Drawer Header — Orvia Ocean Teal */}
-          <div className="p-4 px-5 bg-gradient-to-r from-slate-900 via-[#1e6b65] to-slate-900 text-white flex items-center justify-between shrink-0 shadow-sm">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center border border-white/20">
-                <Bot size={20} className="text-[#84cc16]" />
+        <div
+          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-md animate-chat-backdrop"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Floating Chat Drawer — App Theme Synced */}
+      {isOpen && (
+        <div className="fixed z-50 bottom-4 inset-x-3 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-[400px] h-[75dvh] sm:h-[580px] max-h-[660px] rounded-2xl sm:rounded-[28px] border border-outline-variant bg-surface shadow-[0_24px_80px_rgba(0,0,0,0.4)] flex flex-col overflow-hidden animate-chat-in">
+
+          {/* Drawer Header — Premium Gloss */}
+          <div className="relative shrink-0 px-4 py-3.5 bg-primary text-on-primary flex items-center justify-between">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+            <div className="relative flex items-center gap-3">
+              <div className="relative w-10 h-10 rounded-2xl bg-on-primary/15 flex items-center justify-center border border-on-primary/20">
+                <Bot size={22} className="text-on-primary" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#84cc16] border-2 border-primary" />
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
-                  <h3 className="text-sm font-black tracking-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
-                    Saarthi
-                  </h3>
-                  <span className="w-2 h-2 rounded-full bg-[#84cc16] animate-pulse" />
-                </div>
-                <p className="text-[10.5px] text-slate-300 font-medium">AI Assistant</p>
+                <h3 className="text-[15px] font-black tracking-tight leading-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+                  Saarthi
+                </h3>
+                <p className="text-[10.5px] text-on-primary/80 font-medium">SahakarGig AI Assistant</p>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition-colors cursor-pointer"
+              className="relative w-8 h-8 rounded-full bg-on-primary/15 hover:bg-on-primary/25 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              aria-label="Close chat"
             >
               <X size={17} />
             </button>
           </div>
 
-          {/* Messages Container — Warm Canvas */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-surface-container-low">
+          {/* Messages Container — Glass Canvas */}
+          <div className="relative flex-1 p-4 overflow-y-auto space-y-3 bg-gradient-to-b from-surface-container-low via-surface-container-low/60 to-surface">
             {messages.map((msg, idx) => (
               <div
                 key={idx}
@@ -346,7 +379,7 @@ export default function AIChatbot() {
                 <div
                   className={`max-w-[86%] rounded-2xl p-3.5 text-xs leading-relaxed whitespace-pre-line ${
                     msg.sender === "user"
-                      ? "bg-[#1e6b65] text-white rounded-tr-xs shadow-xs font-semibold"
+                      ? "bg-primary text-on-primary rounded-tr-xs shadow-xs font-semibold"
                       : "bg-surface-container-high text-on-surface border border-outline-variant rounded-tl-xs shadow-xs font-medium"
                   }`}
                 >
@@ -358,9 +391,9 @@ export default function AIChatbot() {
                   <button
                     type="button"
                     onClick={() => triggerDispatch(msg.actionCategory, msg.isEmergency)}
-                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1e6b65] text-white text-[11.5px] font-bold shadow-xs hover:bg-[#145e58] transition-all cursor-pointer"
+                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-on-primary text-[11.5px] font-bold shadow-xs hover:opacity-90 transition-all cursor-pointer"
                   >
-                    <Zap size={13} className="text-[#84cc16]" fill="currentColor" />
+                    <Zap size={13} fill="currentColor" />
                     <span>Auto-Broadcast {msg.actionCategory}</span>
                     <ArrowRight size={13} />
                   </button>
@@ -369,67 +402,72 @@ export default function AIChatbot() {
             ))}
 
             {isTyping && (
-              <div className="flex items-center gap-2 p-2.5 px-3 rounded-2xl bg-surface-container-high border border-outline-variant text-xs text-on-surface-variant w-fit shadow-xs">
-                <RefreshCw size={13} className="animate-spin text-[#1e6b65]" />
-                <span className="font-semibold">Processing query…</span>
+              <div className="flex items-center gap-1 px-4 py-3.5 rounded-2xl rounded-tl-xs bg-surface-container-high border border-outline-variant w-fit shadow-xs">
+                <span className="chat-typing-dot" />
+                <span className="chat-typing-dot" style={{ animationDelay: "150ms" }} />
+                <span className="chat-typing-dot" style={{ animationDelay: "300ms" }} />
+              </div>
+            )}
+
+            {/* Quick Suggestions — Inline Inside Chat */}
+            {!isTyping && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                <span className="w-full text-[10px] font-bold uppercase tracking-[0.1em] text-on-surface-variant/60 pl-1">
+                  Quick Help
+                </span>
+                {SUGGESTIONS.map(({ icon: SIcon, label }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => handleSend(label)}
+                    className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-on-surface bg-surface border border-outline-variant/80 hover:border-primary/50 hover:bg-primary-container/50 hover:text-on-primary-container hover:-translate-y-0.5 px-3 py-1.5 rounded-full shadow-xs transition-all cursor-pointer"
+                  >
+                    <SIcon size={13} strokeWidth={1.75} className="text-primary" />
+                    {label}
+                  </button>
+                ))}
               </div>
             )}
             <div ref={chatEndRef} />
           </div>
 
-          {/* Quick Suggestion Chips — Responsive Pills */}
-          <div className="px-3 py-2 bg-surface border-t border-outline-variant/60 flex items-center gap-1.5 overflow-x-auto shrink-0 scrollbar-none">
-            {[
-              "⚡ Electrical Help",
-              "💧 Plumbing Leak",
-              "🛡️ Escrow Payout",
-              "📜 e-Shram Welfare"
-            ].map((chip) => (
-              <button
-                key={chip}
-                type="button"
-                onClick={() => handleSend(chip)}
-                className="whitespace-nowrap text-[11px] font-bold text-on-primary-container bg-primary-container hover:bg-primary hover:text-on-primary px-3 py-1 rounded-full transition-all cursor-pointer border border-primary/30"
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
-
-          {/* Chat Input Row */}
+          {/* Chat Input — Floating Pill */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSend();
             }}
-            className="p-3 bg-surface border-t border-outline-variant/60 flex items-center gap-2 shrink-0"
+            className="shrink-0 p-3 bg-surface/90 backdrop-blur border-t border-outline-variant/50"
           >
-            <button
-              type="button"
-              onClick={handleVoiceInput}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-                isMicActive
-                  ? "bg-red-600 text-white animate-pulse"
-                  : "bg-surface-container-high text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container"
-              }`}
-              title="Voice Input (Hindi / English)"
-            >
-              <Mic size={17} />
-            </button>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask in Hindi or English…"
-              className="flex-1 h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface-container transition-all placeholder:text-outline-variant"
-            />
-            <button
-              type="submit"
-              disabled={!input.trim()}
-              className="w-9 h-9 rounded-xl bg-[#1e6b65] text-white flex items-center justify-center disabled:opacity-40 hover:bg-[#145e58] transition-all cursor-pointer"
-            >
-              <Send size={15} />
-            </button>
+            <div className="flex items-center gap-2 bg-surface-container-low border border-outline-variant/80 focus-within:border-primary rounded-full pl-1.5 pr-1.5 py-1.5 shadow-sm transition-all">
+              <button
+                type="button"
+                onClick={handleVoiceInput}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                  isMicActive
+                    ? "bg-red-600 text-white animate-pulse"
+                    : "text-on-surface-variant hover:text-primary hover:bg-primary-container/60"
+                }`}
+                title="Voice Input (Hindi / English)"
+              >
+                <Mic size={15} />
+              </button>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask in Hindi or English…"
+                className="flex-1 min-w-0 bg-transparent text-xs font-semibold text-on-surface outline-none placeholder:text-on-surface-variant/50"
+              />
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center disabled:opacity-40 hover:opacity-90 transition-all cursor-pointer shrink-0 shadow-sm"
+                aria-label="Send"
+              >
+                <Send size={14} />
+              </button>
+            </div>
           </form>
         </div>
       )}

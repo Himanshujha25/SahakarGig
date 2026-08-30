@@ -58,19 +58,10 @@ export default function AuthShell({
               SahakarGig
             </span>
           </Link>
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            {badgeText}
-          </span>
         </div>
 
         {/* Middle Hero Content & Features */}
         <div className="relative z-10 my-auto py-4 xl:py-6 max-w-lg">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-emerald-300 text-[11.5px] font-semibold mb-3.5 border border-white/15 shadow-xs">
-            <Icon name="verified_user" className="text-[15px] text-emerald-400" />
-            <span>Cooperative Trust &amp; Governance Platform</span>
-          </div>
-
           <h1 className="font-heading text-2xl sm:text-3xl xl:text-[38px] font-extrabold tracking-tight leading-[1.15] text-white mb-3 drop-shadow-sm">
             {title}
           </h1>
@@ -112,46 +103,66 @@ export default function AuthShell({
       </div>
 
       {/* Right Form Pane */}
-      <div className="w-full lg:w-1/2 min-h-screen lg:h-full flex flex-col p-5 sm:p-8 lg:p-8 xl:p-10 2xl:p-12 bg-surface-container-lowest overflow-y-auto">
+      <div className="w-full lg:w-1/2 min-h-screen lg:h-full flex flex-col p-4 sm:p-6 lg:px-8 lg:py-4 xl:px-10 xl:py-6 bg-surface-container-lowest overflow-y-auto lg:overflow-y-auto">
         {/* Top Navigation Bar - Synchronized exact same position across all pages */}
-        <div className="w-full max-w-[430px] mx-auto flex items-center justify-between min-h-[36px] mb-2 shrink-0">
+        <div className="w-full max-w-[480px] mx-auto flex items-center justify-between min-h-[32px] mb-2 pb-1.5 border-b border-outline-variant/40 shrink-0">
           {back ? (
             <Link
               to={back}
-              className="inline-flex items-center gap-1.5 px-2 py-1 -ml-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-all duration-200 group w-fit cursor-pointer"
+              className="group inline-flex items-center gap-2 w-fit cursor-pointer"
             >
-              <Icon
-                name="arrow_back"
-                className="text-[18px] group-hover:-translate-x-1 transition-transform duration-200 text-outline group-hover:text-primary"
-              />
-              <span>{backLabel}</span>
+              <span className="w-7 h-7 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center text-on-surface-variant group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary group-hover:shadow-[0_2px_8px_rgba(30,107,101,0.35)] transition-all duration-200 shrink-0">
+                <Icon
+                  name="arrow_back"
+                  className="text-[14px]"
+                />
+              </span>
+              <span className="text-[12px] font-semibold text-on-surface-variant group-hover:text-primary transition-colors hidden sm:inline">
+                {backLabel}
+              </span>
             </Link>
           ) : (
             <div />
           )}
 
-          {/* Mobile Header Brand & Status */}
+          {/* Mobile Header Brand */}
           <div className="lg:hidden flex items-center gap-2">
-            <span className="font-heading font-bold text-primary text-sm">SahakarGig</span>
-            <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Verified
-            </span>
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shadow-xs shrink-0">
+              <Icon name="handshake" className="text-[12px] text-on-primary-fixed" />
+            </div>
+            <span className="font-heading font-bold text-on-surface text-xs">SahakarGig</span>
           </div>
         </div>
 
         {/* Central Form Container */}
-        <div className="w-full max-w-[430px] mx-auto my-auto py-2">
+        <div className="w-full max-w-[480px] mx-auto my-auto py-1">
           {children}
         </div>
 
-        {/* Footer Links on Mobile */}
-        <div className="pt-4 lg:hidden border-t border-outline-variant/30 text-center text-[11px] text-outline flex items-center justify-center gap-4 shrink-0">
-          <a href="#" className="hover:text-on-surface-variant transition-colors">Privacy Policy</a>
-          <span>•</span>
-          <a href="#" className="hover:text-on-surface-variant transition-colors">Terms of Service</a>
-          <span>•</span>
-          <a href="#" className="hover:text-on-surface-variant transition-colors">Support Center</a>
+        {/* Footer on Mobile */}
+        <div className="pt-5 lg:hidden mt-auto shrink-0">
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-outline-variant to-transparent mb-4" />
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center gap-3">
+              <a href="#" className="text-[11.5px] font-medium text-on-surface-variant hover:text-primary transition-colors duration-200">
+                Privacy Policy
+              </a>
+              <span className="w-1 h-1 rounded-full bg-outline" />
+              <a href="#" className="text-[11.5px] font-medium text-on-surface-variant hover:text-primary transition-colors duration-200">
+                Terms of Service
+              </a>
+              <span className="w-1 h-1 rounded-full bg-outline" />
+              <a href="#" className="text-[11.5px] font-medium text-on-surface-variant hover:text-primary transition-colors duration-200">
+                Support Center
+              </a>
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-on-surface-variant/70">
+              <span className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shadow-[0_2px_8px_rgba(30,107,101,0.3)]">
+                <Icon name="handshake" className="text-[11px] text-on-primary-fixed" />
+              </span>
+              <span>© {new Date().getFullYear()} SahakarGig · Cooperative-first platform</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

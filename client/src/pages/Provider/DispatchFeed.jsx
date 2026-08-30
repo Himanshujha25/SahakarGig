@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../../lib/api";
 import socket from "../../lib/socket";
 import {
   Radar, MapPin, Zap, IndianRupee, Check, Users, AlertTriangle, Radio, BellRing,
-  Volume2, VolumeX, Bell, Play, ShieldAlert, X, Clock, Siren, Square
+  Volume2, VolumeX, Bell, Play, ShieldAlert, X, Clock, Siren, Square,
+  ShieldCheck, FileCheck2, Building, UserCheck, ExternalLink, RefreshCw
 } from "lucide-react";
 
 // ── High-Power 15-Second Emergency Siren Web Audio Engine ──────────────
@@ -59,45 +60,43 @@ async function playAlarmSound(isEmergency = true, durationSec = 15) {
   stopAlarmSound();
   const ctx = getAlarmCtx();
   if (!ctx) return;
-  if (ctx.state === "suspended") {
-    try { await ctx.resume(); } catch { return; }
-  }
+  await ensureAlarmUnlocked();
 
   const now = ctx.currentTime;
-  const masterGain = ctx.createGain();
-  masterGain.connect(ctx.destination);
-  
-  // High volume (0.80) for loud emergency alert
-  masterGain.gain.setValueAtTime(0.001, now);
-  masterGain.gain.exponentialRampToValueAtTime(0.80, now + 0.1);
+  const endTime = now + durationSec;
 
   const osc1 = ctx.createOscillator();
   const osc2 = ctx.createOscillator();
+  const masterGain = ctx.createGain();
+
   osc1.type = "sawtooth";
-  osc2.type = "triangle";
+  osc2.type = "square";
 
-  // Frequency modulation: Siren sweeps between 680Hz and 1380Hz every 0.6 seconds
-  const cycleCount = Math.ceil(durationSec / 0.6);
-  for (let i = 0; i < cycleCount; i++) {
-    const t = now + i * 0.6;
-    osc1.frequency.setValueAtTime(680, t);
-    osc1.frequency.linearRampToValueAtTime(1380, t + 0.3);
-    osc1.frequency.linearRampToValueAtTime(680, t + 0.6);
+  const fMin = isEmergency ? 800 : 650;
+  const fMax = isEmergency ? 1350 : 1000;
+  const cycle = isEmergency ? 0.35 : 0.6;
 
-    osc2.frequency.setValueAtTime(700, t);
-    osc2.frequency.linearRampToValueAtTime(1400, t + 0.3);
-    osc2.frequency.linearRampToValueAtTime(700, t + 0.6);
+  for (let t = now; t < endTime; t += cycle) {
+    osc1.frequency.setValueAtTime(fMin, t);
+    osc1.frequency.linearRampToValueAtTime(fMax, t + cycle * 0.5);
+    osc1.frequency.linearRampToValueAtTime(fMin, t + cycle);
+
+    osc2.frequency.setValueAtTime(fMin * 1.01, t);
+    osc2.frequency.linearRampToValueAtTime(fMax * 1.01, t + cycle * 0.5);
+    osc2.frequency.linearRampToValueAtTime(fMin * 1.01, t + cycle);
   }
+
+  masterGain.gain.setValueAtTime(0.001, now);
+  masterGain.gain.exponentialRampToValueAtTime(0.35, now + 0.08);
+  masterGain.gain.setValueAtTime(0.35, endTime - 0.08);
+  masterGain.gain.exponentialRampToValueAtTime(0.001, endTime);
 
   osc1.connect(masterGain);
   osc2.connect(masterGain);
+  masterGain.connect(ctx.destination);
 
   osc1.start(now);
   osc2.start(now);
-
-  const endTime = now + durationSec;
-  masterGain.gain.setValueAtTime(0.80, endTime - 0.2);
-  masterGain.gain.exponentialRampToValueAtTime(0.001, endTime);
 
   osc1.stop(endTime);
   osc2.stop(endTime);
@@ -149,6 +148,7 @@ export default function DispatchFeed() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [providerInfo, setProviderInfo] = useState(null);
   const [busy, setBusy] = useState(null);
   const [conflict, setConflict] = useState(null);
   const [newAlert, setNewAlert] = useState(false);
@@ -198,8 +198,16 @@ export default function DispatchFeed() {
 
   async function load() {
     try {
-      const { data } = await api.get("/bookings/broadcast/available");
-      setJobs(dedupe(Array.isArray(data) ? data : []));
+      const [jobsRes, provRes] = await Promise.allSettled([
+        api.get("/bookings/broadcast/available"),
+        api.get("/providers/me"),
+      ]);
+      if (jobsRes.status === "fulfilled") {
+        setJobs(dedupe(Array.isArray(jobsRes.value.data) ? jobsRes.value.data : []));
+      }
+      if (provRes.status === "fulfilled") {
+        setProviderInfo(provRes.value.data);
+      }
     } catch {} finally { setLoading(false); }
   }
 
@@ -367,6 +375,118 @@ export default function DispatchFeed() {
   return (
     <div className="w-full px-4 sm:px-6 pt-8 pb-10 space-y-6 max-w-7xl mx-auto">
 
+      {/* ── COOPERATIVE VERIFICATION AUDIT HERO CARD ── */}
+      {providerInfo && (!providerInfo.verified || providerInfo.verificationStatus !== "verified") && (
+        <div className="rounded-3xl border-2 border-amber-400/40 bg-gradient-to-br from-amber-500/10 via-surface to-amber-500/5 p-6 sm:p-8 shadow-lg space-y-6 animate-in fade-in duration-300">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-outline-variant/60 pb-5">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs">
+                <ShieldAlert size={26} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg sm:text-xl font-extrabold text-on-surface" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+                    Account Verification Under Review
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[11px] font-bold border border-amber-500/30 animate-pulse">
+                    Pending Approval
+                  </span>
+                </div>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  Assigned Cooperative Society: <strong className="text-on-surface">{providerInfo.cooperativeId?.name || "Accredited Labour Cooperative"}</strong>
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={load}
+              className="px-3.5 py-2 rounded-xl bg-surface border border-outline-variant hover:border-primary/40 text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer shrink-0"
+            >
+              <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Check Status
+            </button>
+          </div>
+
+          {/* 3-Step Verification Progression Stepper */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-3.5 rounded-2xl bg-surface border border-emerald-500/30 flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
+                ✓
+              </div>
+              <div>
+                <p className="text-xs font-bold text-on-surface">1. Documents Uploaded</p>
+                <p className="text-[11px] text-on-surface-variant">Govt ID, Skills & Police Clearances submitted</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 flex items-start gap-3 shadow-xs">
+              <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-xs shrink-0 animate-pulse">
+                <Clock size={16} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-amber-800 dark:text-amber-200">2. Cooperative Audit</p>
+                <p className="text-[11px] text-amber-700 dark:text-amber-300">Officers inspecting certificates & KYC</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-surface border border-outline-variant/60 flex items-start gap-3 opacity-60">
+              <div className="w-8 h-8 rounded-xl bg-surface-container text-on-surface-variant flex items-center justify-center font-bold text-xs shrink-0">
+                3
+              </div>
+              <div>
+                <p className="text-xs font-bold text-on-surface">3. Dispatch Activation</p>
+                <p className="text-[11px] text-on-surface-variant">Instant order sirens & guaranteed payouts</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Submitted Documents Status Overview */}
+          {providerInfo.documentDetails && providerInfo.documentDetails.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-on-surface uppercase tracking-wider">
+                Submitted Verification Documents ({providerInfo.documentDetails.length})
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                {providerInfo.documentDetails.map((doc, idx) => (
+                  <div key={idx} className="p-3 rounded-xl bg-surface border border-outline-variant flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileCheck2 size={16} className="text-primary shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-on-surface truncate">{doc.docType}</p>
+                        <p className="text-[10.5px] text-on-surface-variant truncate">{doc.docNumber || "Verified Document"}</p>
+                      </div>
+                    </div>
+                    {doc.docUrl && (
+                      <a
+                        href={doc.docUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1 rounded-lg text-primary hover:bg-primary-container/30 transition"
+                        title="View Document"
+                      >
+                        <ExternalLink size={13} />
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="p-4 rounded-2xl bg-surface border border-outline-variant flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-on-surface-variant">
+            <p>
+              💡 <strong>Note:</strong> You can log in and browse all training resources and welfare fund features. Live job broadcast sirens will automatically unlock on this feed once your cooperative board approves your profile.
+            </p>
+            <Link
+              to="/provider/profile"
+              className="px-4 py-2 rounded-xl bg-primary text-on-primary font-bold hover:bg-primary/90 transition shadow-xs whitespace-nowrap"
+            >
+              Update Credentials
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* 15-Second Active Siren Pulsing Banner */}
       {isSirenPlaying && (
         <div className="rounded-2xl border-2 border-error bg-error/15 p-4 shadow-xl flex items-center justify-between gap-3 animate-pulse">
@@ -439,26 +559,26 @@ export default function DispatchFeed() {
             style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
             Live Job Dispatch
           </h1>
-          <p className="text-[14px] text-on-surface-variant mt-0.5">
+          <p className="hidden sm:block text-[14px] text-on-surface-variant mt-0.5">
             Auto-escalates in 60s if unclaimed. First worker to accept wins the job.
           </p>
         </div>
 
         {/* Audio & Notification Controls */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {/* Test 15s Siren Button */}
           <button
             type="button"
             onClick={isSirenPlaying ? handleSilenceSiren : handleTestAlarm}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[12.5px] font-bold transition-all cursor-pointer ${
+            className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2.5 sm:py-2 rounded-xl border text-[12.5px] font-bold transition-all cursor-pointer ${
               isSirenPlaying
                 ? "border-error bg-error text-white shadow-md animate-pulse"
                 : "border-primary/30 bg-[#e8edff] text-[#00288e] hover:bg-[#d7e3ff]"
             }`}
             title="Test 15-second loud emergency siren"
           >
-            {isSirenPlaying ? <Square size={13} fill="currentColor" /> : <Play size={14} className="fill-[#00288e]" />}
-            {isSirenPlaying ? "Stop Siren (15s)" : "Test Loud Siren (15s)"}
+            {isSirenPlaying ? <Square size={16} fill="currentColor" /> : <Play size={16} className="fill-[#00288e]" />}
+            <span className="hidden sm:inline">{isSirenPlaying ? "Stop Siren (15s)" : "Test Loud Siren (15s)"}</span>
           </button>
 
           {/* Mute Toggle Button */}
@@ -468,15 +588,15 @@ export default function DispatchFeed() {
               if (!alarmMuted) stopAlarmSound();
               setAlarmMuted((m) => !m);
             }}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[12.5px] font-bold transition-all cursor-pointer ${
+            className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2.5 sm:py-2 rounded-xl border text-[12.5px] font-bold transition-all cursor-pointer ${
               alarmMuted
                 ? "border-error/40 bg-error-container/50 text-on-error-container"
                 : "border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary/40"
             }`}
             title={alarmMuted ? "Alarm Sound Muted" : "Alarm Sound Enabled"}
           >
-            {alarmMuted ? <VolumeX size={15} className="text-error" /> : <Volume2 size={15} className="text-[#00288e]" />}
-            {alarmMuted ? "Muted" : "Sound ON"}
+            {alarmMuted ? <VolumeX size={18} className="text-error" /> : <Volume2 size={18} className="text-[#00288e]" />}
+            <span className="hidden sm:inline">{alarmMuted ? "Muted" : "Sound ON"}</span>
           </button>
 
           {/* Push Notification Button */}
@@ -484,15 +604,15 @@ export default function DispatchFeed() {
             <button
               type="button"
               onClick={handleEnablePush}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-on-primary text-[12.5px] font-bold hover:shadow-md transition-all cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2.5 sm:py-2 rounded-xl bg-primary text-on-primary text-[12.5px] font-bold hover:shadow-md transition-all cursor-pointer"
             >
-              <Bell size={14} /> Enable Push Alerts
+              <Bell size={17} /> <span className="hidden sm:inline">Enable Push Alerts</span>
             </button>
           )}
 
           {jobs.length > 0 && (
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#e8edff] text-[#00288e] text-[12.5px] font-bold">
-              <Radio size={15} /> {jobs.length} live job{jobs.length > 1 ? "s" : ""}
+            <div className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2.5 sm:py-2 rounded-xl bg-[#e8edff] text-[#00288e] text-[12.5px] font-bold">
+              <Radio size={17} /> <span className="hidden sm:inline">{jobs.length} live job{jobs.length > 1 ? "s" : ""}</span>
             </div>
           )}
         </div>
@@ -543,103 +663,102 @@ export default function DispatchFeed() {
 
             return (
               <div
-                key={j._id}
-                className={`flex flex-col justify-between gap-4 rounded-2xl border bg-surface p-5 transition-all duration-300 hover:shadow-[0_4px_24px_rgba(0,40,142,0.08)] ${
-                  remainingSec <= 15
-                    ? "border-error shadow-[0_0_0_2px_rgba(186,26,26,0.2)] bg-error-container/5"
-                    : j.isNew
-                    ? "border-[#00288e] shadow-[0_0_0_3px_rgba(0,40,142,0.15)]"
-                    : j.isEmergency
-                    ? "border-error/50 bg-error-container/10"
-                    : "border-outline-variant/60 hover:border-outline"
-                }`}
-              >
-                <div className="space-y-3">
-                  {/* Top Bar with Badge + 1-Minute Countdown Timer */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      {j.isNew ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#00288e] text-white text-[10.5px] font-bold animate-pulse">
-                          <BellRing size={11} /> NEW
-                        </span>
-                      ) : j.isEmergency ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-error text-white text-[10.5px] font-bold">
-                          <Zap size={11} /> EMERGENCY
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#e8edff] text-[#00288e] text-[10.5px] font-bold">
-                          <Radio size={11} /> BROADCAST
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Auto-escalation 60s countdown badge */}
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-tight ${
-                        remainingSec <= 15
-                          ? "bg-error text-white animate-pulse"
-                          : "bg-surface-container-high text-on-surface-variant"
-                      }`}
-                    >
-                      <Clock size={11} /> {remainingSec}s left
+            className={`flex flex-col justify-between gap-4 rounded-2xl border bg-surface p-5 sm:p-5 transition-all duration-300 hover:shadow-[0_4px_24px_rgba(0,40,142,0.08)] ${
+              remainingSec <= 15
+                ? "border-error shadow-[0_0_0_2px_rgba(186,26,26,0.2)] bg-error-container/5"
+                : j.isNew
+                ? "border-[#00288e] shadow-[0_0_0_3px_rgba(0,40,142,0.15)]"
+                : j.isEmergency
+                ? "border-error/50 bg-error-container/10"
+                : "border-outline-variant/60 hover:border-outline"
+            }`}
+          >
+            <div className="space-y-3.5">
+              {/* Top Bar with Badge + 1-Minute Countdown Timer */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  {j.isNew ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#00288e] text-white text-[11px] font-bold animate-pulse">
+                      <BellRing size={12} /> NEW
                     </span>
-                  </div>
-
-                  {/* 60-Second Auto-Escalation Progress Bar */}
-                  <div className="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-1000 ${
-                        remainingSec <= 15 ? "bg-error" : "bg-[#00288e]"
-                      }`}
-                      style={{ width: `${progressPct}%` }}
-                    />
-                  </div>
-
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-[17px] font-bold text-on-surface">{j.targetCategory || j.service}</h3>
-                      <p className="text-[12.5px] text-on-surface-variant mt-0.5 flex items-center gap-1">
-                        <Users size={13} /> {j.householdId?.name || "Verified Household"}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="flex items-center justify-end gap-0.5 text-[17px] font-extrabold text-[#00288e]">
-                        <IndianRupee size={15} /> {j.price ?? 250}
-                      </p>
-                      <p className="text-[10.5px] text-on-surface-variant font-semibold">per hour</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 rounded-xl bg-surface-container-low border border-outline-variant/30 p-3 text-[13px]">
-                    <p className="flex items-center gap-2 text-on-surface font-semibold truncate">
-                      <MapPin size={15} className="text-[#00288e] shrink-0" /> {j.locationText || j.targetCategory}
-                    </p>
-                    {j.isEmergency && (
-                      <p className="text-[11.5px] font-bold text-error flex items-center gap-1">
-                        <ShieldAlert size={13} /> Priority instant emergency response required
-                      </p>
-                    )}
-                  </div>
+                  ) : j.isEmergency ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-error text-white text-[11px] font-bold">
+                      <Zap size={12} /> EMERGENCY
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#e8edff] text-[#00288e] text-[11px] font-bold">
+                      <Radio size={12} /> BROADCAST
+                    </span>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    disabled={busy === j._id}
-                    onClick={() => accept(j)}
-                    className="h-11 flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#00288e] text-white text-[13.5px] font-bold hover:bg-[#173bab] hover:shadow-md active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer"
-                  >
-                    <Check size={16} strokeWidth={2.5} />
-                    {busy === j._id ? "Accepting Job…" : "Accept & Claim Job"}
-                  </button>
-                  <button
-                    onClick={() => declineJob(j)}
-                    title="Reject this job"
-                    className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border border-outline-variant bg-surface-container text-on-surface-variant hover:bg-error-container/40 hover:text-error hover:border-error/40 active:scale-[0.98] transition-all duration-200 cursor-pointer"
-                  >
-                    <X size={17} strokeWidth={2.5} />
-                  </button>
+                {/* Auto-escalation 60s countdown badge */}
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-tight ${
+                    remainingSec <= 15
+                      ? "bg-error text-white animate-pulse"
+                      : "bg-surface-container-high text-on-surface-variant"
+                  }`}
+                >
+                  <Clock size={12} /> {remainingSec}s left
+                </span>
+              </div>
+
+              {/* 60-Second Auto-Escalation Progress Bar */}
+              <div className="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-1000 ${
+                    remainingSec <= 15 ? "bg-error" : "bg-[#00288e]"
+                  }`}
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[17px] font-bold text-on-surface leading-snug truncate">{j.targetCategory || j.service}</h3>
+                  <p className="text-[12.5px] text-on-surface-variant mt-1 flex items-center gap-1 truncate">
+                    <Users size={14} className="shrink-0" /> <span className="truncate">{j.householdId?.name || "Verified Household"}</span>
+                  </p>
+                </div>
+                <div className="text-right shrink-0 pl-3">
+                  <p className="flex items-center justify-end gap-0.5 text-[18px] font-extrabold text-[#00288e]">
+                    <IndianRupee size={16} /> {j.price ?? 250}
+                  </p>
+                  <p className="text-[10.5px] text-on-surface-variant font-semibold">per hour</p>
                 </div>
               </div>
+
+              <div className="space-y-1.5 rounded-xl bg-surface-container-low border border-outline-variant/30 p-3 text-[13px]">
+                <p className="flex items-center gap-2 text-on-surface font-semibold truncate">
+                  <MapPin size={15} className="text-[#00288e] shrink-0" /> <span className="truncate">{j.locationText || j.targetCategory}</span>
+                </p>
+                {j.isEmergency && (
+                  <p className="text-[11.5px] font-bold text-error flex items-center gap-1">
+                    <ShieldAlert size={13} /> Priority instant emergency response required
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                disabled={busy === j._id}
+                onClick={() => accept(j)}
+                className="h-11 flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#00288e] text-white text-[13.5px] font-bold hover:bg-[#173bab] hover:shadow-md active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer"
+              >
+                <Check size={16} strokeWidth={2.5} />
+                {busy === j._id ? "Accepting Job…" : "Accept & Claim Job"}
+              </button>
+              <button
+                onClick={() => declineJob(j)}
+                title="Reject this job"
+                className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border border-outline-variant bg-surface-container text-on-surface-variant hover:bg-error-container/40 hover:text-error hover:border-error/40 active:scale-[0.98] transition-all duration-200 cursor-pointer"
+              >
+                <X size={17} strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
             );
           })}
         </div>

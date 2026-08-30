@@ -5,10 +5,14 @@ import api from "../../lib/api";
 import AppearanceSettings from "../../components/AppearanceSettings";
 import { EmailStatusCard, ChangePasswordSection } from "../../components/AccountSecurity";
 import {
-  LogOut, User, Mail, Shield, Palette, ShieldCheck, MapPin, Sparkles,
-  Camera, Phone, Save, CheckCircle2, AlertCircle, HeartHandshake, Lock, Upload, Home, BellRing,
-  Users, Trash2, Plus, Clock
-} from "lucide-react";
+  IconLogout as LogOut, IconUser as User, IconMail as Mail, IconShield as Shield,
+  IconPalette as Palette, IconShieldCheck as ShieldCheck, IconMapPin as MapPin,
+  IconSparkles as Sparkles, IconCamera as Camera, IconPhone as Phone,
+  IconDeviceFloppy as Save, IconCircleCheck as CheckCircle2, IconAlertCircle as AlertCircle,
+  IconHeartHandshake as HeartHandshake, IconLock as Lock, IconHome as Home,
+  IconBellRinging as BellRing, IconUsers as Users, IconTrash as Trash, IconPlus as Plus,
+  IconChevronDown as ChevronDown, IconCheck as Check
+} from "@tabler/icons-react";
 
 export default function Profile() {
   const { user, logout, updateProfile } = useAuth();
@@ -17,6 +21,38 @@ export default function Profile() {
 
   // Tabs state
   const [activeTab, setActiveTab] = useState("personal");
+
+  // Phone-only premium tab dropdown state
+  const [tabOpen, setTabOpen] = useState(false);
+  const [tabPlacement, setTabPlacement] = useState("down");
+  const tabRef = useRef(null);
+
+  const closeTab = () => {
+    setTabOpen(false);
+    document.body.style.overflow = "";
+  };
+
+  const toggleTab = () => {
+    if (tabOpen) { closeTab(); return; }
+    setTabPlacement("down");
+    setTabOpen(true);
+    document.body.style.overflow = "hidden";
+  };
+
+  useEffect(() => {
+    if (!tabOpen) return;
+    const onDoc = (e) => {
+      if (tabRef.current && !tabRef.current.contains(e.target)) closeTab();
+    };
+    const onKey = (e) => { if (e.key === "Escape") closeTab(); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [tabOpen]);
 
   // Profile Form state — all real, persisted via /auth/me (no demo values).
   const [name, setName] = useState(user?.name || "");
@@ -55,10 +91,15 @@ export default function Profile() {
       setName(user.name || "");
       setEmail(user.email || "");
       if (user.phone) setPhone(user.phone);
+      if (user.avatarUrl) setAvatarUrl(user.avatarUrl);
     }
     api.get("/auth/me")
       .then((r) => {
         const d = r.data || {};
+        if (d.avatarUrl) {
+          setAvatarUrl(d.avatarUrl);
+          localStorage.setItem("sg_avatar", d.avatarUrl);
+        }
         if (d.notificationPrefs) setPrefs(d.notificationPrefs);
         if (d.phone) setPhone(d.phone);
         if (d.address) setAddress(d.address);
@@ -135,15 +176,32 @@ export default function Profile() {
     ? name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
     : "HH";
 
-  // Handle avatar photo selection & preview
-  function handlePhotoUpload(e) {
+  // Handle avatar photo selection & Cloudinary upload
+  async function handlePhotoUpload(e) {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setSaveError("Profile photo must be under 5 MB.");
+        return;
+      }
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const result = reader.result;
         setAvatarUrl(result);
-        localStorage.setItem("sg_avatar", result);
+        try {
+          // Direct upload to Cloudinary CDN
+          const { data } = await api.post("/upload", { file: result, folder: "sahakargig/avatars" });
+          if (data?.url) {
+            setAvatarUrl(data.url);
+            localStorage.setItem("sg_avatar", data.url);
+            await api.patch("/auth/me", { avatarUrl: data.url });
+            if (updateProfile) updateProfile({ avatarUrl: data.url });
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+          }
+        } catch (err) {
+          console.error("Cloudinary photo upload error:", err);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -204,6 +262,16 @@ export default function Profile() {
     { id: "notifications", label: "Notifications", Icon: BellRing },
   ];
 
+  const activeTabObj = TABS.find((t) => t.id === activeTab) || TABS[0];
+  const ActiveIcon = activeTabObj.Icon;
+
+  const tabListMaxH = (() => {
+    if (!tabOpen || !tabRef.current) return 292;
+    const r = tabRef.current.getBoundingClientRect();
+    const avail = tabPlacement === "up" ? r.top : window.innerHeight - r.bottom;
+    return Math.max(184, Math.min(avail - 24, 292));
+  })();
+
   function togglePref(key) {
     setPrefs((p) => ({ ...p, [key]: !p[key] }));
     setPrefsSaved(false);
@@ -223,7 +291,7 @@ export default function Profile() {
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-4 space-y-3">
 
       {/* ── Compact Header ── */}
-      <div className="flex items-center justify-between gap-4 border-b border-outline-variant pb-2">
+      <div className="hidden sm:flex items-center justify-between gap-4 border-b border-outline-variant pb-2">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-on-surface"
@@ -234,7 +302,7 @@ export default function Profile() {
               <ShieldCheck size={12} /> Registered Member
             </span>
           </div>
-          <p className="text-xs text-on-surface-variant mt-0.5">
+          <p className="hidden sm:block text-xs text-on-surface-variant mt-0.5">
             Manage your personal profile, security credentials, and platform appearance settings.
           </p>
         </div>
@@ -242,10 +310,10 @@ export default function Profile() {
 
       {/* ── Save Success / Error Alert Banner ── */}
       {saveSuccess && (
-        <div className="rounded-2xl p-3 bg-[#f7fee7] border border-[#d9f99d] text-[#4d7c0f] flex items-center justify-between shadow-xs text-xs font-bold animate-alert-in">
+        <div className="rounded-2xl p-3 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-200 flex items-center justify-between shadow-xs text-xs font-bold animate-alert-in">
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-[#65a30d]" />
-            <span>Profile updated successfully! Your changes are saved.</span>
+            <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
+            <span>ALL VERIFICATIONS COMPLETE — Pre-Registered &amp; Escrow-Active</span>
           </div>
         </div>
       )}
@@ -261,7 +329,7 @@ export default function Profile() {
 
         {/* ── Left Column (4 cols): Compact Identity & Photo Card ── */}
         <div className="lg:col-span-4">
-          <div className="orvia-card p-4 space-y-3 flex flex-col items-center text-center">
+          <div className="orvia-card p-3.5 space-y-2.5 flex flex-col items-center text-center">
 
             {/* Avatar Photo Container with Upload Trigger */}
             <div className="relative group">
@@ -269,21 +337,29 @@ export default function Profile() {
                 <img
                   src={avatarUrl}
                   alt="Profile"
-                  className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md group-hover:opacity-90 transition-opacity"
+                  className="w-16 h-16 rounded-full object-cover border-[3px] border-white shadow-md group-hover:opacity-90 transition-opacity"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full bg-[#1e6b65] text-white flex items-center justify-center text-2xl font-extrabold shadow-md border-4 border-white">
+                <div className="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center text-xl font-extrabold shadow-md border-[3px] border-surface">
                   {initials}
                 </div>
               )}
 
+              {/* Instagram-style verified badge on the avatar */}
+              <span
+                className="absolute top-0 right-0 w-[22px] h-[22px] rounded-full bg-gradient-to-br from-[#38b6ff] via-[#1b6bff] to-[#2d47e8] text-white shadow-[0_2px_8px_rgba(20,80,255,0.45)] ring-[2.5px] ring-surface flex items-center justify-center z-10"
+                title="Verified Member"
+              >
+                <Check size={12} stroke={4.5} />
+              </span>
+
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#0f172a] text-white flex items-center justify-center shadow-lg hover:bg-[#1e6b65] transition-all cursor-pointer"
+                className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg hover:opacity-90 transition-all cursor-pointer"
                 title="Upload Profile Picture"
               >
-                <Camera size={13} />
+                <Camera size={12} />
               </button>
 
               <input
@@ -296,28 +372,23 @@ export default function Profile() {
             </div>
 
             <div className="space-y-0.5">
-              <h2 className="text-base font-extrabold text-on-surface leading-tight">{name || "Household Member"}</h2>
-              <p className="text-[11px] font-medium text-on-surface-variant truncate max-w-[190px]">{email}</p>
-              <div className="pt-1 flex items-center justify-center gap-1.5">
-                <span className="orvia-badge-lime text-[10px]">
-                  <ShieldCheck size={11} /> Verified Member
-                </span>
-              </div>
+              <h2 className="text-[15px] font-extrabold text-on-surface leading-tight">{name || "Household Member"}</h2>
+              <p className="text-[11px] font-medium text-on-surface-variant truncate max-w-[170px]">{email}</p>
             </div>
 
             {/* User Attributes Table */}
-            <div className="w-full pt-3 border-t border-outline-variant space-y-2 text-[11px]">
+            <div className="hidden sm:block w-full pt-3 border-t border-outline-variant space-y-2 text-[11px]">
               <div className="flex items-center justify-between text-on-surface-variant">
                 <span className="flex items-center gap-1 font-medium">
-                  <MapPin size={12} className="text-[#1e6b65]" /> Locality
+                  <MapPin size={12} className="text-primary" /> Locality
                 </span>
                 <span className="font-bold text-on-surface">{address || addresses.find((a) => a.isPrimary)?.address || "Not set"}</span>
               </div>
               <div className="flex items-center justify-between text-on-surface-variant">
                 <span className="flex items-center gap-1 font-medium">
-                  <Shield size={12} className="text-[#65a30d]" /> Escrow Security
+                  <Shield size={12} className="text-emerald-600 dark:text-emerald-400" /> Escrow Security
                 </span>
-                <span className="font-bold text-[#4d7c0f]">Active ✓</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-300">Active ✓</span>
               </div>
               <div className="flex items-center justify-between text-on-surface-variant">
                 <span className="flex items-center gap-1 font-medium">
@@ -332,7 +403,7 @@ export default function Profile() {
             {/* Sign Out Action Button */}
             <button
               onClick={() => { logout(); navigate("/login"); }}
-              className="w-full py-2 px-3 rounded-full border border-red-200 bg-red-50/50 text-red-600 text-xs font-bold hover:bg-red-600 hover:text-white transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-full border border-red-200 bg-red-50/50 text-red-600 text-xs font-bold hover:bg-red-600 hover:text-white transition-all cursor-pointer"
             >
               <LogOut size={14} />
               <span>Sign Out</span>
@@ -343,8 +414,8 @@ export default function Profile() {
         {/* ── Right Column (8 cols): Settings Tabs & Content ── */}
         <div className="lg:col-span-8 space-y-3">
 
-          {/* Orvia Pill Tab Selector */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {/* Orvia Pill Tab Selector (desktop/tablet) */}
+          <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
             {TABS.map(({ id, label, Icon }) => {
               const active = activeTab === id;
               return (
@@ -361,19 +432,78 @@ export default function Profile() {
             })}
           </div>
 
+          {/* Premium tab dropdown (phone only) */}
+          <div className="sm:hidden">
+            <div ref={tabRef} className="relative w-full">
+              <button
+                type="button"
+                onClick={toggleTab}
+                className={`group h-12 w-full inline-flex items-center justify-between gap-3 pl-4 pr-2 rounded-2xl border text-[13.5px] font-semibold transition-all duration-300 shadow-xs ${
+                  tabOpen
+                    ? "border-primary/70 bg-primary-container/40 text-on-primary-container ring-4 ring-primary/10"
+                    : "border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary/50 hover:shadow-[0_6px_20px_-8px_rgba(0,40,142,0.30)]"
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className="w-8 h-8 rounded-[10px] bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <ActiveIcon size={17} stroke={1.8} />
+                  </div>
+                  <span className="text-[13.5px] font-bold text-on-surface truncate">{activeTabObj.label}</span>
+                </div>
+                <div className={`w-8 h-8 shrink-0 rounded-[10px] flex items-center justify-center transition-all duration-300 ${
+                  tabOpen
+                    ? "bg-primary text-on-primary rotate-180 shadow-[0_2px_8px_-2px_rgba(0,40,142,0.5)]"
+                    : "bg-surface-container-low text-on-surface-variant group-hover:bg-primary-container group-hover:text-primary"
+                }`}>
+                  <ChevronDown size={17} stroke={2.5} />
+                </div>
+              </button>
+
+              {tabOpen && (
+                <div
+                  className={`sg-dropdown-list absolute left-0 right-0 z-50 rounded-2xl border border-outline-variant/80 bg-surface shadow-[0_28px_70px_-16px_rgba(2,6,23,0.35)] overflow-hidden animate-dropdown-in ${
+                    tabPlacement === "up" ? "bottom-[calc(100%+10px)]" : "top-[calc(100%+10px)]"
+                  }`}
+                >
+                  <div className="p-1.5 overflow-y-auto overscroll-contain space-y-0.5 no-scrollbar" style={{ maxHeight: tabListMaxH }}>
+                    {TABS.map(({ id, label, Icon }) => {
+                      const isSel = activeTab === id;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => { setActiveTab(id); closeTab(); }}
+                          className={`w-full flex items-center gap-2.5 p-2.5 rounded-xl text-left transition-all duration-150 cursor-pointer ${
+                            isSel
+                              ? "bg-primary-container/70 text-on-primary-container shadow-2xs"
+                              : "hover:bg-surface-container-low text-on-surface"
+                          }`}
+                        >
+                          <Icon size={19} stroke={1.6} className={isSel ? "text-primary" : "text-on-surface-variant"} />
+                          <span className="flex-1 min-w-0 text-[13px] font-bold truncate">{label}</span>
+                          {isSel && <CheckCircle2 size={16} stroke={2.5} className="text-primary shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* ── TAB 1: Personal Details (Editable Form) ── */}
           {activeTab === "personal" && (
             <div className="orvia-card p-4 space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-outline-variant">
                 <div>
                   <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                    <User size={16} className="text-[#1e6b65]" /> Personal & Contact Details
+                    <User size={16} className="text-primary" /> Personal & Contact Details
                   </h3>
                   <p className="text-[11px] text-on-surface-variant">
                     Update your display name, contact phone number, and primary address.
                   </p>
                 </div>
-                <span className="text-[11px] text-on-surface-variant font-semibold">Editable</span>
+                <span className="hidden sm:block text-[11px] text-on-surface-variant font-semibold">Editable</span>
               </div>
 
               <form onSubmit={handleSaveProfile} className="space-y-3">
@@ -390,7 +520,7 @@ export default function Profile() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Enter full name"
-                        className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                        className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                         required
                       />
                     </div>
@@ -408,7 +538,7 @@ export default function Profile() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="household@gmail.com"
-                        className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                        className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                         required
                       />
                     </div>
@@ -426,7 +556,7 @@ export default function Profile() {
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="+91 98765 43210"
-                        className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                        className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                       />
                     </div>
                   </div>
@@ -444,7 +574,7 @@ export default function Profile() {
                           value={ecName}
                           onChange={(e) => setEcName(e.target.value)}
                           placeholder="Relative / neighbour name"
-                          className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                          className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                         />
                       </div>
                     </div>
@@ -459,7 +589,7 @@ export default function Profile() {
                           value={ecPhone}
                           onChange={(e) => setEcPhone(e.target.value)}
                           placeholder="+91 …"
-                          className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                          className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                         />
                       </div>
                     </div>
@@ -478,7 +608,7 @@ export default function Profile() {
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       placeholder="Full street address, apartment, city, state"
-                      className="w-full py-2 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all resize-none"
+                      className="w-full py-2 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all resize-none"
                     />
                   </div>
                 </div>
@@ -488,10 +618,10 @@ export default function Profile() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="orvia-btn-primary cursor-pointer disabled:opacity-60 text-xs py-2 px-5"
+                    className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-full bg-primary text-on-primary text-xs font-bold hover:bg-primary/90 disabled:opacity-60 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
                   >
                     <Save size={14} />
-                    <span>{saving ? "Saving…" : "Save Profile Changes"}</span>
+                    <span>{saving ? "Saving…" : "Save Changes"}</span>
                   </button>
                 </div>
               </form>
@@ -504,7 +634,7 @@ export default function Profile() {
               <div className="pb-2 border-b border-outline-variant flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                    <Lock size={16} className="text-[#1e6b65]" /> Security & Account Credentials
+                    <Lock size={16} className="text-primary" /> Security & Account Credentials
                   </h3>
                   <p className="text-[11px] text-on-surface-variant">
                     Verify account email & change your password with 1-time OTP verification.
@@ -529,7 +659,7 @@ export default function Profile() {
               <div className="orvia-card p-4 space-y-3">
                 <div className="pb-2 border-b border-outline-variant">
                   <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                    <Home size={16} className="text-[#1e6b65]" /> Household & Locality Preferences
+                    <Home size={16} className="text-primary" /> Household & Locality Preferences
                   </h3>
                   <p className="text-[11px] text-on-surface-variant">
                     Configure service preferences for assigned providers — saved to your real profile.
@@ -549,7 +679,7 @@ export default function Profile() {
                         value={householdSize}
                         onChange={(e) => setHouseholdSize(e.target.value)}
                         placeholder="e.g. 4"
-                        className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                        className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                       />
                     </div>
 
@@ -562,7 +692,7 @@ export default function Profile() {
                         value={prefLang}
                         onChange={(e) => setPrefLang(e.target.value)}
                         placeholder="e.g. Hindi"
-                        className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                        className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                       />
                     </div>
                   </div>
@@ -576,7 +706,7 @@ export default function Profile() {
                       value={specialInstructions}
                       onChange={(e) => setSpecialInstructions(e.target.value)}
                       placeholder="e.g. Call before ringing the doorbell"
-                      className="w-full py-2 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all resize-none"
+                      className="w-full py-2 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all resize-none"
                     />
                   </div>
 
@@ -600,7 +730,7 @@ export default function Profile() {
                 <div className="flex items-center justify-between pb-1 border-b border-outline-variant">
                   <div>
                     <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                      <MapPin size={16} className="text-[#1e6b65]" /> Saved Addresses
+                      <MapPin size={16} className="text-primary" /> Saved Addresses
                     </h3>
                     <p className="text-[11px] text-on-surface-variant">
                       Multiple verified addresses for your household use-cases.
@@ -626,7 +756,7 @@ export default function Profile() {
                         </button>
                       </div>
                       <p className="text-[11px] font-semibold text-on-surface-variant leading-relaxed">{a.address}</p>
-                      {a.isDefault && <span className="text-[10px] font-bold text-[#1e6b65]">Primary</span>}
+                      {a.isDefault && <span className="text-[10px] font-bold text-primary">Primary</span>}
                     </div>
                   ))}
                   {addresses.length === 0 && (
@@ -639,13 +769,13 @@ export default function Profile() {
                     value={addrForm.label}
                     onChange={(e) => setAddrForm({ ...addrForm, label: e.target.value })}
                     placeholder="Label (Home/Office)"
-                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                   />
                   <input
                     value={addrForm.address}
                     onChange={(e) => setAddrForm({ ...addrForm, address: e.target.value })}
                     placeholder="Full street address"
-                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all sm:col-span-1"
+                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all sm:col-span-1"
                   />
                   <button type="button" onClick={addAddress} className="orvia-btn-outline cursor-pointer text-xs py-2 px-4">
                     <Plus size={14} /> Add Address
@@ -658,7 +788,7 @@ export default function Profile() {
                 <div className="flex items-center justify-between pb-1 border-b border-outline-variant">
                   <div>
                     <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                      <Users size={16} className="text-[#1e6b65]" /> Family Members
+                      <Users size={16} className="text-primary" /> Family Members
                     </h3>
                     <p className="text-[11px] text-on-surface-variant">
                       People who can request community services on this household account.
@@ -671,7 +801,7 @@ export default function Profile() {
                   {familyMembers.map((f) => (
                     <div key={f.id} className="flex items-center justify-between gap-2 p-2.5 px-3 rounded-2xl border border-outline-variant bg-surface-container-low">
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-8 h-8 rounded-full bg-[#1e6b65]/10 text-[#1e6b65] grid place-items-center text-[11px] font-bold shrink-0">
+                        <span className="w-8 h-8 rounded-full bg-primary/10 text-primary grid place-items-center text-[11px] font-bold shrink-0">
                           {f.name.slice(0, 2).toUpperCase()}
                         </span>
                         <div className="min-w-0">
@@ -699,19 +829,19 @@ export default function Profile() {
                     value={familyForm.name}
                     onChange={(e) => setFamilyForm({ ...familyForm, name: e.target.value })}
                     placeholder="Full name"
-                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                   />
                   <input
                     value={familyForm.relation}
                     onChange={(e) => setFamilyForm({ ...familyForm, relation: e.target.value })}
                     placeholder="Relation (Spouse/Child)"
-                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                   />
                   <input
                     value={familyForm.phone}
                     onChange={(e) => setFamilyForm({ ...familyForm, phone: e.target.value })}
                     placeholder="Phone"
-                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                   />
                   <button type="button" onClick={addFamily} className="orvia-btn-outline cursor-pointer text-xs py-2 px-4">
                     <Plus size={14} /> Add Member
@@ -734,7 +864,7 @@ export default function Profile() {
               <div className="flex items-center justify-between pb-2 border-b border-outline-variant">
                 <div>
                   <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                    <BellRing size={16} className="text-[#1e6b65]" /> Notification Preferences
+                    <BellRing size={16} className="text-primary" /> Notification Preferences
                   </h3>
                   <p className="text-[11px] text-on-surface-variant">
                     Choose which channels your booking & agency alerts arrive on.
@@ -765,7 +895,7 @@ export default function Profile() {
                       aria-checked={prefs[key]}
                       onClick={() => togglePref(key)}
                       className={`relative w-11 h-6 rounded-full shrink-0 transition-colors cursor-pointer ${
-                        prefs[key] ? "bg-[#1e6b65]" : "bg-outline"
+                        prefs[key] ? "bg-primary" : "bg-outline"
                       }`}
                     >
                       <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${prefs[key] ? "translate-x-5" : ""}`} />
