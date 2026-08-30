@@ -175,7 +175,7 @@ export default function BookingRequest() {
                 onClick={() => { setSelectedDay(i); setSelectedHour(null); }}
                 className={`flex flex-col items-center rounded-xl border px-1 py-2 transition-all duration-200 ${
                   selectedDay === i
-                    ? "border-[#00288e] bg-[#00288e] text-white shadow-[0_3px_10px_rgba(0,40,142,0.25)]"
+                    ? "border-primary bg-primary text-on-primary shadow-[0_3px_10px_rgba(0,0,0,0.25)]"
                     : "border-outline-variant/60 bg-surface-container-lowest text-on-surface hover:border-primary/40"
                 }`}
               >
@@ -210,7 +210,7 @@ export default function BookingRequest() {
                     title={available ? `Available at ${time}` : "Not available"}
                     className={`flex flex-col items-center rounded-xl border px-2 py-2.5 transition-all duration-200 ${
                       selected
-                        ? "border-[#00288e] bg-[#00288e] text-white shadow-[0_3px_10px_rgba(0,40,142,0.25)]"
+                        ? "border-primary bg-primary text-on-primary shadow-[0_3px_10px_rgba(0,0,0,0.25)]"
                         : available
                         ? "border-[#006d30]/30 bg-[#e6f9ec] text-[#006d30] hover:border-[#006d30] hover:shadow-[0_2px_8px_rgba(0,109,48,0.18)]"
                         : "border-outline-variant/40 bg-surface-container-low text-on-surface-variant/60 cursor-not-allowed"
@@ -234,7 +234,7 @@ export default function BookingRequest() {
               <span className="h-2.5 w-2.5 rounded-full bg-surface-container border border-outline-variant" /> Not available / booked
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#00288e]" /> Selected
+              <span className="h-2.5 w-2.5 rounded-full bg-primary" /> Selected
             </span>
           </div>
         </div>
@@ -266,7 +266,7 @@ export default function BookingRequest() {
               type="checkbox"
               checked={recurEnabled}
               onChange={(e) => setRecurEnabled(e.target.checked)}
-              className="h-5 w-5 accent-[#00288e] cursor-pointer"
+              className="h-5 w-5 accent-primary cursor-pointer"
             />
           </label>
           {recurEnabled && (
@@ -282,7 +282,7 @@ export default function BookingRequest() {
                       title={f.hint}
                       className={`rounded-lg border px-1 py-2 text-center text-[11px] font-bold transition-all ${
                         recurFreq === f.value
-                          ? "border-[#00288e] bg-[#00288e] text-white"
+                          ? "border-primary bg-primary text-on-primary"
                           : "border-outline-variant/60 bg-surface text-on-surface hover:border-primary/40"
                       }`}
                     >
@@ -323,7 +323,7 @@ export default function BookingRequest() {
               type="checkbox"
               checked={groupEnabled}
               onChange={(e) => setGroupEnabled(e.target.checked)}
-              className="h-5 w-5 accent-[#00288e] cursor-pointer"
+              className="h-5 w-5 accent-primary cursor-pointer"
             />
           </label>
           {groupEnabled && (

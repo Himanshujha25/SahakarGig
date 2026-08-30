@@ -242,10 +242,10 @@ export default function Profile() {
 
       {/* ── Save Success / Error Alert Banner ── */}
       {saveSuccess && (
-        <div className="rounded-2xl p-3 bg-[#f7fee7] border border-[#d9f99d] text-[#4d7c0f] flex items-center justify-between shadow-xs text-xs font-bold animate-alert-in">
+        <div className="rounded-2xl p-3 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-200 flex items-center justify-between shadow-xs text-xs font-bold animate-alert-in">
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-[#65a30d]" />
-            <span>Profile updated successfully! Your changes are saved.</span>
+            <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
+            <span>ALL VERIFICATIONS COMPLETE — Pre-Registered &amp; Escrow-Active</span>
           </div>
         </div>
       )}
@@ -272,7 +272,7 @@ export default function Profile() {
                   className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md group-hover:opacity-90 transition-opacity"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full bg-[#1e6b65] text-white flex items-center justify-center text-2xl font-extrabold shadow-md border-4 border-white">
+                <div className="w-20 h-20 rounded-full bg-primary text-on-primary flex items-center justify-center text-2xl font-extrabold shadow-md border-4 border-surface">
                   {initials}
                 </div>
               )}
@@ -280,7 +280,7 @@ export default function Profile() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#0f172a] text-white flex items-center justify-center shadow-lg hover:bg-[#1e6b65] transition-all cursor-pointer"
+                className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg hover:opacity-90 transition-all cursor-pointer"
                 title="Upload Profile Picture"
               >
                 <Camera size={13} />
@@ -309,15 +309,15 @@ export default function Profile() {
             <div className="w-full pt-3 border-t border-outline-variant space-y-2 text-[11px]">
               <div className="flex items-center justify-between text-on-surface-variant">
                 <span className="flex items-center gap-1 font-medium">
-                  <MapPin size={12} className="text-[#1e6b65]" /> Locality
+                  <MapPin size={12} className="text-primary" /> Locality
                 </span>
                 <span className="font-bold text-on-surface">{address || addresses.find((a) => a.isPrimary)?.address || "Not set"}</span>
               </div>
               <div className="flex items-center justify-between text-on-surface-variant">
                 <span className="flex items-center gap-1 font-medium">
-                  <Shield size={12} className="text-[#65a30d]" /> Escrow Security
+                  <Shield size={12} className="text-emerald-600 dark:text-emerald-400" /> Escrow Security
                 </span>
-                <span className="font-bold text-[#4d7c0f]">Active ✓</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-300">Active ✓</span>
               </div>
               <div className="flex items-center justify-between text-on-surface-variant">
                 <span className="flex items-center gap-1 font-medium">
@@ -367,7 +367,7 @@ export default function Profile() {
               <div className="flex items-center justify-between pb-2 border-b border-outline-variant">
                 <div>
                   <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                    <User size={16} className="text-[#1e6b65]" /> Personal & Contact Details
+                    <User size={16} className="text-primary" /> Personal & Contact Details
                   </h3>
                   <p className="text-[11px] text-on-surface-variant">
                     Update your display name, contact phone number, and primary address.
@@ -390,7 +390,7 @@ export default function Profile() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Enter full name"
-                        className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                        className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                         required
                       />
                     </div>
@@ -408,7 +408,7 @@ export default function Profile() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="household@gmail.com"
-                        className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                        className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                         required
                       />
                     </div>
@@ -426,7 +426,7 @@ export default function Profile() {
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="+91 98765 43210"
-                        className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                        className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                       />
                     </div>
                   </div>
@@ -444,7 +444,7 @@ export default function Profile() {
                           value={ecName}
                           onChange={(e) => setEcName(e.target.value)}
                           placeholder="Relative / neighbour name"
-                          className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                          className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                         />
                       </div>
                     </div>
@@ -459,7 +459,7 @@ export default function Profile() {
                           value={ecPhone}
                           onChange={(e) => setEcPhone(e.target.value)}
                           placeholder="+91 …"
-                          className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                          className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                         />
                       </div>
                     </div>
@@ -478,7 +478,7 @@ export default function Profile() {
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       placeholder="Full street address, apartment, city, state"
-                      className="w-full py-2 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all resize-none"
+                      className="w-full py-2 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all resize-none"
                     />
                   </div>
                 </div>
@@ -504,7 +504,7 @@ export default function Profile() {
               <div className="pb-2 border-b border-outline-variant flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                    <Lock size={16} className="text-[#1e6b65]" /> Security & Account Credentials
+                    <Lock size={16} className="text-primary" /> Security & Account Credentials
                   </h3>
                   <p className="text-[11px] text-on-surface-variant">
                     Verify account email & change your password with 1-time OTP verification.
@@ -529,7 +529,7 @@ export default function Profile() {
               <div className="orvia-card p-4 space-y-3">
                 <div className="pb-2 border-b border-outline-variant">
                   <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                    <Home size={16} className="text-[#1e6b65]" /> Household & Locality Preferences
+                    <Home size={16} className="text-primary" /> Household & Locality Preferences
                   </h3>
                   <p className="text-[11px] text-on-surface-variant">
                     Configure service preferences for assigned providers — saved to your real profile.
@@ -549,7 +549,7 @@ export default function Profile() {
                         value={householdSize}
                         onChange={(e) => setHouseholdSize(e.target.value)}
                         placeholder="e.g. 4"
-                        className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                        className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                       />
                     </div>
 
@@ -562,7 +562,7 @@ export default function Profile() {
                         value={prefLang}
                         onChange={(e) => setPrefLang(e.target.value)}
                         placeholder="e.g. Hindi"
-                        className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                        className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                       />
                     </div>
                   </div>
@@ -576,7 +576,7 @@ export default function Profile() {
                       value={specialInstructions}
                       onChange={(e) => setSpecialInstructions(e.target.value)}
                       placeholder="e.g. Call before ringing the doorbell"
-                      className="w-full py-2 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all resize-none"
+                      className="w-full py-2 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all resize-none"
                     />
                   </div>
 
@@ -600,7 +600,7 @@ export default function Profile() {
                 <div className="flex items-center justify-between pb-1 border-b border-outline-variant">
                   <div>
                     <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                      <MapPin size={16} className="text-[#1e6b65]" /> Saved Addresses
+                      <MapPin size={16} className="text-primary" /> Saved Addresses
                     </h3>
                     <p className="text-[11px] text-on-surface-variant">
                       Multiple verified addresses for your household use-cases.
@@ -626,7 +626,7 @@ export default function Profile() {
                         </button>
                       </div>
                       <p className="text-[11px] font-semibold text-on-surface-variant leading-relaxed">{a.address}</p>
-                      {a.isDefault && <span className="text-[10px] font-bold text-[#1e6b65]">Primary</span>}
+                      {a.isDefault && <span className="text-[10px] font-bold text-primary">Primary</span>}
                     </div>
                   ))}
                   {addresses.length === 0 && (
@@ -639,13 +639,13 @@ export default function Profile() {
                     value={addrForm.label}
                     onChange={(e) => setAddrForm({ ...addrForm, label: e.target.value })}
                     placeholder="Label (Home/Office)"
-                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                   />
                   <input
                     value={addrForm.address}
                     onChange={(e) => setAddrForm({ ...addrForm, address: e.target.value })}
                     placeholder="Full street address"
-                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all sm:col-span-1"
+                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all sm:col-span-1"
                   />
                   <button type="button" onClick={addAddress} className="orvia-btn-outline cursor-pointer text-xs py-2 px-4">
                     <Plus size={14} /> Add Address
@@ -658,7 +658,7 @@ export default function Profile() {
                 <div className="flex items-center justify-between pb-1 border-b border-outline-variant">
                   <div>
                     <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                      <Users size={16} className="text-[#1e6b65]" /> Family Members
+                      <Users size={16} className="text-primary" /> Family Members
                     </h3>
                     <p className="text-[11px] text-on-surface-variant">
                       People who can request community services on this household account.
@@ -671,7 +671,7 @@ export default function Profile() {
                   {familyMembers.map((f) => (
                     <div key={f.id} className="flex items-center justify-between gap-2 p-2.5 px-3 rounded-2xl border border-outline-variant bg-surface-container-low">
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-8 h-8 rounded-full bg-[#1e6b65]/10 text-[#1e6b65] grid place-items-center text-[11px] font-bold shrink-0">
+                        <span className="w-8 h-8 rounded-full bg-primary/10 text-primary grid place-items-center text-[11px] font-bold shrink-0">
                           {f.name.slice(0, 2).toUpperCase()}
                         </span>
                         <div className="min-w-0">
@@ -699,19 +699,19 @@ export default function Profile() {
                     value={familyForm.name}
                     onChange={(e) => setFamilyForm({ ...familyForm, name: e.target.value })}
                     placeholder="Full name"
-                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                   />
                   <input
                     value={familyForm.relation}
                     onChange={(e) => setFamilyForm({ ...familyForm, relation: e.target.value })}
                     placeholder="Relation (Spouse/Child)"
-                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                   />
                   <input
                     value={familyForm.phone}
                     onChange={(e) => setFamilyForm({ ...familyForm, phone: e.target.value })}
                     placeholder="Phone"
-                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface transition-all"
+                    className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface transition-all"
                   />
                   <button type="button" onClick={addFamily} className="orvia-btn-outline cursor-pointer text-xs py-2 px-4">
                     <Plus size={14} /> Add Member
@@ -734,7 +734,7 @@ export default function Profile() {
               <div className="flex items-center justify-between pb-2 border-b border-outline-variant">
                 <div>
                   <h3 className="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                    <BellRing size={16} className="text-[#1e6b65]" /> Notification Preferences
+                    <BellRing size={16} className="text-primary" /> Notification Preferences
                   </h3>
                   <p className="text-[11px] text-on-surface-variant">
                     Choose which channels your booking & agency alerts arrive on.
@@ -765,7 +765,7 @@ export default function Profile() {
                       aria-checked={prefs[key]}
                       onClick={() => togglePref(key)}
                       className={`relative w-11 h-6 rounded-full shrink-0 transition-colors cursor-pointer ${
-                        prefs[key] ? "bg-[#1e6b65]" : "bg-outline"
+                        prefs[key] ? "bg-primary" : "bg-outline"
                       }`}
                     >
                       <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${prefs[key] ? "translate-x-5" : ""}`} />

@@ -6,7 +6,7 @@ import {
   IconSearch, IconMapPin, IconCircleCheck, IconShieldCheck, IconBolt,
   IconSchool, IconSparkles, IconHeartbeat, IconLayoutGrid,
   IconArrowRight, IconUsers, IconCalendarCheck, IconStar, IconHeartHandshake, IconChevronRight,
-  IconMicrophone
+  IconMicrophone, IconMenu2, IconX, IconBrandX, IconBrandInstagram, IconBrandLinkedin, IconBrandWhatsapp
 } from '@tabler/icons-react';
 
 import AIVoiceSearchModal from '../components/AIVoiceSearchModal';
@@ -47,6 +47,13 @@ const FEATURES = [
   },
 ];
 
+const SOCIALS = [
+  { Icon: IconBrandX, label: 'X (Twitter)' },
+  { Icon: IconBrandInstagram, label: 'Instagram' },
+  { Icon: IconBrandLinkedin, label: 'LinkedIn' },
+  { Icon: IconBrandWhatsapp, label: 'WhatsApp' },
+];
+
 const HOW = [
   { n: '01', title: 'Search a Service',  desc: 'Browse by category or search for exactly what you need in your locality.' },
   { n: '02', title: 'Book Instantly',    desc: 'Pick a verified provider, choose a time slot, and confirm your booking.' },
@@ -83,6 +90,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [serviceQuery, setServiceQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
   
@@ -306,8 +314,8 @@ export default function Landing() {
             ))}
           </nav>
 
-          {/* Auth Buttons — right corner aligned with signature app styling */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          {/* Auth Buttons — desktop */}
+          <div className="hidden md:flex items-center gap-2.5 shrink-0">
             <Link
               to="/login"
               className="inline-flex items-center px-3.5 py-2 rounded-lg text-[13.5px] font-semibold text-on-surface-variant hover:text-primary hover:bg-primary-container/70 transition-all duration-200"
@@ -321,6 +329,67 @@ export default function Landing() {
               Get Started <IconArrowRight size={14} stroke={2} />
             </Link>
           </div>
+
+          {/* Mobile Hamburger */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl border border-outline-variant/70 bg-surface-container-low text-on-surface hover:text-primary hover:border-primary/40 active:scale-95 transition-all duration-200 cursor-pointer shrink-0"
+          >
+            {menuOpen ? <IconX size={20} stroke={1.75} /> : <IconMenu2 size={20} stroke={1.75} />}
+          </button>
+        </div>
+
+        {/* Mobile Dropdown Menu */}
+        <div
+          className={`md:hidden absolute top-full left-0 right-0 z-50 bg-surface/95 backdrop-blur-xl border-b border-outline-variant/70 shadow-2xl overflow-hidden transition-all duration-300 ${menuOpen ? "visible opacity-100 translate-y-0" : "invisible opacity-0 -translate-y-2 pointer-events-none"}`}
+        >
+          <nav className="flex flex-col px-5 py-4 gap-1">
+            {[
+              ['#services', 'Services'],
+              ['#how', 'How it Works'],
+              ['#about', 'Why Us'],
+              ['/architecture', 'System Architecture'],
+            ].map(([href, label]) => (
+              href.startsWith('/') ? (
+                <Link
+                  key={label}
+                  to={href}
+                  onClick={() => setMenuOpen(false)}
+                  className="px-3 py-3 rounded-xl text-[14.5px] font-semibold text-on-surface-variant hover:text-primary hover:bg-primary-container/60 transition-all duration-200"
+                >
+                  {label}
+                </Link>
+              ) : (
+                <a
+                  key={label}
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  className="px-3 py-3 rounded-xl text-[14.5px] font-semibold text-on-surface-variant hover:text-primary hover:bg-primary-container/60 transition-all duration-200"
+                >
+                  {label}
+                </a>
+              )
+            ))}
+            <div className="mt-2 pt-3 border-t border-outline-variant/60 flex flex-col gap-2">
+              <Link
+                to="/login"
+                onClick={() => setMenuOpen(false)}
+                className="w-full flex items-center justify-center px-4 py-3 rounded-xl text-[14px] font-bold text-on-surface-variant hover:text-primary hover:bg-primary-container/60 transition-all duration-200"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/signup"
+                onClick={() => setMenuOpen(false)}
+                className="w-full flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl text-[14px] font-bold bg-primary text-on-primary shadow-[0_2px_10px_rgba(30,107,101,0.25)] active:scale-[0.98] transition-all duration-200"
+              >
+                Get Started <IconArrowRight size={15} stroke={2} />
+              </Link>
+            </div>
+          </nav>
         </div>
       </header>
 
@@ -335,11 +404,11 @@ export default function Landing() {
           <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto">
 
           {/* Official Government Institutional Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 backdrop-blur-md border border-slate-200 text-slate-900 text-[12px] font-bold tracking-tight shadow-sm hover:border-[#00288e]/40 transition-all duration-300 mb-6 cursor-default">
-            <span className="w-2 h-2 rounded-full bg-[#00288e] animate-ping" />
-            <span className="font-extrabold text-[#00288e]">Ministry of Cooperation</span>
-            <span className="w-1 h-1 rounded-full bg-slate-300" />
-            <span className="text-slate-600">Government of India Initiative</span>
+          <div className="inline-flex flex-wrap justify-center text-center items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 dark:bg-surface/80 backdrop-blur-md border border-slate-200 dark:border-outline-variant text-slate-900 dark:text-on-surface text-[12px] font-bold tracking-tight shadow-sm hover:border-primary/40 transition-all duration-300 mb-6 cursor-default">
+            <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+            <span className="font-extrabold text-primary">Ministry of Cooperation</span>
+            <span className="w-1 h-1 rounded-full bg-outline-variant" />
+            <span className="text-slate-600 dark:text-on-surface-variant">Government of India Initiative</span>
           </div>
 
           {/* Headline */}
@@ -364,7 +433,7 @@ export default function Landing() {
           <div className="relative w-full max-w-[780px] z-30 mb-6">
             <form
               onSubmit={handleSearch}
-              className="w-full bg-surface/95 backdrop-blur-md rounded-2xl sm:rounded-full p-2 sm:p-2.5 border border-outline-variant/80 shadow-[0_12px_44px_rgba(0,0,0,0.09)] hover:shadow-[0_18px_56px_rgba(0,0,0,0.13)] hover:border-primary/50 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/15 transition-all duration-300 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2"
+              className="w-full bg-gradient-to-b from-white/70 to-white/45 dark:from-[#22263f]/80 dark:to-[#131320]/65 backdrop-blur-2xl rounded-2xl sm:rounded-full p-2 sm:p-2.5 border border-white/60 dark:border-white/10 shadow-[0_16px_48px_rgba(0,0,0,0.16)] dark:shadow-[0_16px_48px_rgba(0,0,0,0.45)] hover:border-white/80 dark:hover:border-primary/40 focus-within:border-white/90 dark:focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-white/20 dark:focus-within:ring-primary/10 transition-all duration-300 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2"
             >
               {/* Service Input & Autocomplete Dropdown */}
               <div className="relative w-full flex-1">
@@ -391,18 +460,18 @@ export default function Landing() {
 
                 {/* Service Suggestions Dropdown */}
                 {showServiceDropdown && (
-                  <div className="absolute top-full left-0 mt-2 w-full sm:w-[320px] bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden z-50 text-left animate-fadeIn max-h-[320px] overflow-y-auto">
-                    <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <div className="absolute top-full left-0 mt-2 w-full sm:w-[320px] bg-white dark:bg-surface-container-high rounded-2xl border border-slate-200 dark:border-outline-variant shadow-2xl overflow-hidden z-50 text-left animate-fadeIn max-h-[320px] overflow-y-auto">
+                    <div className="px-3.5 py-2 bg-slate-50 dark:bg-surface-container-low border-b border-slate-100 dark:border-outline-variant/60 flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-on-surface-variant uppercase tracking-wider">
                       <span>Popular Cooperative Services</span>
                       <button
                         type="button"
                         onClick={() => setShowServiceDropdown(false)}
-                        className="hover:text-slate-800"
+                        className="hover:text-slate-800 dark:hover:text-on-surface"
                       >
                         ✕
                       </button>
                     </div>
-                    <div className="p-1.5 divide-y divide-slate-50">
+                    <div className="p-1.5 divide-y divide-slate-50 dark:divide-outline-variant/30">
                       {filteredServices.map((srv) => (
                         <button
                           key={srv.label}
@@ -411,12 +480,12 @@ export default function Landing() {
                             setServiceQuery(srv.label);
                             setShowServiceDropdown(false);
                           }}
-                          className="w-full px-3 py-2 text-left rounded-xl hover:bg-[#e8edff] flex items-center gap-3 transition-colors cursor-pointer group"
+                          className="w-full px-3 py-2 text-left rounded-xl hover:bg-[#e8edff] dark:hover:bg-primary-container/60 flex items-center gap-3 transition-colors cursor-pointer group"
                         >
-                          <span className="text-xl p-1.5 rounded-lg bg-slate-100 group-hover:bg-white shrink-0">{srv.icon}</span>
+                          <span className="text-xl p-1.5 rounded-lg bg-slate-100 dark:bg-surface-container-high group-hover:bg-white dark:group-hover:bg-surface-container-low shrink-0">{srv.icon}</span>
                           <div className="min-w-0">
-                            <p className="text-[13.5px] font-bold text-slate-900 group-hover:text-[#00288e]">{srv.label}</p>
-                            <p className="text-[11.5px] text-slate-500 truncate">{srv.desc}</p>
+                            <p className="text-[13.5px] font-bold text-slate-900 dark:text-on-surface group-hover:text-primary">{srv.label}</p>
+                            <p className="text-[11.5px] text-slate-500 dark:text-on-surface-variant truncate">{srv.desc}</p>
                           </div>
                         </button>
                       ))}
@@ -426,7 +495,7 @@ export default function Landing() {
               </div>
 
               {/* Subtle Divider */}
-              <div className="hidden sm:block w-[1px] h-7 bg-outline-variant/60 shrink-0" />
+              <div className="hidden sm:block w-[1px] h-7 bg-black/10 dark:bg-white/20 shrink-0" />
 
               {/* Location Input & Indian Nominatim Geocoder Dropdown */}
               <div className="relative w-full flex-1">
@@ -457,32 +526,32 @@ export default function Landing() {
 
                 {/* Location Suggestions Dropdown */}
                 {showLocationDropdown && (
-                  <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-[420px] bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden z-50 text-left animate-fadeIn max-h-[380px] overflow-y-auto">
+                  <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-[420px] bg-white dark:bg-surface-container-high rounded-2xl border border-slate-200 dark:border-outline-variant shadow-2xl overflow-hidden z-50 text-left animate-fadeIn max-h-[380px] overflow-y-auto">
                     {/* GPS Auto-Detect Button */}
-                    <div className="p-2.5 border-b border-slate-100 bg-[#e8edff]/70">
+                    <div className="p-2.5 border-b border-slate-100 dark:border-outline-variant/60 bg-[#e8edff]/70 dark:bg-primary-container/40">
                       <button
                         type="button"
                         onClick={detectCurrentLocation}
                         disabled={isLocating}
-                        className="w-full px-3 py-2.5 rounded-xl bg-[#00288e] text-white text-[13px] font-bold flex items-center justify-center gap-2 hover:bg-[#173bab] active:scale-98 transition-all cursor-pointer shadow-xs disabled:opacity-60"
+                        className="w-full px-3 py-2.5 rounded-xl bg-primary text-on-primary text-[13px] font-bold flex items-center justify-center gap-2 hover:opacity-90 active:scale-98 transition-all cursor-pointer shadow-xs disabled:opacity-60"
                       >
                         <IconMapPin size={16} className={isLocating ? "animate-spin" : ""} />
-                        <span>{isLocating ? "Detecting GPS in India..." : "📍 Use My Current GPS Location"}</span>
+                        <span>{isLocating ? "Detecting GPS in India..." : "Use My Current GPS Location"}</span>
                       </button>
                     </div>
 
-                    <div className="px-3.5 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <div className="px-3.5 py-1.5 bg-slate-50 dark:bg-surface-container-low border-b border-slate-100 dark:border-outline-variant/60 flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-on-surface-variant uppercase tracking-wider">
                       <span>{isLoadingLocations ? "Searching Indian Geocoder..." : "Verified Localities & Cities in India"}</span>
                       <button
                         type="button"
                         onClick={() => setShowLocationDropdown(false)}
-                        className="hover:text-slate-800"
+                        className="hover:text-slate-800 dark:hover:text-on-surface"
                       >
                         ✕
                       </button>
                     </div>
 
-                    <div className="p-1.5 divide-y divide-slate-50">
+                    <div className="p-1.5 divide-y divide-slate-50 dark:divide-outline-variant/30">
                       {locationSuggestions.map((loc, idx) => {
                         const title = typeof loc === 'string' ? loc : loc.title;
                         const subtitle = typeof loc === 'string' ? '' : loc.subtitle;
@@ -497,23 +566,23 @@ export default function Landing() {
                               setLocationQuery(full);
                               setShowLocationDropdown(false);
                             }}
-                            className="w-full px-3 py-2.5 text-left rounded-xl hover:bg-[#e8edff] flex items-center justify-between gap-3 transition-colors cursor-pointer group"
+                            className="w-full px-3 py-2.5 text-left rounded-xl hover:bg-[#e8edff] dark:hover:bg-primary-container/60 flex items-center justify-between gap-3 transition-colors cursor-pointer group"
                           >
                             <div className="flex items-start gap-2.5 min-w-0">
-                              <IconMapPin size={16} className="text-[#00288e] shrink-0 mt-0.5" />
+                              <IconMapPin size={16} className="text-primary shrink-0 mt-0.5" />
                               <div className="min-w-0">
-                                <p className="text-[13.5px] font-bold text-slate-900 group-hover:text-[#00288e]">
+                                <p className="text-[13.5px] font-bold text-slate-900 dark:text-on-surface group-hover:text-primary">
                                   {title}
                                 </p>
                                 {subtitle && (
-                                  <p className="text-[11.5px] text-slate-500 truncate">
+                                  <p className="text-[11.5px] text-slate-500 dark:text-on-surface-variant truncate">
                                     {subtitle}
                                   </p>
                                 )}
                               </div>
                             </div>
                             {stateBadge && (
-                              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 shrink-0 group-hover:bg-white group-hover:text-[#00288e]">
+                              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-surface-container-high text-slate-600 dark:text-on-surface-variant shrink-0 group-hover:bg-white dark:group-hover:bg-surface-container-low group-hover:text-primary">
                                 {stateBadge}
                               </span>
                             )}
@@ -569,36 +638,36 @@ export default function Landing() {
 
         {/* ── CATEGORY BENTO SECTION ── */}
         <section id="services" className="max-w-[1280px] mx-auto px-6 sm:px-8 py-14">
-          <div className="flex items-end justify-between mb-8">
+          <div className="flex items-end justify-between gap-4 mb-8">
             <div>
               <p className="text-[12px] font-bold text-primary uppercase tracking-[0.12em] mb-1.5">What We Offer</p>
-              <h2 className="text-[32px] sm:text-[36px] font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+              <h2 className="text-[28px] sm:text-[36px] font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
                 Browse by Category
               </h2>
             </div>
-            <Link to="/signup" className="hidden md:flex items-center gap-1.5 text-[14px] font-bold text-primary hover:opacity-80 transition-colors group">
+            <Link to="/signup" className="hidden md:flex items-center gap-1.5 text-[14px] font-bold text-primary hover:opacity-80 transition-colors group whitespace-nowrap shrink-0">
               View all services <IconChevronRight size={15} stroke={2} className="group-hover:translate-x-1 transition-transform duration-200" />
             </Link>
           </div>
 
           {/* Bento Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5">
             {/* Large image card */}
-            <div className="col-span-2 row-span-2 group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/50 bg-surface cursor-pointer min-h-[320px] md:min-h-[380px] shadow-sm hover:shadow-[0_16px_48px_rgba(0,0,0,0.25)] transition-all duration-400">
+            <div className="sm:col-span-2 sm:row-span-2 group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/50 bg-surface cursor-pointer min-h-[260px] sm:min-h-[320px] md:min-h-[380px] shadow-sm hover:shadow-[0_16px_48px_rgba(0,0,0,0.25)] transition-all duration-400">
               <img
                 src={HERO_IMG}
                 alt="Home Maintenance"
                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0d1c2e]/85 via-[#0d1c2e]/25 to-transparent" />
-              <div className="absolute bottom-0 left-0 p-6 sm:p-8">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[11.5px] font-semibold mb-2.5 border border-white/20">
+              <div className="absolute bottom-0 left-0 p-5 sm:p-8">
+                <div className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[10.5px] sm:text-[11.5px] font-semibold mb-2 sm:mb-2.5 border border-white/20">
                   <IconSparkles size={12} stroke={1.75} /> Most Popular
                 </div>
-                <h3 className="text-[22px] sm:text-[26px] font-bold text-white mb-1" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+                <h3 className="text-[20px] sm:text-[26px] font-bold text-white mb-0.5 sm:mb-1" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
                   Home Maintenance
                 </h3>
-                <p className="text-[14px] text-white/80">Electricians, Plumbers, Carpenters &amp; Technicians</p>
+                <p className="text-[12.5px] sm:text-[14px] text-white/80">Electricians, Plumbers, Carpenters &amp; Technicians</p>
               </div>
             </div>
 
@@ -606,16 +675,16 @@ export default function Landing() {
             {SMALL_CATS.map(({ Icon, label, sub }) => (
               <div
                 key={label}
-                className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/50 bg-surface-container-low cursor-pointer flex flex-col items-center justify-center gap-3 p-5 sm:p-6 aspect-square shadow-sm hover:shadow-[0_12px_36px_rgba(0,0,0,0.2)] hover:-translate-y-1.5 hover:border-primary/40 transition-all duration-300"
+                className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/50 bg-surface-container-low cursor-pointer flex flex-col items-center justify-center gap-2 sm:gap-3 p-4 sm:p-6 min-h-[150px] sm:min-h-[180px] shadow-sm hover:shadow-[0_12px_36px_rgba(0,0,0,0.2)] hover:-translate-y-1.5 hover:border-primary/40 transition-all duration-300"
               >
-                <div className="relative pointer-events-none">
-                  <div className="absolute inset-0 -z-10 w-14 h-14 rounded-full bg-primary/15 blur-2xl group-hover:bg-primary/30 transition-all duration-300" />
-                  <Icon size={42} stroke={1.25} className="text-primary group-hover:scale-110 transition-transform duration-300" />
+                <div className="relative pointer-events-none mb-1">
+                  <div className="absolute inset-0 -z-10 w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-primary/15 blur-2xl group-hover:bg-primary/30 transition-all duration-300" />
+                  <Icon size={38} stroke={1.25} className="w-8 h-8 sm:w-11 sm:h-11 text-primary group-hover:scale-110 transition-transform duration-300" />
                 </div>
-                <p className="text-[14px] font-bold text-on-surface text-center leading-tight group-hover:text-primary transition-colors">
+                <p className="text-[13px] sm:text-[14px] font-bold text-on-surface text-center leading-tight group-hover:text-primary transition-colors">
                   {label}
                 </p>
-                <p className="text-[11.5px] text-on-surface-variant/70 text-center leading-tight">
+                <p className="text-[11px] sm:text-[11.5px] text-on-surface-variant/70 text-center leading-snug">
                   {sub}
                 </p>
               </div>
@@ -630,21 +699,24 @@ export default function Landing() {
             <div className="absolute top-0 right-0 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-80 h-80 bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 divide-y sm:divide-y-0 sm:divide-x divide-outline-variant/70">
+            <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-5 sm:gap-8">
               {STATS.map(({ key, label, Icon }, index) => (
-                <div key={label} className={`flex flex-col items-center text-center group ${index > 0 ? 'sm:pl-6 pt-4 sm:pt-0' : ''}`}>
-                  <div className="relative pointer-events-none mb-3.5">
-                    <div className="absolute inset-0 -z-10 w-14 h-14 rounded-full bg-primary/15 blur-2xl group-hover:bg-primary/30 transition-all duration-300" />
-                    <Icon size={34} stroke={1.25} className="text-primary group-hover:scale-110 transition-transform duration-300" />
+                <div
+                  key={label}
+                  className={`flex flex-col items-center text-center group ${index >= 2 ? 'mt-2 sm:mt-0' : ''} ${index % 2 === 0 ? '' : 'sm:pl-6'}`}
+                >
+                  <div className="relative pointer-events-none mb-2.5 sm:mb-3.5">
+                    <div className="absolute inset-0 -z-10 w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-primary/15 blur-2xl group-hover:bg-primary/30 transition-all duration-300" />
+                    <Icon size={34} stroke={1.25} className="w-7 h-7 sm:w-9 sm:h-9 text-primary group-hover:scale-110 transition-transform duration-300" />
                   </div>
                   {stats ? (
-                    <p className="text-[32px] sm:text-[38px] font-extrabold text-on-surface leading-none tracking-tight group-hover:text-primary transition-colors">
+                    <p className="text-[28px] sm:text-[38px] font-extrabold text-on-surface leading-none tracking-tight group-hover:text-primary transition-colors">
                       {fmtValue(key, stats[key])}
                     </p>
                   ) : (
-                    <div className="h-10 w-24 rounded-lg bg-surface-container-high animate-pulse" />
+                    <div className="h-9 sm:h-10 w-20 sm:w-24 rounded-lg bg-surface-container-high animate-pulse" />
                   )}
-                  <p className="text-[13px] text-on-surface-variant mt-2 font-medium tracking-wide">{label}</p>
+                  <p className="text-[12px] sm:text-[13px] text-on-surface-variant mt-1.5 sm:mt-2 font-medium tracking-wide">{label}</p>
                 </div>
               ))}
             </div>
@@ -702,16 +774,18 @@ export default function Landing() {
             {FEATURES.map(({ Icon, title, desc }) => (
               <div
                 key={title}
-                className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/50 bg-surface-container-low p-8 hover:shadow-[0_16px_48px_rgba(0,0,0,0.25)] hover:-translate-y-2 hover:border-primary/40 transition-all duration-300"
+                className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/50 bg-surface-container-low p-6 sm:p-8 hover:shadow-[0_16px_48px_rgba(0,0,0,0.25)] hover:-translate-y-2 hover:border-primary/40 transition-all duration-300"
               >
                 <div className="absolute top-0 right-0 w-44 h-44 bg-primary/5 rounded-full blur-3xl -translate-y-10 translate-x-10 group-hover:bg-primary/15 transition-colors duration-400 pointer-events-none" />
                 <div className="relative z-10">
-                  <div className="relative pointer-events-none mb-6 w-fit">
-                    <div className="absolute inset-0 -z-10 w-20 h-20 rounded-full bg-primary/15 blur-3xl group-hover:bg-primary/30 transition-all duration-300" />
-                    <Icon size={44} stroke={1.25} className="text-primary group-hover:scale-110 transition-transform duration-300" />
+                  <div className="relative pointer-events-none mb-5 flex items-center gap-3.5">
+                    <div className="relative pointer-events-none">
+                      <div className="absolute inset-0 -z-10 w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/15 blur-3xl group-hover:bg-primary/30 transition-all duration-300" />
+                      <Icon size={40} stroke={1.25} className="w-8 h-8 sm:w-10 sm:h-10 text-primary group-hover:scale-110 transition-transform duration-300" />
+                    </div>
+                    <h3 className="text-[16px] sm:text-[19px] font-bold text-on-surface leading-snug shrink">{title}</h3>
                   </div>
-                  <h3 className="text-[19px] font-bold text-on-surface mb-3">{title}</h3>
-                  <p className="text-[14.5px] text-on-surface-variant leading-relaxed">{desc}</p>
+                  <p className="text-[13.5px] sm:text-[14.5px] text-on-surface-variant leading-relaxed">{desc}</p>
                 </div>
               </div>
             ))}
@@ -741,13 +815,25 @@ export default function Landing() {
                 <IconShieldCheck size={13} stroke={1.75} />
                 <span>Ministry of Cooperation Aligned</span>
               </div>
+              <div className="flex items-center gap-2 pt-1">
+                {SOCIALS.map(({ Icon, label }) => (
+                  <a
+                    key={label}
+                    href="#"
+                    aria-label={label}
+                    className="w-8 h-8 rounded-lg border border-outline-variant/70 bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-300"
+                  >
+                    <Icon size={15} stroke={1.5} />
+                  </a>
+                ))}
+              </div>
             </div>
 
-            {/* Links Columns — spread out reaching right corner */}
-            <div className="md:col-span-8 lg:col-span-8 grid grid-cols-3 gap-6 sm:gap-10 lg:gap-16">
+            {/* Links Columns — 2-col mobile, 3-col desktop */}
+            <div className="md:col-span-8 lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-x-6 sm:gap-x-10 lg:gap-x-16 gap-y-8 sm:gap-y-0">
               <div>
                 <h4 className="text-[12px] font-bold text-on-surface uppercase tracking-[0.1em] mb-4">Platform</h4>
-                <ul className="space-y-2.5">
+                <ul className="space-y-3">
                   {[
                     ['#services', 'Find Services'],
                     ['/login', 'Book a Provider'],
@@ -765,7 +851,7 @@ export default function Landing() {
 
               <div>
                 <h4 className="text-[12px] font-bold text-on-surface uppercase tracking-[0.1em] mb-4">Organization</h4>
-                <ul className="space-y-2.5">
+                <ul className="space-y-3">
                   {[
                     ['#about', 'About Us'],
                     ['#how', 'How it Works'],
@@ -781,9 +867,9 @@ export default function Landing() {
                 </ul>
               </div>
 
-              <div>
+              <div className="col-span-2 sm:col-span-1 mt-0">
                 <h4 className="text-[12px] font-bold text-on-surface uppercase tracking-[0.1em] mb-4">Legal &amp; Trust</h4>
-                <ul className="space-y-2.5">
+                <ul className="space-y-3">
                   {['Privacy Policy', 'Terms of Service', 'Dispute Escrow', 'Support Center'].map((label) => (
                     <li key={label}>
                       <a href="#" className="text-[13.5px] text-on-surface-variant hover:text-primary transition-colors duration-200">
@@ -797,7 +883,8 @@ export default function Landing() {
           </div>
 
           {/* Bottom Row — corner-to-corner aligned */}
-          <div className="border-t border-outline-variant pt-6 flex flex-col sm:flex-row justify-between items-center gap-3.5">
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-outline-variant to-transparent mb-6" />
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3.5">
             <p className="text-[12.5px] text-on-surface-variant/70">
               © {new Date().getFullYear()} SahakarGig. Built for India's Cooperative Ecosystem.
             </p>

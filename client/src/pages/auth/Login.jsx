@@ -68,29 +68,35 @@ export default function Login() {
       backLabel="Back to Home"
       heroImage={HERO_IMAGE}
     >
-      <div className="mb-4">
-        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">Welcome back</h2>
-        <p className="font-body-md text-xs sm:text-sm text-on-surface-variant mt-1">Sign in to access your cooperative dashboard.</p>
+      <div className="mb-5">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-[0.12em] mb-2.5">
+          <Icon name="verified" className="text-[12px] text-primary" />
+          Secure Sign In
+        </div>
+        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight leading-tight">Welcome back</h2>
+        <p className="font-body-md text-xs sm:text-sm text-on-surface-variant mt-1.5">Sign in to your dashboard.</p>
       </div>
 
-      {/* Demo pills */}
-      <div className="mb-4 flex flex-wrap items-center gap-1.5">
-        <span className="text-[10.5px] font-bold tracking-widest text-outline uppercase">Demo:</span>
-        {[
-          ["coop.test@gmail.com", "Coop Admin"],
-          ["household.test@gmail.com", "Household"],
-          ["plumber.test@gmail.com", "Gig Worker"],
-          ["federation.test@gmail.com", "Federation"],
-        ].map(([email, label]) => (
-          <button
-            key={label}
-            type="button"
-            onClick={() => fillDemo(email)}
-            className="px-2.5 py-0.5 rounded-full border border-outline-variant bg-surface-container-low text-[11px] font-semibold hover:bg-primary hover:text-on-primary hover:border-primary transition cursor-pointer"
-          >
-            {label}
-          </button>
-        ))}
+      {/* Demo pills — desktop/tablet only */}
+      <div className="hidden sm:block mb-5">
+        <span className="block text-[10px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">Demo Accounts</span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {[
+            ["coop.test@gmail.com", "Coop Admin"],
+            ["household.test@gmail.com", "Household"],
+            ["plumber.test@gmail.com", "Gig Worker"],
+            ["federation.test@gmail.com", "Federation"],
+          ].map(([email, label]) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => fillDemo(email)}
+              className="px-2.5 py-1 rounded-full border border-outline-variant bg-surface-container-low text-[11px] font-semibold hover:bg-primary hover:text-on-primary hover:border-primary hover:-translate-y-0.5 transition-all duration-200 cursor-pointer shadow-xs"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {err && (
@@ -100,14 +106,14 @@ export default function Login() {
         </div>
       )}
 
-      <form onSubmit={submit} className="space-y-3.5">
+      <form onSubmit={submit} className="space-y-4">
         {/* Email */}
         <div>
-          <label htmlFor="identifier" className="block text-[12.5px] font-semibold text-on-surface mb-1">
+          <label htmlFor="identifier" className="block text-[12px] font-bold text-on-surface mb-1.5">
             Email or Phone Number
           </label>
           <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
               <Icon name="person" className="text-[17px] text-outline group-focus-within:text-primary transition-colors" />
             </div>
             <input
@@ -117,18 +123,18 @@ export default function Login() {
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               placeholder="Enter your credentials"
-              className="block w-full pl-9 pr-3 py-2 border border-outline-variant rounded-lg bg-surface-container-low text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none"
+              className="block w-full pl-10 pr-3.5 py-3 border border-outline-variant rounded-xl bg-surface-container-low text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-outline-variant outline-none shadow-xs"
             />
           </div>
         </div>
 
         {/* Password */}
         <div>
-          <label htmlFor="password" className="block text-[12.5px] font-semibold text-on-surface mb-1">
+          <label htmlFor="password" className="block text-[12px] font-bold text-on-surface mb-1.5">
             Password
           </label>
           <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
               <Icon name="lock" className="text-[17px] text-outline group-focus-within:text-primary transition-colors" />
             </div>
             <input
@@ -138,12 +144,12 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="block w-full pl-9 pr-9 py-2 border border-outline-variant rounded-lg bg-surface-container-low text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none"
+              className="block w-full pl-10 pr-10 py-3 border border-outline-variant rounded-xl bg-surface-container-low text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-outline-variant outline-none shadow-xs"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-on-surface transition-colors focus:outline-none cursor-pointer"
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-outline hover:text-on-surface transition-colors focus:outline-none cursor-pointer"
             >
               <Icon name={showPassword ? "visibility" : "visibility_off"} className="text-[17px]" />
             </button>
@@ -170,15 +176,16 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-[13.5px] font-semibold bg-primary text-on-primary shadow-[0_2px_10px_rgba(30,107,101,0.25)] hover:opacity-90 hover:shadow-[0_6px_18px_rgba(30,107,101,0.4)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
+          className="w-full flex justify-center items-center gap-2 py-3 rounded-xl text-[13.5px] font-bold bg-primary text-on-primary shadow-[0_4px_14px_rgba(30,107,101,0.3)] hover:opacity-90 hover:shadow-[0_8px_24px_rgba(30,107,101,0.45)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
         >
           {loading && <span className="h-4 w-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />}
           {loading ? "Signing in..." : "Sign In"}
+          {!loading && <Icon name="arrow_forward" className="text-[16px]" />}
         </button>
       </form>
 
       {/* Divider */}
-      <div className="my-3.5 relative">
+      <div className="my-5 relative">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-outline-variant" />
         </div>
@@ -192,7 +199,7 @@ export default function Login() {
         <button
           type="button"
           onClick={() => alert("Connecting with e-Pramaan…")}
-          className="inline-flex justify-center items-center gap-2 py-2 px-3 border border-outline-variant rounded-lg bg-surface-container-low text-[12.5px] font-semibold text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
+          className="inline-flex justify-center items-center gap-2 py-2.5 px-3 border border-outline-variant rounded-xl bg-surface-container-low text-[12.5px] font-semibold text-on-surface hover:bg-surface-container-high hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer shadow-xs"
         >
           <Icon name="assured_workload" className="text-[17px] text-primary" />
           e-Pramaan
@@ -200,22 +207,36 @@ export default function Login() {
         <button
           type="button"
           onClick={() => alert("Connecting with Aadhaar…")}
-          className="inline-flex justify-center items-center gap-2 py-2 px-3 border border-outline-variant rounded-lg bg-surface-container-low text-[12.5px] font-semibold text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
+          className="inline-flex justify-center items-center gap-2 py-2.5 px-3 border border-outline-variant rounded-xl bg-surface-container-low text-[12.5px] font-semibold text-on-surface hover:bg-surface-container-high hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer shadow-xs"
         >
           <Icon name="fingerprint" className="text-[17px] text-primary" />
           Aadhaar
         </button>
       </div>
 
-      <p className="mt-4 text-center font-body-md text-xs text-on-surface-variant">
-        Not part of a cooperative yet?{" "}
-        <Link to="/signup" className="font-semibold text-primary hover:opacity-80 transition-opacity">
-          Register Society
-        </Link>
-        {" · "}
-        <Link to="/federation-signup" className="font-semibold text-primary hover:opacity-80 transition-opacity">
-          Register Federation
-        </Link>
+      <div className="mt-5 text-center">
+        <p className="text-xs text-on-surface-variant">Not part of a cooperative yet?</p>
+        <div className="mt-2 flex items-center justify-center gap-2.5">
+          <Link
+            to="/signup"
+            className="inline-flex items-center px-3.5 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-[12px] font-bold text-primary hover:bg-primary hover:text-on-primary transition-all duration-200 cursor-pointer"
+          >
+            Register Society
+          </Link>
+          <span className="w-1 h-1 rounded-full bg-outline shrink-0" />
+          <Link
+            to="/federation-signup"
+            className="inline-flex items-center px-3.5 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-[12px] font-bold text-primary hover:bg-primary hover:text-on-primary transition-all duration-200 cursor-pointer"
+          >
+            Register Federation
+          </Link>
+        </div>
+      </div>
+
+      {/* Trust line — desktop only to keep mobile minimal */}
+      <p className="hidden sm:flex mt-4 text-center text-[10.5px] text-on-surface-variant/60 items-center justify-center gap-1.5">
+        <Icon name="shield" className="text-[13px] text-primary/70" />
+        Protected by 256-bit SSL · Razorpay Escrow
       </p>
     </AuthShell>
   );

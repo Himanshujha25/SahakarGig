@@ -44,6 +44,19 @@ export default function HeroVideoBackground() {
     let width = (canvas.width = canvas.offsetWidth || window.innerWidth);
     let height = (canvas.height = canvas.offsetHeight || 650);
 
+    // Theme-aware accent color (reads the active primary token)
+    const primary =
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-primary")
+        .trim() || "#1e6b65";
+    const hexToRgba = (hex, a) => {
+      const h = hex.replace("#", "");
+      const r = parseInt(h.substring(0, 2), 16);
+      const g = parseInt(h.substring(2, 4), 16);
+      const b = parseInt(h.substring(4, 6), 16);
+      return `rgba(${r},${g},${b},${a})`;
+    };
+
     const handleResize = () => {
       if (!canvas) return;
       width = canvas.width = canvas.offsetWidth || window.innerWidth;
@@ -61,7 +74,7 @@ export default function HeroVideoBackground() {
         vx: (Math.random() - 0.5) * 0.5,
         vy: (Math.random() - 0.5) * 0.5,
         radius: Math.random() * 2 + 1,
-        color: i % 2 === 0 ? "#00288e" : "#3b82f6",
+        color: hexToRgba(primary, i % 2 === 0 ? 0.9 : 0.45),
         alpha: Math.random() * 0.4 + 0.2,
       });
     }
@@ -87,7 +100,7 @@ export default function HeroVideoBackground() {
 
           if (dist < 120) {
             ctx.beginPath();
-            ctx.strokeStyle = `rgba(0, 40, 142, ${(1 - dist / 120) * 0.22})`;
+            ctx.strokeStyle = hexToRgba(primary, (1 - dist / 120) * 0.22);
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
             ctx.stroke();
@@ -127,15 +140,15 @@ export default function HeroVideoBackground() {
         muted
         playsInline
         preload="auto"
-        className="absolute inset-0 w-full h-full object-cover opacity-50 filter saturate-125 contrast-105 scale-105"
+        className="absolute inset-0 w-full h-full object-cover opacity-50 dark:opacity-40 filter saturate-125 contrast-105 scale-105"
       >
         <source src="/12098511-hd_1920_1080_50fps.mp4" type="video/mp4" />
       </video>
 
-      {/* ── BRAND GRADIENT MASKS (SahakarGig Blue & Clean Glassmorphism) ── */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white/65 via-white/40 to-white/95 backdrop-blur-[1px]" />
-      <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-tr from-[#00288e]/25 via-[#3b82f6]/20 to-transparent rounded-full blur-[110px] pointer-events-none" />
-      <div className="absolute top-1/3 right-1/4 w-[500px] h-[400px] bg-[#3b82f6]/15 rounded-full blur-[140px] pointer-events-none" />
+      {/* ── BRAND GRADIENT MASKS (Theme-Synced Glassmorphism) ── */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white/65 via-white/40 to-white/95 dark:from-[#131313]/75 dark:via-[#131313]/45 dark:to-[#131313]/95 backdrop-blur-[1px]" />
+      <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-tr from-primary/20 via-primary/15 to-transparent rounded-full blur-[110px] pointer-events-none" />
+      <div className="absolute top-1/3 right-1/4 w-[500px] h-[400px] bg-primary/15 rounded-full blur-[140px] pointer-events-none" />
 
       {/* ── 60FPS INTERACTIVE CANVAS NETWORK NODES ── */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block z-10" />

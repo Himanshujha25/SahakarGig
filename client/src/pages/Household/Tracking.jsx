@@ -255,9 +255,9 @@ export default function Tracking() {
   if (loading) {
     return (
       <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        <div className="animate-pulse rounded-2xl border border-slate-200 bg-white p-8 space-y-4">
-          <div className="h-6 w-1/4 rounded-lg bg-slate-200"></div>
-          <div className="h-4 w-1/2 rounded-lg bg-slate-100"></div>
+        <div className="animate-pulse rounded-2xl border border-outline-variant bg-surface p-8 space-y-4">
+          <div className="h-6 w-1/4 rounded-lg bg-surface-container-high"></div>
+          <div className="h-4 w-1/2 rounded-lg bg-surface-container-low"></div>
         </div>
       </div>
     );
@@ -266,14 +266,14 @@ export default function Tracking() {
   if (!booking) {
     return (
       <div className="w-full max-w-xl mx-auto px-4 py-16 text-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+        <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-200 flex items-center justify-center mx-auto">
           <AlertTriangle size={24} />
         </div>
-        <h2 className="text-lg font-bold text-slate-900">Order Record Not Found</h2>
-        <p className="text-xs text-slate-500">The requested service order could not be located.</p>
+        <h2 className="text-lg font-bold text-on-surface">Order Record Not Found</h2>
+        <p className="text-xs text-on-surface-variant">The requested service order could not be located.</p>
         <Link
           to="/household/bookings"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00288e] text-white text-xs font-bold shadow-xs hover:bg-[#173bab] transition"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-xs hover:opacity-90 transition"
         >
           <ArrowLeft size={14} /> Back to My Bookings
         </Link>
@@ -300,35 +300,35 @@ export default function Tracking() {
           <button
             type="button"
             onClick={() => navigate("/household/bookings")}
-            className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-700 flex items-center justify-center hover:border-[#00288e]/40 hover:text-[#00288e] transition shadow-xs cursor-pointer"
+            className="w-9 h-9 rounded-xl border border-outline-variant bg-surface text-on-surface-variant flex items-center justify-center hover:border-primary/40 hover:text-primary transition shadow-xs cursor-pointer"
             title="Back to Bookings"
           >
             <ArrowLeft size={16} />
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+              <h1 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
                 Order Tracking
               </h1>
-              <span className="text-xs text-slate-400 font-medium">#{booking._id.slice(-8).toUpperCase()}</span>
+              <span className="text-xs text-on-surface-variant font-medium">#{booking._id.slice(-8).toUpperCase()}</span>
             </div>
-            <p className="text-xs text-slate-500">Live statutory status & real-time dispatch telemetrics</p>
+            <p className="text-xs text-on-surface-variant">Live statutory status & real-time dispatch telemetrics</p>
           </div>
         </div>
 
         {/* Live Status Pill */}
         <div className="flex items-center gap-2">
           {isCancelled ? (
-            <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
+            <span className="px-3 py-1 rounded-full bg-surface-container-low dark:bg-slate-800 text-on-surface-variant dark:text-slate-200 text-xs font-bold border border-outline-variant dark:border-slate-700">
               Cancelled
             </span>
           ) : isDisputed ? (
-            <span className="px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-bold border border-red-200 flex items-center gap-1.5">
+            <span className="px-3 py-1 rounded-full bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-200 text-xs font-bold border border-red-200 dark:border-red-900 flex items-center gap-1.5">
               <AlertTriangle size={13} /> Under Dispute Review
             </span>
           ) : (
-            <span className="px-3 py-1 rounded-full bg-[#e8edff] text-[#00288e] text-xs font-bold border border-[#00288e]/20 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#00288e] animate-pulse" />
+            <span className="px-3 py-1 rounded-full bg-primary-container/50 text-primary text-xs font-bold border border-primary/20 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               {STEPS.find((s) => s.key === booking.status)?.label || booking.status}
             </span>
           )}
@@ -342,61 +342,61 @@ export default function Tracking() {
         <div className="lg:col-span-7 space-y-6">
 
           {/* 1. Service Overview Card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="rounded-2xl border border-outline-variant bg-surface p-5 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   {booking.isEmergency && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200 text-[10.5px] font-bold">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-900 text-[10.5px] font-bold">
                       <Zap size={11} /> Emergency Express
                     </span>
                   )}
                   {booking.groupBooking?.enabled && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200 text-[10.5px] font-bold">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-200 border border-purple-200 dark:border-purple-900 text-[10.5px] font-bold">
                       <Users size={11} /> Institutional Crew · {booking.groupBooking.memberCount} Workers
                     </span>
                   )}
                   {booking.recurrence?.enabled && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-[#00288e] border border-[#00288e]/20 text-[10.5px] font-bold capitalize">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-primary dark:text-blue-200 border border-primary/20 dark:border-blue-900 text-[10.5px] font-bold capitalize">
                       <Repeat size={11} /> Recurring · {booking.recurrence.freq}
                     </span>
                   )}
                 </div>
-                <h2 className="text-lg font-bold text-slate-900 leading-snug">
+                <h2 className="text-lg font-bold text-on-surface leading-snug">
                   {booking.service}
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-on-surface-variant mt-0.5">
                   Booked on {new Date(booking.createdAt).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </p>
               </div>
 
               <div className="text-right shrink-0">
-                <p className="text-2xl font-black text-[#00288e]">₹{booking.price?.toLocaleString("en-IN")}</p>
-                <p className="text-[11px] text-slate-400 font-semibold">100% Escrow</p>
+                <p className="text-2xl font-black text-primary">₹{booking.price?.toLocaleString("en-IN")}</p>
+                <p className="text-[11px] text-on-surface-variant font-semibold">100% Escrow</p>
               </div>
             </div>
 
             {/* Provider & Location Strip */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-100">
-              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#00288e] shrink-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-outline-variant">
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container-low border border-outline-variant">
+                <div className="w-8 h-8 rounded-lg bg-surface border border-outline-variant flex items-center justify-center text-primary shrink-0">
                   <User size={15} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] text-slate-500 font-medium">Assigned Worker / Lead</p>
-                  <p className="text-xs font-bold text-slate-900 truncate">
+                  <p className="text-[11px] text-on-surface-variant font-medium">Assigned Worker / Lead</p>
+                  <p className="text-xs font-bold text-on-surface truncate">
                     {booking.providerId?.userId?.name || (booking.dispatchMode === "broadcast" && booking.broadcastStatus === "broadcasting" ? "Searching nearby..." : "Cooperative Crew")}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#00288e] shrink-0">
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container-low border border-outline-variant">
+                <div className="w-8 h-8 rounded-lg bg-surface border border-outline-variant flex items-center justify-center text-primary shrink-0">
                   <MapPin size={15} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] text-slate-500 font-medium">Service Locality</p>
-                  <p className="text-xs font-bold text-slate-900 truncate">
+                  <p className="text-[11px] text-on-surface-variant font-medium">Service Locality</p>
+                  <p className="text-xs font-bold text-on-surface truncate">
                     {booking.locationText || "Site Location Defined"}
                   </p>
                 </div>
@@ -404,22 +404,22 @@ export default function Tracking() {
             </div>
 
             {booking.notes && (
-              <div className="p-3 rounded-xl bg-blue-50/60 border border-blue-100 text-xs text-slate-700">
-                <span className="font-bold text-[#00288e]">Requirement Notes:</span> {booking.notes}
+              <div className="p-3 rounded-xl bg-blue-50/60 border border-blue-100 text-xs text-on-surface-variant">
+                <span className="font-bold text-primary">Requirement Notes:</span> {booking.notes}
               </div>
             )}
           </div>
 
           {/* 2. Interactive Milestone Stepper Card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="rounded-2xl border border-outline-variant bg-surface p-5 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+              <h3 className="text-sm font-bold text-on-surface" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
                 Order Lifecycle Timeline
               </h3>
-              <span className="text-[11px] text-slate-400 font-semibold">Step {Math.max(1, currentIdx + 1)} of 4</span>
+              <span className="text-[11px] text-on-surface-variant/70 font-semibold">Step {Math.max(1, currentIdx + 1)} of 4</span>
             </div>
 
-            <div className="space-y-3 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-slate-100">
+            <div className="space-y-3 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-surface-container-low">
               {STEPS.map((step, i) => {
                 const done = !isCancelled && i < currentIdx;
                 const active = !isCancelled && i === currentIdx;
@@ -428,26 +428,26 @@ export default function Tracking() {
                     <div
                       className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${
                         done
-                          ? "bg-[#00288e] text-white shadow-xs"
+                          ? "bg-primary text-on-primary shadow-xs"
                           : active
-                          ? "bg-[#00288e] text-white ring-4 ring-[#e8edff]"
-                          : "bg-slate-100 text-slate-400 border border-slate-200"
+                          ? "bg-primary text-on-primary ring-4 ring-primary/20"
+                          : "bg-surface-container-low text-on-surface-variant/70 border border-outline-variant"
                       }`}
                     >
                       {done ? <CheckCircle2 size={14} /> : i + 1}
                     </div>
                     <div className="flex-1 min-w-0 pt-0.5">
                       <div className="flex items-center justify-between">
-                        <p className={`text-xs font-bold ${active ? "text-[#00288e]" : done ? "text-slate-900" : "text-slate-400"}`}>
+                        <p className={`text-xs font-bold ${active ? "text-primary" : done ? "text-on-surface" : "text-on-surface-variant/70"}`}>
                           {step.label}
                         </p>
                         {active && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#e8edff] text-[#00288e] font-bold border border-[#00288e]/20">
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-primary-container/50 text-primary font-bold border border-primary/20">
                             Current Stage
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-500">{step.desc}</p>
+                      <p className="text-[11px] text-on-surface-variant">{step.desc}</p>
                     </div>
                   </div>
                 );
@@ -457,18 +457,18 @@ export default function Tracking() {
 
           {/* 3. Live GPS Location (when accepted or in-progress) */}
           {["accepted", "in-progress"].includes(booking.status) && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-3">
+            <div className="rounded-2xl border border-outline-variant bg-surface p-5 sm:p-6 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <h3 className="text-sm font-bold text-slate-900">Worker Live Telemetry</h3>
+                  <h3 className="text-sm font-bold text-on-surface">Worker Live Telemetry</h3>
                 </div>
                 {livePos && (
                   <a
                     href={`https://www.google.com/maps?q=${livePos.lat},${livePos.lng}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#00288e] hover:underline"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
                   >
                     Open in Google Maps <ExternalLink size={12} />
                   </a>
@@ -480,18 +480,18 @@ export default function Tracking() {
                   <iframe
                     title="Provider live location"
                     src={`https://www.openstreetmap.org/export/embed.html?bbox=${livePos.lng - 0.005}%2C${livePos.lat - 0.005}%2C${livePos.lng + 0.005}%2C${livePos.lat + 0.005}&layer=mapnik&marker=${livePos.lat}%2C${livePos.lng}`}
-                    className="h-44 w-full rounded-xl border border-slate-200"
+                    className="h-44 w-full rounded-xl border border-outline-variant"
                     loading="lazy"
                   />
-                  <p className="text-[11px] text-slate-500 text-right">
+                  <p className="text-[11px] text-on-surface-variant text-right">
                     GPS Fix: {livePos.lat.toFixed(4)}, {livePos.lng.toFixed(4)}
                   </p>
                 </div>
               ) : (
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-center space-y-1">
-                  <Radio size={18} className="text-slate-400 mx-auto animate-pulse" />
-                  <p className="text-xs font-semibold text-slate-700">Connecting to Worker Signal...</p>
-                  <p className="text-[11px] text-slate-400">Live GPS map will initialize once provider transmits signal.</p>
+                <div className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/60 text-center space-y-1">
+                  <Radio size={18} className="text-on-surface-variant/70 mx-auto animate-pulse" />
+                  <p className="text-xs font-semibold text-on-surface-variant">Connecting to Worker Signal...</p>
+                  <p className="text-[11px] text-on-surface-variant/70">Live GPS map will initialize once provider transmits signal.</p>
                 </div>
               )}
             </div>
@@ -503,7 +503,7 @@ export default function Tracking() {
               <button
                 type="button"
                 onClick={() => navigate(`/household/pay/${id}`)}
-                className="w-full h-12 rounded-xl bg-[#00288e] hover:bg-[#173bab] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+                className="w-full h-12 rounded-xl bg-primary hover:bg-primary text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
               >
                 <CreditCard size={16} /> Pay Escrow via Razorpay (₹{booking.price})
               </button>
@@ -514,9 +514,9 @@ export default function Tracking() {
                 <button
                   type="button"
                   onClick={openReschedule}
-                  className="h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                  className="h-10 rounded-xl border border-outline-variant bg-surface hover:bg-surface-container-low text-on-surface-variant font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
                 >
-                  <Calendar size={14} className="text-[#00288e]" /> Reschedule Time Slot
+                  <Calendar size={14} className="text-primary" /> Reschedule Time Slot
                 </button>
               )}
 
@@ -534,7 +534,7 @@ export default function Tracking() {
                 <button
                   type="button"
                   onClick={() => setDisputing(true)}
-                  className="h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                  className="h-10 rounded-xl border border-outline-variant bg-surface hover:bg-surface-container-low text-on-surface-variant font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
                 >
                   <AlertTriangle size={14} className="text-amber-600" /> Raise Dispute / Grievance
                 </button>
@@ -544,16 +544,16 @@ export default function Tracking() {
 
           {/* Reschedule Inline Form */}
           {rescheduling && (
-            <form onSubmit={submitReschedule} className="rounded-2xl border border-[#00288e]/30 bg-blue-50/40 p-5 space-y-4 shadow-xs">
+            <form onSubmit={submitReschedule} className="rounded-2xl border border-primary/30 bg-blue-50/40 p-5 space-y-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900">Reschedule Service Slot</h4>
-                  <p className="text-[11px] text-slate-500">Pick from provider's verified availability window</p>
+                  <h4 className="text-xs sm:text-sm font-bold text-on-surface">Reschedule Service Slot</h4>
+                  <p className="text-[11px] text-on-surface-variant">Pick from provider's verified availability window</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setRescheduling(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
+                  className="p-1 rounded-lg text-on-surface-variant/70 hover:text-on-surface-variant"
                 >
                   <X size={16} />
                 </button>
@@ -568,8 +568,8 @@ export default function Tracking() {
                     onClick={() => { setReschedDay(i); setReschedHour(null); }}
                     className={`p-2 rounded-xl border text-center transition cursor-pointer ${
                       i === reschedDay
-                        ? "border-[#00288e] bg-[#00288e] text-white shadow-xs"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                        ? "border-primary bg-primary text-on-primary shadow-xs"
+                        : "border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container-low"
                     }`}
                   >
                     <span className="text-[10px] font-semibold block">{d.label}</span>
@@ -580,7 +580,7 @@ export default function Tracking() {
 
               {/* Hour selector */}
               {reschedDayHours.length === 0 ? (
-                <p className="text-xs text-slate-500 italic">No available slots on this selected day.</p>
+                <p className="text-xs text-on-surface-variant italic">No available slots on this selected day.</p>
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {reschedDayHours.map(({ time, available }) => (
@@ -591,10 +591,10 @@ export default function Tracking() {
                       onClick={() => setReschedHour(time)}
                       className={`h-9 rounded-xl border text-xs font-bold flex items-center justify-center transition cursor-pointer ${
                         reschedHour === time
-                          ? "border-[#00288e] bg-[#00288e] text-white shadow-xs"
+                          ? "border-primary bg-primary text-on-primary shadow-xs"
                           : available
-                          ? "border-slate-200 bg-white text-slate-700 hover:border-[#00288e]/40"
-                          : "border-slate-200/50 bg-slate-100 text-slate-400 cursor-not-allowed opacity-50"
+                          ? "border-outline-variant bg-surface text-on-surface-variant hover:border-primary/40"
+                          : "border-outline-variant/50 bg-surface-container-low text-on-surface-variant/70 cursor-not-allowed opacity-50"
                       }`}
                     >
                       {time}
@@ -609,14 +609,14 @@ export default function Tracking() {
                 <button
                   type="submit"
                   disabled={reschedSubmitting}
-                  className="flex-1 h-10 rounded-xl bg-[#00288e] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs hover:bg-[#173bab] transition cursor-pointer disabled:opacity-60"
+                  className="flex-1 h-10 rounded-xl bg-primary text-on-primary font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs hover:bg-primary transition cursor-pointer disabled:opacity-60"
                 >
                   <CheckCircle2 size={14} /> {reschedSubmitting ? "Updating..." : "Confirm Rescheduled Slot"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setRescheduling(false)}
-                  className="px-4 h-10 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+                  className="px-4 h-10 rounded-xl border border-outline-variant bg-surface text-on-surface-variant font-bold text-xs hover:bg-surface-container-low transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -635,18 +635,18 @@ export default function Tracking() {
                 <button
                   type="button"
                   onClick={() => { setDisputing(false); setDisputeError(""); }}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
+                  className="p-1 rounded-lg text-on-surface-variant/70 hover:text-on-surface-variant"
                 >
                   <X size={16} />
                 </button>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Grievance Category</label>
+                <label className="block text-[11px] font-bold text-on-surface-variant mb-1">Grievance Category</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 outline-none focus:border-[#00288e]"
+                  className="w-full h-10 px-3 rounded-xl border border-outline-variant bg-surface text-xs font-semibold text-on-surface outline-none focus:border-primary"
                 >
                   {DISPUTE_CATEGORIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -655,14 +655,14 @@ export default function Tracking() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Description of Issue (Required)</label>
+                <label className="block text-[11px] font-bold text-on-surface-variant mb-1">Description of Issue (Required)</label>
                 <textarea
                   rows={3}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Explain clearly what happened on site..."
                   required
-                  className="w-full p-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 outline-none focus:border-[#00288e]"
+                  className="w-full p-3 rounded-xl border border-outline-variant bg-surface text-xs text-on-surface outline-none focus:border-primary"
                 />
               </div>
 
@@ -684,7 +684,7 @@ export default function Tracking() {
                 <button
                   type="button"
                   onClick={() => { setDisputing(false); setDisputeError(""); }}
-                  className="px-4 h-10 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+                  className="px-4 h-10 rounded-xl border border-outline-variant bg-surface text-on-surface-variant font-bold text-xs hover:bg-surface-container-low transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -698,11 +698,11 @@ export default function Tracking() {
               <div className="flex items-center gap-2 text-amber-800 font-bold text-xs">
                 <AlertTriangle size={14} /> Dispute Open with Cooperative Administration
               </div>
-              <p className="text-xs text-slate-700">"{booking.issue || "Dispute submitted"}"</p>
+              <p className="text-xs text-on-surface-variant">"{booking.issue || "Dispute submitted"}"</p>
               <button
                 type="button"
                 onClick={withdrawDispute}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-outline-variant text-xs font-bold text-on-surface-variant hover:bg-surface-container-low transition shadow-xs cursor-pointer"
               >
                 <RotateCcw size={13} /> Withdraw Dispute
               </button>
@@ -714,52 +714,52 @@ export default function Tracking() {
         <div className="lg:col-span-5 space-y-6">
 
           {/* 1. Transparent Escrow Summary */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+          <div className="rounded-2xl border border-outline-variant bg-surface p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-outline-variant/60">
+              <h3 className="text-sm font-bold text-on-surface" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
                 Escrow Settlement Math
               </h3>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10.5px] font-bold border border-emerald-200">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 text-[10.5px] font-bold border border-emerald-200 dark:border-emerald-900">
                 <ShieldCheck size={11} /> 100% Nodal Escrow
               </span>
             </div>
 
             <div className="space-y-2 text-xs">
-              <div className="flex justify-between text-slate-600">
+              <div className="flex justify-between text-on-surface-variant">
                 <span>Direct Worker Escrow (85%):</span>
-                <span className="font-bold text-slate-900">₹{workerEscrow.toLocaleString("en-IN")}</span>
+                <span className="font-bold text-on-surface">₹{workerEscrow.toLocaleString("en-IN")}</span>
               </div>
-              <div className="flex justify-between text-slate-600">
+              <div className="flex justify-between text-on-surface-variant">
                 <span>Cooperative Welfare Pool (10%):</span>
-                <span className="font-bold text-slate-900">₹{welfarePool.toLocaleString("en-IN")}</span>
+                <span className="font-bold text-on-surface">₹{welfarePool.toLocaleString("en-IN")}</span>
               </div>
-              <div className="flex justify-between text-slate-600">
+              <div className="flex justify-between text-on-surface-variant">
                 <span>Platform Tech & Insurance (5%):</span>
-                <span className="font-bold text-slate-900">₹{techFee.toLocaleString("en-IN")}</span>
+                <span className="font-bold text-on-surface">₹{techFee.toLocaleString("en-IN")}</span>
               </div>
-              <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-sm">
-                <span className="font-bold text-slate-900">Total Statutory Price:</span>
-                <span className="text-base font-black text-[#00288e]">₹{totalAmount.toLocaleString("en-IN")}</span>
+              <div className="pt-2 border-t border-outline-variant/60 flex justify-between items-center text-sm">
+                <span className="font-bold text-on-surface">Total Statutory Price:</span>
+                <span className="text-base font-black text-primary">₹{totalAmount.toLocaleString("en-IN")}</span>
               </div>
             </div>
           </div>
 
           {/* 2. Direct Worker / Union Chat Box */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-3.5">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div className="rounded-2xl border border-outline-variant bg-surface p-5 sm:p-6 shadow-xs space-y-3.5">
+            <div className="flex items-center justify-between pb-2 border-b border-outline-variant/60">
               <div className="flex items-center gap-2">
-                <MessageSquare size={16} className="text-[#00288e]" />
-                <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+                <MessageSquare size={16} className="text-primary" />
+                <h3 className="text-sm font-bold text-on-surface" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
                   Direct Dispatch Chat
                 </h3>
               </div>
-              <span className="text-[10.5px] text-slate-400 font-semibold">End-to-End Logged</span>
+              <span className="text-[10.5px] text-on-surface-variant/70 font-semibold">End-to-End Logged</span>
             </div>
 
             {/* Chat Messages */}
             <div className="h-56 overflow-y-auto space-y-2.5 pr-1 text-xs">
               {(booking.chat || []).length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 space-y-1">
+                <div className="h-full flex flex-col items-center justify-center text-center text-on-surface-variant/70 space-y-1">
                   <MessageSquare size={22} className="opacity-40" />
                   <p className="text-xs font-semibold">No messages yet.</p>
                   <p className="text-[11px]">Send a message to coordinate with the worker.</p>
@@ -773,11 +773,11 @@ export default function Tracking() {
                       <div
                         className={`max-w-[85%] p-3 rounded-2xl text-xs space-y-0.5 ${
                           isMe
-                            ? "bg-[#00288e] text-white rounded-br-xs"
-                            : "bg-slate-100 text-slate-800 rounded-bl-xs border border-slate-200"
+                            ? "bg-primary text-on-primary rounded-br-xs"
+                            : "bg-surface-container-low text-on-surface rounded-bl-xs border border-outline-variant"
                         }`}
                       >
-                        <p className={`text-[10px] font-bold ${isMe ? "text-blue-200" : "text-[#00288e]"}`}>
+                        <p className={`text-[10px] font-bold ${isMe ? "text-blue-200" : "text-primary"}`}>
                           {isMe ? "You" : c.sender?.name || "Provider"}
                         </p>
                         <p className="leading-relaxed">{c.message}</p>
@@ -790,17 +790,17 @@ export default function Tracking() {
             </div>
 
             {/* Chat Send Form */}
-            <form onSubmit={sendChat} className="flex gap-2 pt-1 border-t border-slate-100">
+            <form onSubmit={sendChat} className="flex gap-2 pt-1 border-t border-outline-variant/60">
               <input
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type coordinate message..."
-                className="flex-1 h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 outline-none focus:border-[#00288e] focus:bg-white transition"
+                className="flex-1 h-10 px-3.5 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-medium text-on-surface outline-none focus:border-primary focus:bg-surface transition"
               />
               <button
                 type="submit"
-                className="w-10 h-10 rounded-xl bg-[#00288e] hover:bg-[#173bab] text-white flex items-center justify-center transition shadow-xs cursor-pointer shrink-0"
+                className="w-10 h-10 rounded-xl bg-primary hover:bg-primary text-white flex items-center justify-center transition shadow-xs cursor-pointer shrink-0"
               >
                 <Send size={15} />
               </button>

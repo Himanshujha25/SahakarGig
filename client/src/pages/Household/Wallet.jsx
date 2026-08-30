@@ -269,7 +269,7 @@ export default function WalletPage() {
           <div className="lg:col-span-2 orvia-card p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-outline-variant/60">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-[#e6f4f1] text-[#145e58] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-full bg-primary-container/50 text-primary flex items-center justify-center shrink-0">
                   <BaggageClaim size={17} strokeWidth={2} />
                 </div>
                 <div>
@@ -290,7 +290,7 @@ export default function WalletPage() {
                 {data.transactions.map((tx) => (
                   <div key={tx._id} className="flex items-center gap-3 py-3">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                      tx.type === "credit" ? "bg-[#f7fee7] text-[#4d7c0f]" : "bg-[#eef2ff] text-[#00288e]"}`}>
+                      tx.type === "credit" ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400" : "bg-primary-container/50 text-primary"}`}>
                       {tx.type === "credit" ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -299,7 +299,7 @@ export default function WalletPage() {
                         {tx.method} · {new Date(tx.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} {new Date(tx.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                       </p>
                     </div>
-                    <span className={`text-sm font-extrabold ${tx.type === "credit" ? "text-[#4d7c0f]" : "text-on-surface"}`}>
+                    <span className={`text-sm font-extrabold ${tx.type === "credit" ? "text-emerald-700 dark:text-emerald-300" : "text-on-surface"}`}>
                       {tx.type === "credit" ? "+" : "−"}{fmt(tx.amount)}
                     </span>
                   </div>
@@ -320,7 +320,7 @@ export default function WalletPage() {
                 <div>
                   <p className="text-sm font-extrabold text-on-surface">
                     {sub.active.plan} Plan active
-                    <span className="ml-2 text-[11px] font-bold text-[#4d7c0f] bg-[#f7fee7] border border-[#d9f99d] px-2 py-0.5 rounded-full">
+                    <span className="ml-2 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full">
                       {sub.active.discountPct}% off every booking
                     </span>
                   </p>
@@ -352,7 +352,7 @@ export default function WalletPage() {
                         ₹{p.price}<span className="text-xs font-semibold text-on-surface-variant/70">/mo</span>
                       </p>
                     </div>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${p.plan === "premium" ? "bg-gradient-to-br from-[#c9a227] to-[#e5c15c] text-[#3b2c00]" : "bg-[#e6f4f1] text-[#145e58]"}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${p.plan === "premium" ? "bg-gradient-to-br from-[#c9a227] to-[#e5c15c] text-[#3b2c00]" : "bg-primary-container/50 text-primary"}`}>
                       <Crown size={18} />
                     </div>
                   </div>
@@ -360,7 +360,7 @@ export default function WalletPage() {
                   <div className="space-y-2">
                     {p.perks.map((perk) => (
                       <div key={perk} className="flex items-center gap-2 text-xs font-semibold text-on-surface">
-                        <Check size={13} className="text-[#4d7c0f] shrink-0" /> {perk}
+                        <Check size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" /> {perk}
                       </div>
                     ))}
                   </div>
@@ -382,7 +382,7 @@ export default function WalletPage() {
             })}
           </div>
           <p className="text-center text-xs text-on-surface-variant/70 font-medium flex items-center justify-center gap-1.5">
-            <ShieldCheck size={13} className="text-[#4d7c0f]" />
+            <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400" />
             Plans are billed monthly. Wallet debit when you have balance, Razorpay otherwise. Cancel anytime.
           </p>
         </div>
@@ -398,10 +398,10 @@ export default function WalletPage() {
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { label: "Total Spent", value: fmt(insights.totalPaid), Icon: IndianRupee, bg: "bg-[#e6f4f1] text-[#145e58]" },
-                  { label: "This Month", value: fmt(insights.monthSpent), Icon: CalendarDays, bg: "bg-[#e8edff] text-[#00288e]" },
-                  { label: "Paid Bookings", value: insights.paidBookings, Icon: BaggageClaim, bg: "bg-[#f7fee7] text-[#4d7c0f]" },
-                  { label: "Avg / Booking", value: fmt(insights.avgPerBooking), Icon: Trophy, bg: "bg-[#fff7ed] text-[#9a3412]" },
+                  { label: "Total Spent", value: fmt(insights.totalPaid), Icon: IndianRupee, bg: "bg-primary-container/50 text-primary" },
+                  { label: "This Month", value: fmt(insights.monthSpent), Icon: CalendarDays, bg: "bg-primary-container/50 text-primary" },
+                  { label: "Paid Bookings", value: insights.paidBookings, Icon: BaggageClaim, bg: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400" },
+                  { label: "Avg / Booking", value: fmt(insights.avgPerBooking), Icon: Trophy, bg: "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300" },
                 ].map(({ label, value, Icon, bg }) => (
                   <div key={label} className="orvia-card flex flex-col justify-between">
                     <div className="flex items-start justify-between mb-3">
@@ -419,7 +419,7 @@ export default function WalletPage() {
                 {/* Monthly trend */}
                 <div className="orvia-card p-5 space-y-4">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-full bg-[#e8edff] text-[#00288e] flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-full bg-primary-container/50 text-primary flex items-center justify-center">
                       <TrendingUp size={17} strokeWidth={2} />
                     </div>
                     <div>
@@ -431,7 +431,7 @@ export default function WalletPage() {
                     {trend.map((t) => (
                       <div key={t.key} className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
                         <span className="text-[9px] font-bold text-on-surface-variant/80">{t.amount > 0 ? fmt(t.amount) : ""}</span>
-                        <div className="w-full rounded-lg bg-[#e6f4f1] overflow-hidden flex flex-col justify-end" style={{ height: "100%" }}>
+                        <div className="w-full rounded-lg bg-primary-container/50 overflow-hidden flex flex-col justify-end" style={{ height: "100%" }}>
                           <div className={`w-full rounded-lg transition-all duration-500 ${t.amount > 0 ? "bg-gradient-to-t from-[#0f172a] to-[#1e6b65]" : "bg-outline-variant"}`}
                             style={{ height: `${Math.max(4, (t.amount / maxTrend) * 100)}%` }} />
                         </div>
@@ -444,7 +444,7 @@ export default function WalletPage() {
                 {/* Category breakdown */}
                 <div className="orvia-card p-5 space-y-4">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-full bg-[#f7fee7] text-[#4d7c0f] flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                       <BaggageClaim size={17} strokeWidth={2} />
                     </div>
                     <div>
@@ -470,10 +470,10 @@ export default function WalletPage() {
                     </div>
                   )}
                   {insights.topService && (
-                    <div className="p-3 rounded-2xl bg-[#f7fee7] border border-[#d9f99d] text-xs flex items-center gap-2">
-                      <Trophy size={15} className="text-[#65a30d]" />
+                    <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-xs flex items-center gap-2">
+                      <Trophy size={15} className="text-emerald-600 dark:text-emerald-400" />
                       <span className="font-semibold text-on-surface">
-                        Most used: <b className="text-[#4d7c0f]">{insights.topService.label}</b> ({fmt(insights.topService.value)})
+                        Most used: <b className="text-emerald-700 dark:text-emerald-300">{insights.topService.label}</b> ({fmt(insights.topService.value)})
                       </span>
                     </div>
                   )}

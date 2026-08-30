@@ -16,7 +16,7 @@ const ROLES = [
   { value: "Cooperative Admin", label: "Cooperative",      icon: "domain" },
 ];
 
-const inputCls = "block w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-low text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline-variant outline-none";
+const inputCls = "block w-full py-3 border border-outline-variant rounded-xl bg-surface-container-low text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-outline-variant outline-none shadow-xs";
 
 export default function Signup() {
   const { signup } = useAuth();
@@ -168,9 +168,13 @@ export default function Signup() {
       back="/"
       backLabel="Back to Home"
     >
-      <div className="mb-4">
-        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">Create Account</h2>
-        <p className="font-body-md text-xs sm:text-sm text-on-surface-variant mt-1">Select your role to get started.</p>
+      <div className="mb-5">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-[0.12em] mb-2.5">
+          <Icon name="verified" className="text-[12px] text-primary" />
+          Secure Registration
+        </div>
+        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight leading-tight">Create Account</h2>
+        <p className="font-body-md text-xs sm:text-sm text-on-surface-variant mt-1.5">Select your role to get started.</p>
       </div>
 
       {inviteCoopName && (
@@ -190,10 +194,10 @@ export default function Signup() {
             key={r.value}
             type="button"
             onClick={() => set("role", r.value)}
-            className={`flex flex-col items-center text-center py-3 px-2 rounded-xl border transition-all duration-200 cursor-pointer active:scale-[0.97] ${
+            className={`flex flex-col items-center text-center py-3.5 px-2 rounded-xl border transition-all duration-200 cursor-pointer active:scale-[0.97] ${
               form.role === r.value
-                ? "border-primary bg-surface-container-high shadow-xs"
-                : "border-outline-variant bg-surface-container-low hover:border-primary/50"
+                ? "border-primary bg-primary/5 shadow-xs"
+                : "border-outline-variant bg-surface-container-low hover:border-primary/50 hover:bg-surface-container-high"
             }`}
           >
             <Icon
@@ -215,59 +219,77 @@ export default function Signup() {
             </div>
           )}
 
-          <form onSubmit={submit} className="space-y-3">
+          <form onSubmit={submit} className="space-y-4">
             {/* Full Name */}
             <div>
-              <label htmlFor="fullName" className="block text-[12.5px] font-semibold text-on-surface mb-1">
+              <label htmlFor="fullName" className="block text-[12px] font-bold text-on-surface mb-1.5">
                 Full Name / Organization Name
               </label>
-              <input
-                id="fullName"
-                type="text"
-                required
-                value={form.name}
-                onChange={(e) => set("name", e.target.value)}
-                placeholder="Enter your name"
-                className={inputCls}
-              />
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Icon name="person" className="text-[16px] text-outline group-focus-within:text-primary transition-colors" />
+                </div>
+                <input
+                  id="fullName"
+                  type="text"
+                  required
+                  value={form.name}
+                  onChange={(e) => set("name", e.target.value)}
+                  placeholder="Enter your name"
+                  className={inputCls + " pl-10"}
+                />
+              </div>
             </div>
 
             {/* Email + Phone */}
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label htmlFor="email" className="block text-[12.5px] font-semibold text-on-surface mb-1">Email</label>
-                <input
-                  id="email" type="email" required value={form.email}
-                  onChange={(e) => set("email", e.target.value)}
-                  placeholder="name@mail.com"
-                  className={inputCls}
-                />
+                <label htmlFor="email" className="block text-[12px] font-bold text-on-surface mb-1.5">Email</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Icon name="mail" className="text-[16px] text-outline group-focus-within:text-primary transition-colors" />
+                  </div>
+                  <input
+                    id="email" type="email" required value={form.email}
+                    onChange={(e) => set("email", e.target.value)}
+                    placeholder="name@mail.com"
+                    className={inputCls + " pl-10"}
+                  />
+                </div>
               </div>
               <div>
-                <label htmlFor="phone" className="block text-[12.5px] font-semibold text-on-surface mb-1">Phone</label>
-                <input
-                  id="phone" type="tel" value={form.phone}
-                  onChange={(e) => set("phone", e.target.value)}
-                  placeholder="+91 9XXXXXXXXX"
-                  className={inputCls}
-                />
+                <label htmlFor="phone" className="block text-[12px] font-bold text-on-surface mb-1.5">Phone</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Icon name="call" className="text-[15px] text-outline group-focus-within:text-primary transition-colors" />
+                  </div>
+                  <input
+                    id="phone" type="tel" value={form.phone}
+                    onChange={(e) => set("phone", e.target.value)}
+                    placeholder="+91 9876543210"
+                    className={inputCls + " pl-10"}
+                  />
+                </div>
               </div>
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-[12.5px] font-semibold text-on-surface mb-1">Password</label>
-              <div className="relative">
+              <label htmlFor="password" className="block text-[12px] font-bold text-on-surface mb-1.5">Password</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Icon name="lock" className="text-[16px] text-outline group-focus-within:text-primary transition-colors" />
+                </div>
                 <input
                   id="password" type={showPassword ? "text" : "password"} required minLength={8}
                   value={form.password} onChange={(e) => set("password", e.target.value)}
                   placeholder="At least 8 characters"
-                  className={inputCls + " pr-9"}
+                  className={inputCls + " pl-10 pr-10"}
                 />
                 <button
                   type="button" tabIndex={-1} onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors cursor-pointer"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors cursor-pointer"
                 >
                   <Icon name={showPassword ? "visibility_off" : "visibility"} className="text-[17px]" />
                 </button>
@@ -277,15 +299,20 @@ export default function Signup() {
             {/* Cooperative dropdown (Provider only) */}
             {form.role === "Provider" && (
               <div>
-                <label htmlFor="coop" className="block text-[12.5px] font-semibold text-on-surface mb-1">Select Cooperative</label>
-                <select
-                  id="coop" value={form.cooperativeId}
-                  onChange={(e) => set("cooperativeId", e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="">-- Select Cooperative --</option>
-                  {coops.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
+                <label htmlFor="coop" className="block text-[12px] font-bold text-on-surface mb-1.5">Select Cooperative</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Icon name="domain" className="text-[16px] text-outline group-focus-within:text-primary transition-colors" />
+                  </div>
+                  <select
+                    id="coop" value={form.cooperativeId}
+                    onChange={(e) => set("cooperativeId", e.target.value)}
+                    className={inputCls + " pl-10 cursor-pointer"}
+                  >
+                    <option value="">-- Select Cooperative --</option>
+                    {coops.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  </select>
+                </div>
               </div>
             )}
 
@@ -316,11 +343,11 @@ export default function Signup() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-[13.5px] font-semibold bg-primary text-on-primary shadow-[0_2px_10px_rgba(30,107,101,0.25)] hover:opacity-90 hover:shadow-[0_6px_18px_rgba(30,107,101,0.4)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
+              className="w-full flex justify-center items-center gap-2 py-3 rounded-xl text-[13.5px] font-bold bg-primary text-on-primary shadow-[0_4px_14px_rgba(30,107,101,0.3)] hover:opacity-90 hover:shadow-[0_8px_24px_rgba(30,107,101,0.45)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
             >
               {loading && <span className="h-4 w-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />}
               {loading ? "Verifying & Creating..." : "Create Account"}
-              {!loading && <Icon name="arrow_forward" className="text-[17px]" />}
+              {!loading && <Icon name="arrow_forward" className="text-[16px]" />}
             </button>
           </form>
         </>
@@ -330,12 +357,15 @@ export default function Signup() {
         </div>
       )}
 
-      <p className="mt-4 text-center font-body-md text-xs text-on-surface-variant">
-        Already have an account?{" "}
-        <Link to="/login" className="font-semibold text-primary hover:opacity-80 transition-opacity">
+      <div className="mt-5 text-center">
+        <p className="text-xs text-on-surface-variant">Already have an account?</p>
+        <Link
+          to="/login"
+          className="mt-2 inline-flex items-center px-5 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-[12px] font-bold text-primary hover:bg-primary hover:text-on-primary transition-all duration-200 cursor-pointer"
+        >
           Sign in
         </Link>
-      </p>
+      </div>
 
       {/* Email OTP verification modal — account is created only after the email is confirmed */}
       <OtpModal

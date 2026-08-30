@@ -130,11 +130,11 @@ export default function Bookings() {
         </div>
         <div className="flex items-center gap-2.5">
           <button onClick={() => navigate("/household/bulk")}
-            className="h-9 inline-flex items-center gap-2 px-3.5 rounded-xl border border-[#00288e]/30 bg-[#e8edff] text-[13px] font-bold text-[#00288e] hover:bg-[#d7e3ff] transition-all duration-200 cursor-pointer shadow-xs">
+            className="h-9 inline-flex items-center gap-2 px-3.5 rounded-xl border border-primary/30 bg-primary-container/50 text-[13px] font-bold text-primary hover:bg-primary/15 transition-all duration-200 cursor-pointer shadow-xs">
             <span>🏢 Bulk Crew RFP</span>
           </button>
           <button onClick={() => navigate("/household")}
-            className="h-9 inline-flex items-center gap-2 px-4 rounded-xl border border-outline-variant bg-surface text-[13px] font-semibold text-on-surface hover:border-primary/40 hover:bg-[#e8edff] hover:text-[#00288e] transition-all duration-200 cursor-pointer">
+            className="h-9 inline-flex items-center gap-2 px-4 rounded-xl border border-outline-variant bg-surface text-[13px] font-semibold text-on-surface hover:border-primary/40 hover:bg-primary-container/40 hover:text-primary transition-all duration-200 cursor-pointer">
             <Plus size={14} strokeWidth={2.5} /> New Booking
           </button>
         </div>
@@ -152,7 +152,7 @@ export default function Bookings() {
             {t.label}
             {counts[t.key] > 0 && (
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                filter === t.key ? "bg-[#e8edff] text-[#00288e]" : "bg-surface-container text-on-surface-variant"
+                filter === t.key ? "bg-primary-container/50 text-primary" : "bg-surface-container text-on-surface-variant"
               }`}>{counts[t.key]}</span>
             )}
           </button>
@@ -242,7 +242,7 @@ export default function Bookings() {
                                    e.stopPropagation();
                                    navigate(`/household/pay/${b._id}`);
                                  }}
-                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary-container text-on-primary-container text-[11px] font-bold border border-primary/25 hover:border-primary hover:bg-primary hover:text-on-primary hover:shadow-[0_3px_10px_rgba(0,40,142,0.18)] transition-all duration-200 cursor-pointer"
+                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary-container text-on-primary-container text-[11px] font-bold border border-primary/25 hover:border-primary hover:bg-primary hover:text-on-primary transition-all duration-200 cursor-pointer"
                                >
                                  Pay Razorpay
                                </button>
@@ -283,7 +283,7 @@ export default function Bookings() {
                     onClick={() => setCurrentPage(pageNum)}
                     className={`w-8 h-8 rounded-xl text-[12.5px] font-bold transition cursor-pointer flex items-center justify-center ${
                       currentPage === pageNum
-                        ? "bg-[#00288e] text-white shadow-xs"
+                        ? "bg-primary text-on-primary shadow-xs"
                         : "border border-outline-variant/40 bg-surface text-on-surface-variant hover:bg-surface-container-low"
                     }`}
                   >

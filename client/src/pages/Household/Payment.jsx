@@ -204,7 +204,7 @@ export default function Payment() {
       <div className="flex items-center justify-between gap-4 border-b border-outline-variant/60 pb-3">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1e6b65] hover:text-[#145e58] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:opacity-80 transition-colors cursor-pointer"
         >
           <ArrowLeft size={15} />
           <span>Back to Bookings</span>
@@ -228,10 +228,10 @@ export default function Payment() {
           <div className="orvia-card p-5 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-outline-variant/60">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#1e6b65]">Confirmed Booking</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Confirmed Booking</span>
                 <h2 className="text-xl font-extrabold text-on-surface leading-snug">{booking.service}</h2>
               </div>
-              <div className="w-10 h-10 rounded-2xl bg-[#e6f4f1] text-[#145e58] flex items-center justify-center font-bold text-sm shadow-sm">
+              <div className="w-10 h-10 rounded-2xl bg-primary-container/50 text-primary flex items-center justify-center font-bold text-sm shadow-sm">
                 ₹{basePrice}
               </div>
             </div>
@@ -240,17 +240,17 @@ export default function Payment() {
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-2xl bg-surface-container-low border border-outline-variant/60 space-y-1">
                 <span className="text-on-surface-variant/70 font-semibold flex items-center gap-1">
-                  <User size={13} className="text-[#1e6b65]" /> Provider
+                  <User size={13} className="text-primary" /> Provider
                 </span>
                 <p className="font-bold text-on-surface truncate">
                   {booking.providerId?.userId?.name || "Assigned Expert"}
                 </p>
-                <span className="text-[11px] text-[#4d7c0f] font-bold">✓ Verified Provider</span>
+                <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">✓ Verified Provider</span>
               </div>
 
               <div className="p-3 rounded-2xl bg-surface-container-low border border-outline-variant/60 space-y-1">
                 <span className="text-on-surface-variant/70 font-semibold flex items-center gap-1">
-                  <Calendar size={13} className="text-[#1e6b65]" /> Schedule
+                  <Calendar size={13} className="text-primary" /> Schedule
                 </span>
                 <p className="font-bold text-on-surface truncate">
                   {new Date().toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
@@ -264,12 +264,12 @@ export default function Payment() {
             {/* Service Location */}
             <div className="p-3 rounded-2xl bg-surface-container-low border border-outline-variant/60 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2 min-w-0">
-                <MapPin size={15} className="text-[#1e6b65] shrink-0" />
+                <MapPin size={15} className="text-primary shrink-0" />
                 <span className="text-on-surface-variant font-medium truncate">
                   {booking.address || homeAddress || "Address on file"}
                 </span>
               </div>
-              <span className="text-[11px] font-bold text-[#1e6b65] shrink-0">Confirmed</span>
+              <span className="text-[11px] font-bold text-primary shrink-0">Confirmed</span>
             </div>
           </div>
 
@@ -277,7 +277,7 @@ export default function Payment() {
           <div className="orvia-card p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-extrabold uppercase tracking-wider text-on-surface flex items-center gap-1.5">
-                <Ticket size={15} className="text-[#1e6b65]" /> Apply Coupon Code
+                <Ticket size={15} className="text-primary" /> Apply Coupon Code
               </span>
               {appliedCoupon && (
                 <span className="orvia-badge-lime">
@@ -297,13 +297,13 @@ export default function Payment() {
                       value={couponCode}
                       onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                       placeholder="Enter promo code (e.g. SAHAKAR20)"
-                      className="w-full h-10 pl-9 pr-3 rounded-full border border-outline-variant bg-surface-container-low text-xs font-bold text-on-surface outline-none focus:border-[#1e6b65] focus:bg-surface uppercase transition-all"
+                      className="w-full h-10 pl-9 pr-3 rounded-full border border-outline-variant bg-surface-container-low text-xs font-bold text-on-surface outline-none focus:border-primary focus:bg-surface uppercase transition-all"
                     />
                   </div>
                   <button
                     type="button"
                     onClick={() => handleApplyCoupon()}
-                    className="h-10 px-5 rounded-full bg-[#00288e] text-white text-xs font-bold hover:bg-[#173bab] transition-colors cursor-pointer"
+                    className="h-10 px-5 rounded-full bg-primary text-on-primary text-xs font-bold hover:opacity-90 transition-colors cursor-pointer"
                   >
                     Apply
                   </button>
@@ -323,7 +323,7 @@ export default function Payment() {
                       key={c.code}
                       type="button"
                       onClick={() => handleApplyCoupon(c.code)}
-                      className="px-2.5 py-1 rounded-full bg-surface-container-high hover:bg-[#e6f4f1] text-on-surface hover:text-[#145e58] border border-outline-variant text-[11px] font-extrabold transition-all cursor-pointer"
+                      className="px-2.5 py-1 rounded-full bg-surface-container-high hover:bg-primary-container/40 text-on-surface hover:text-primary border border-outline-variant text-[11px] font-extrabold transition-all cursor-pointer"
                     >
                       {c.code} ({c.type === "percent" ? `${c.discount * 100}% OFF` : `₹${c.discount} OFF`})
                     </button>
@@ -332,11 +332,11 @@ export default function Payment() {
               </div>
             ) : (
               /* Applied Coupon Banner */
-              <div className="p-3 rounded-2xl bg-[#f7fee7] border border-[#d9f99d] flex items-center justify-between text-xs">
+              <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-[#65a30d]" />
+                  <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
                   <div>
-                    <p className="font-extrabold text-[#4d7c0f]">{appliedCoupon.code} Applied</p>
+                    <p className="font-extrabold text-emerald-700 dark:text-emerald-200">{appliedCoupon.code} Applied</p>
                     <p className="text-[11px] text-on-surface-variant">{appliedCoupon.label}</p>
                   </div>
                 </div>
@@ -356,10 +356,10 @@ export default function Payment() {
         {/* ── Right Column (5 cols): Detailed Price Breakdown & Checkout CTA ── */}
         <div className="lg:col-span-5 space-y-4">
 
-          <div className="orvia-card p-5 space-y-4 shadow-md border-[#1e6b65]/20">
+          <div className="orvia-card p-5 space-y-4 shadow-md border-primary/20">
             <div className="pb-3 border-b border-outline-variant/60">
               <h3 className="text-base font-extrabold text-on-surface flex items-center gap-2">
-                <CreditCard size={18} className="text-[#1e6b65]" /> Payment Summary
+                <CreditCard size={18} className="text-primary" /> Payment Summary
               </h3>
               <p className="text-xs text-on-surface-variant/70 font-medium">Transparent cooperative breakdown</p>
             </div>
@@ -368,14 +368,14 @@ export default function Payment() {
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between text-on-surface-variant">
                 <span className="flex items-center gap-1">
-                  Base Service Charges <ShieldCheck size={12} className="text-[#65a30d]" />
+                  Base Service Charges <ShieldCheck size={12} className="text-emerald-600 dark:text-emerald-400" />
                 </span>
                 <span className="font-bold text-on-surface">₹{basePrice}.00</span>
               </div>
 
               {/* Discount Line */}
               {appliedCoupon && (
-                <div className="flex items-center justify-between text-[#4d7c0f] font-bold py-1 px-2 rounded-lg bg-[#f7fee7]">
+                <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-300 font-bold py-1 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60">
                   <span>Coupon Discount ({appliedCoupon.code})</span>
                   <span>-₹{discountAmount}.00</span>
                 </div>
@@ -384,7 +384,7 @@ export default function Payment() {
               {/* Final Amount Due Line */}
               <div className="pt-3 border-t border-outline-variant/60 flex items-center justify-between text-on-surface">
                 <span className="text-sm font-extrabold">Total Amount Due</span>
-                <span className="text-2xl font-black text-[#1e6b65]">₹{finalAmount}</span>
+                <span className="text-2xl font-black text-primary">₹{finalAmount}</span>
               </div>
             </div>
 
@@ -405,7 +405,7 @@ export default function Payment() {
                   onClick={() => setPayMethod("razorpay")}
                   className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
                     payMethod === "razorpay"
-                      ? "border-[#1e6b65] bg-[#e6f4f1] text-[#145e58] font-bold shadow-xs"
+                      ? "border-primary bg-primary-container/40 text-primary font-bold shadow-xs"
                       : "border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container-low"
                   }`}
                 >
@@ -418,7 +418,7 @@ export default function Payment() {
                   onClick={() => setPayMethod("cod")}
                   className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
                     payMethod === "cod"
-                      ? "border-[#1e6b65] bg-[#e6f4f1] text-[#145e58] font-bold shadow-xs"
+                      ? "border-primary bg-primary-container/40 text-primary font-bold shadow-xs"
                       : "border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container-low"
                   }`}
                 >
@@ -431,12 +431,12 @@ export default function Payment() {
                   onClick={() => setPayMethod("wallet")}
                   className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
                     payMethod === "wallet"
-                      ? "border-[#1e6b65] bg-[#e6f4f1] text-[#145e58] font-bold shadow-xs"
+                      ? "border-primary bg-primary-container/40 text-primary font-bold shadow-xs"
                       : "border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container-low"
                   }`}
                 >
                   <p className="font-extrabold text-xs">Pay from Wallet</p>
-                  <p className={`text-[10px] ${walletBalance >= finalAmount ? "text-[#4d7c0f]" : "text-on-surface-variant/70"}`}>
+                  <p className={`text-[10px] ${walletBalance >= finalAmount ? "text-emerald-700 dark:text-emerald-300" : "text-on-surface-variant/70"}`}>
                     {walletBalance !== null ? `Balance ₹${walletBalance}` : "Balance loading…"}
                   </p>
                 </button>
@@ -465,7 +465,7 @@ export default function Payment() {
 
             {/* Security Footer Note */}
             <div className="pt-2 text-center text-[11px] text-on-surface-variant/70 font-medium flex items-center justify-center gap-1.5">
-              <ShieldCheck size={14} className="text-[#65a30d]" />
+              <ShieldCheck size={14} className="text-emerald-600 dark:text-emerald-400" />
               <span>256-bit SSL Escrow • PCI-DSS Compliant</span>
             </div>
 

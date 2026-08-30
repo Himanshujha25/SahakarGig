@@ -651,7 +651,7 @@ export default function Dispatch() {
             { Icon: Lock, title: "3. Escrow Pay", sub: "Pay only after assignment" },
           ].map(({ Icon, title, sub }) => (
             <div key={title} className="flex items-center gap-3.5 rounded-2xl border border-outline-variant/60 bg-surface p-4 shadow-2xs">
-              <div className="w-10 h-10 rounded-xl bg-[#e8edff] text-[#00288e] flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-primary-container/50 text-primary flex items-center justify-center shrink-0">
                 <Icon size={18} strokeWidth={2.5} />
               </div>
               <div className="min-w-0">
@@ -1240,7 +1240,7 @@ export default function Dispatch() {
       {/* Secured escrow payment */}
       <div className="rounded-2xl border border-outline-variant/60 bg-surface p-5 md:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-[#e8edff] text-[#00288e] flex items-center justify-center">
+          <div className="w-11 h-11 rounded-xl bg-primary-container/50 text-primary flex items-center justify-center">
             <Lock size={18} />
           </div>
           <div>
@@ -1255,7 +1255,7 @@ export default function Dispatch() {
       </div>
 
       <button onClick={() => navigate(`/household/booking/${booking?._id}`)}
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface px-5 text-[13px] font-semibold text-on-surface hover:border-primary/40 hover:text-[#00288e] transition-all">
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface px-5 text-[13px] font-semibold text-on-surface hover:border-primary/40 hover:text-primary transition-all">
         <BadgeCheck size={16} /> Track live status & chat
       </button>
     </div>
