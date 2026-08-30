@@ -225,7 +225,7 @@ async function uploadAvatarBase64(req, res) {
   user.avatarUrl = avatarUrl;
   user.profileImage = avatarUrl;
   await user.save();
-  await Provider.findOneAndUpdate({ userId: user._id }, { avatar: avatarUrl, avatarUrl }, { new: true });
+  await Provider.findOneAndUpdate({ userId: user._id }, { avatar: avatarUrl, avatarUrl }, { returnDocument: 'after' });
 
   res.json({ success: true, avatarUrl, message: 'Photo optimized and saved to Cloudinary CDN successfully.' });
 }
@@ -234,7 +234,7 @@ async function uploadAvatarFile(req, res) {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
   const cloudRes = await uploadMedia(req.file.path || req.file.buffer, { folder: 'sahakargig/avatars' });
-  const avatarUrl = cloudRes.url || `http://localhost:5000/uploads/${req.file.filename}`;
+  const avatarUrl = cloudRes.url || `/uploads/${req.file.filename}`;
 
   const User = require('../models/User');
   const user = await User.findById(req.user.userId);
@@ -243,7 +243,7 @@ async function uploadAvatarFile(req, res) {
   user.avatarUrl = avatarUrl;
   user.profileImage = avatarUrl;
   await user.save();
-  await Provider.findOneAndUpdate({ userId: user._id }, { avatar: avatarUrl, avatarUrl }, { new: true });
+  await Provider.findOneAndUpdate({ userId: user._id }, { avatar: avatarUrl, avatarUrl }, { returnDocument: 'after' });
 
   res.json({ success: true, avatarUrl, message: 'Image uploaded and optimized on Cloudinary CDN successfully.' });
 }

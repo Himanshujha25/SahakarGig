@@ -8,104 +8,7 @@ import {
   ShieldCheck, FileCheck2, Building, UserCheck, ExternalLink, RefreshCw
 } from "lucide-react";
 
-// ── High-Power 15-Second Emergency Siren Web Audio Engine ──────────────
-let alarmCtx = null;
-let activeSirenNodes = null;
-let sirenTimeout = null;
-
-function getAlarmCtx() {
-  try {
-    if (!alarmCtx) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (AudioContextClass) alarmCtx = new AudioContextClass();
-    }
-    return alarmCtx;
-  } catch { return null; }
-}
-
-async function ensureAlarmUnlocked() {
-  const ctx = getAlarmCtx();
-  if (!ctx) return false;
-  if (ctx.state === "suspended") {
-    try { await ctx.resume(); } catch { return false; }
-  }
-  return ctx.state === "running";
-}
-
-if (typeof window !== "undefined") {
-  ["pointerdown", "keydown", "touchstart", "click"].forEach((ev) =>
-    window.addEventListener(ev, () => { ensureAlarmUnlocked(); }, { passive: true })
-  );
-}
-
-function stopAlarmSound() {
-  if (sirenTimeout) {
-    clearTimeout(sirenTimeout);
-    sirenTimeout = null;
-  }
-  if (activeSirenNodes) {
-    try {
-      activeSirenNodes.oscillators.forEach((osc) => {
-        try { osc.stop(); osc.disconnect(); } catch {}
-      });
-      if (activeSirenNodes.gain) {
-        activeSirenNodes.gain.disconnect();
-      }
-    } catch {}
-    activeSirenNodes = null;
-  }
-}
-
-async function playAlarmSound(isEmergency = true, durationSec = 15) {
-  stopAlarmSound();
-  const ctx = getAlarmCtx();
-  if (!ctx) return;
-  await ensureAlarmUnlocked();
-
-  const now = ctx.currentTime;
-  const endTime = now + durationSec;
-
-  const osc1 = ctx.createOscillator();
-  const osc2 = ctx.createOscillator();
-  const masterGain = ctx.createGain();
-
-  osc1.type = "sawtooth";
-  osc2.type = "square";
-
-  const fMin = isEmergency ? 800 : 650;
-  const fMax = isEmergency ? 1350 : 1000;
-  const cycle = isEmergency ? 0.35 : 0.6;
-
-  for (let t = now; t < endTime; t += cycle) {
-    osc1.frequency.setValueAtTime(fMin, t);
-    osc1.frequency.linearRampToValueAtTime(fMax, t + cycle * 0.5);
-    osc1.frequency.linearRampToValueAtTime(fMin, t + cycle);
-
-    osc2.frequency.setValueAtTime(fMin * 1.01, t);
-    osc2.frequency.linearRampToValueAtTime(fMax * 1.01, t + cycle * 0.5);
-    osc2.frequency.linearRampToValueAtTime(fMin * 1.01, t + cycle);
-  }
-
-  masterGain.gain.setValueAtTime(0.001, now);
-  masterGain.gain.exponentialRampToValueAtTime(0.35, now + 0.08);
-  masterGain.gain.setValueAtTime(0.35, endTime - 0.08);
-  masterGain.gain.exponentialRampToValueAtTime(0.001, endTime);
-
-  osc1.connect(masterGain);
-  osc2.connect(masterGain);
-  masterGain.connect(ctx.destination);
-
-  osc1.start(now);
-  osc2.start(now);
-
-  osc1.stop(endTime);
-  osc2.stop(endTime);
-
-  activeSirenNodes = { oscillators: [osc1, osc2], gain: masterGain };
-  sirenTimeout = setTimeout(() => {
-    stopAlarmSound();
-  }, durationSec * 1000);
-}
+import { playSiren, stopSiren, triggerJobAlert } from "../../lib/alarmSound";
 
 // ── Push Notification Dispatch ──────────────────────────────────────
 async function pushNotify(title, body) {
@@ -218,10 +121,10 @@ export default function DispatchFeed() {
     function onNew(job) {
       if (isDeclined(job.bookingId || job._id, declinedRef.current)) return;
 
-      // 1. Play 15-second Loud Siren Alarm Sound if not muted
+      // 1. Play 15-second Loud Siren Alarm Sound + Voice Alert if not muted
       if (!alarmMuted) {
         setIsSirenPlaying(true);
-        playAlarmSound(true, 15);
+        playSiren(15);
         setTimeout(() => setIsSirenPlaying(false), 15000);
       }
 
@@ -251,7 +154,7 @@ export default function DispatchFeed() {
       setJobs((prev) => prev.filter((j) => j._id !== payload?.bookingId));
       if (latestJobAlert?._id === payload?.bookingId) {
         setNewAlert(false);
-        stopAlarmSound();
+        stopSiren();
         setIsSirenPlaying(false);
       }
     }
@@ -266,7 +169,7 @@ export default function DispatchFeed() {
       }
       if (latestJobAlert?._id === payload?.bookingId) {
         setNewAlert(false);
-        stopAlarmSound();
+        stopSiren();
         setIsSirenPlaying(false);
       }
     }

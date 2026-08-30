@@ -104,3 +104,48 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// ── Background Web Push & Notification Handlers ──────────────────────────────
+self.addEventListener('push', (event) => {
+  let data = { title: '🚨 Emergency Job Alert!', body: 'New gig request nearby! Tap to accept.', url: '/provider/dispatch' };
+  try {
+    if (event.data) {
+      data = { ...data, ...event.data.json() };
+    }
+  } catch {}
+
+  const options = {
+    body: data.body,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    vibrate: [500, 200, 500, 200, 800, 200, 800],
+    tag: 'emergency-dispatch-alert',
+    requireInteraction: true,
+    data: { url: data.url || '/provider/dispatch' },
+    actions: [
+      { action: 'accept', title: '⚡ Accept Now' },
+      { action: 'dismiss', title: 'Dismiss' },
+    ],
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || '/provider/dispatch';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});

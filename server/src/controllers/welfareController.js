@@ -83,12 +83,18 @@ async function getWelfare(req, res) {
 
   const totalEarnings = completedBookings.reduce((sum, b) => {
     const net = payoutByBooking.get(String(b._id));
-    return sum + (net != null ? Number(net) : Number(b.price) || 0);
+    const takeHome = b.fairWageBreakdown?.workerTakeHome != null
+      ? Number(b.fairWageBreakdown.workerTakeHome)
+      : (net != null ? Number(net) : (Number(b.price) || 0) * 0.85);
+    return sum + takeHome;
   }, 0);
   const completedThisMonth = completedBookings.filter(b => new Date(b.updatedAt || b.createdAt) >= monthStart);
   const monthlyEarnings = completedThisMonth.reduce((sum, b) => {
     const net = payoutByBooking.get(String(b._id));
-    return sum + (net != null ? Number(net) : Number(b.price) || 0);
+    const takeHome = b.fairWageBreakdown?.workerTakeHome != null
+      ? Number(b.fairWageBreakdown.workerTakeHome)
+      : (net != null ? Number(net) : (Number(b.price) || 0) * 0.85);
+    return sum + takeHome;
   }, 0);
 
   const avgRating = reviews.length ? Number((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)) : 0;

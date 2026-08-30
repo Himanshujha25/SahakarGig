@@ -11,6 +11,7 @@ const { initSocket } = require('./src/socket');
 const connectDB = require('./src/config/db');
 const dns = require("dns");
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(cors({
   origin: true,

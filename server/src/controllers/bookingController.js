@@ -412,27 +412,57 @@ async function cancelBooking(req, res) {
   if (!b) return res.status(404).json({ message: 'Not found' });
   const userId = req.user.userId;
   const role = req.user.role;
-  const isHousehold = b.householdId._id.toString() === userId;
+  const isHousehold = b.householdId?._id?.toString() === userId;
   const provider = await Provider.findOne({ userId, _id: b.providerId });
-  if (!isHousehold && !provider && role !== 'Cooperative Admin')
+  if (!isHousehold && !provider && role !== 'Cooperative Admin' && role !== 'Federation Admin') {
     return res.status(403).json({ message: 'Forbidden' });
-
-  // Live broadcast dispatch is locked once a worker accepts — no ghost cancels.
-  if (b.dispatchMode === 'broadcast' && b.providerId) {
-    return res.status(409).json({ message: 'A worker already accepted this request — it is locked.' });
   }
 
+  // If household tries to cancel when work is already in-progress on site
+  if (isHousehold && b.status === 'in-progress') {
+    return res.status(409).json({ message: 'Worker is currently in-progress on site. Please contact worker or raise a dispute.' });
+  }
+
+  const { reason, reasonCategory, photoEvidence, cancelReason } = req.body || {};
+  const reasonText = reason || cancelReason || req.body?.discardReason || (provider ? 'Discarded by provider' : 'Cancelled by household');
+
   b.status = 'cancelled';
+  b.cancelReason = reasonText;
   if (b.dispatchMode === 'broadcast') b.broadcastStatus = 'cancelled';
+
+  if (photoEvidence || reasonCategory) {
+    b.discardProof = {
+      reason: reasonText,
+      category: reasonCategory || 'other',
+      photo: photoEvidence || '',
+      at: new Date(),
+    };
+  }
+
   await b.save();
-  await notify(b.householdId._id.toString(), 'booking_cancelled', 'Dispatch request cancelled', b._id);
-  emitTo(b.householdId._id.toString(), 'booking:updated', b);
+
+  // Notify household if cancelled by worker/admin
+  if (b.householdId?._id) {
+    await notify(
+      b.householdId._id.toString(),
+      'booking_cancelled',
+      `Booking for ${b.service} cancelled: ${reasonText}`,
+      b._id
+    );
+    emitTo(b.householdId._id.toString(), 'booking:updated', b);
+  }
+
+  // Notify provider if cancelled by household/admin
+  if (b.providerId?.userId?._id) {
+    emitTo(b.providerId.userId._id.toString(), 'booking:updated', b);
+  }
+
   // Withdraw the job from EVERY worker's live feed instantly (broadcast dispatch)
   if (b.dispatchMode === 'broadcast') {
     broadcastAll('booking:cancelled', { bookingId: b._id, service: b.service, targetCategory: b.targetCategory });
   }
-  if (b.providerId?.userId?._id) emitTo(b.providerId.userId._id.toString(), 'booking:updated', b);
-  res.json(b);
+
+  res.json({ success: true, message: 'Booking cancelled / discarded successfully.', booking: b });
 }
 
 async function disputeBooking(req, res) {
