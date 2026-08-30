@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../../lib/api";
 import socket from "../../lib/socket";
 import {
   Radar, MapPin, Zap, IndianRupee, Check, Users, AlertTriangle, Radio, BellRing,
-  Volume2, VolumeX, Bell, Play, ShieldAlert, X, Clock, Siren, Square
+  Volume2, VolumeX, Bell, Play, ShieldAlert, X, Clock, Siren, Square,
+  ShieldCheck, FileCheck2, Building, UserCheck, ExternalLink, RefreshCw
 } from "lucide-react";
 
 // ── High-Power 15-Second Emergency Siren Web Audio Engine ──────────────
@@ -59,45 +60,43 @@ async function playAlarmSound(isEmergency = true, durationSec = 15) {
   stopAlarmSound();
   const ctx = getAlarmCtx();
   if (!ctx) return;
-  if (ctx.state === "suspended") {
-    try { await ctx.resume(); } catch { return; }
-  }
+  await ensureAlarmUnlocked();
 
   const now = ctx.currentTime;
-  const masterGain = ctx.createGain();
-  masterGain.connect(ctx.destination);
-  
-  // High volume (0.80) for loud emergency alert
-  masterGain.gain.setValueAtTime(0.001, now);
-  masterGain.gain.exponentialRampToValueAtTime(0.80, now + 0.1);
+  const endTime = now + durationSec;
 
   const osc1 = ctx.createOscillator();
   const osc2 = ctx.createOscillator();
+  const masterGain = ctx.createGain();
+
   osc1.type = "sawtooth";
-  osc2.type = "triangle";
+  osc2.type = "square";
 
-  // Frequency modulation: Siren sweeps between 680Hz and 1380Hz every 0.6 seconds
-  const cycleCount = Math.ceil(durationSec / 0.6);
-  for (let i = 0; i < cycleCount; i++) {
-    const t = now + i * 0.6;
-    osc1.frequency.setValueAtTime(680, t);
-    osc1.frequency.linearRampToValueAtTime(1380, t + 0.3);
-    osc1.frequency.linearRampToValueAtTime(680, t + 0.6);
+  const fMin = isEmergency ? 800 : 650;
+  const fMax = isEmergency ? 1350 : 1000;
+  const cycle = isEmergency ? 0.35 : 0.6;
 
-    osc2.frequency.setValueAtTime(700, t);
-    osc2.frequency.linearRampToValueAtTime(1400, t + 0.3);
-    osc2.frequency.linearRampToValueAtTime(700, t + 0.6);
+  for (let t = now; t < endTime; t += cycle) {
+    osc1.frequency.setValueAtTime(fMin, t);
+    osc1.frequency.linearRampToValueAtTime(fMax, t + cycle * 0.5);
+    osc1.frequency.linearRampToValueAtTime(fMin, t + cycle);
+
+    osc2.frequency.setValueAtTime(fMin * 1.01, t);
+    osc2.frequency.linearRampToValueAtTime(fMax * 1.01, t + cycle * 0.5);
+    osc2.frequency.linearRampToValueAtTime(fMin * 1.01, t + cycle);
   }
+
+  masterGain.gain.setValueAtTime(0.001, now);
+  masterGain.gain.exponentialRampToValueAtTime(0.35, now + 0.08);
+  masterGain.gain.setValueAtTime(0.35, endTime - 0.08);
+  masterGain.gain.exponentialRampToValueAtTime(0.001, endTime);
 
   osc1.connect(masterGain);
   osc2.connect(masterGain);
+  masterGain.connect(ctx.destination);
 
   osc1.start(now);
   osc2.start(now);
-
-  const endTime = now + durationSec;
-  masterGain.gain.setValueAtTime(0.80, endTime - 0.2);
-  masterGain.gain.exponentialRampToValueAtTime(0.001, endTime);
 
   osc1.stop(endTime);
   osc2.stop(endTime);
@@ -149,6 +148,7 @@ export default function DispatchFeed() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [providerInfo, setProviderInfo] = useState(null);
   const [busy, setBusy] = useState(null);
   const [conflict, setConflict] = useState(null);
   const [newAlert, setNewAlert] = useState(false);
@@ -198,8 +198,16 @@ export default function DispatchFeed() {
 
   async function load() {
     try {
-      const { data } = await api.get("/bookings/broadcast/available");
-      setJobs(dedupe(Array.isArray(data) ? data : []));
+      const [jobsRes, provRes] = await Promise.allSettled([
+        api.get("/bookings/broadcast/available"),
+        api.get("/providers/me"),
+      ]);
+      if (jobsRes.status === "fulfilled") {
+        setJobs(dedupe(Array.isArray(jobsRes.value.data) ? jobsRes.value.data : []));
+      }
+      if (provRes.status === "fulfilled") {
+        setProviderInfo(provRes.value.data);
+      }
     } catch {} finally { setLoading(false); }
   }
 
@@ -366,6 +374,118 @@ export default function DispatchFeed() {
 
   return (
     <div className="w-full px-4 sm:px-6 pt-8 pb-10 space-y-6 max-w-7xl mx-auto">
+
+      {/* ── COOPERATIVE VERIFICATION AUDIT HERO CARD ── */}
+      {providerInfo && (!providerInfo.verified || providerInfo.verificationStatus !== "verified") && (
+        <div className="rounded-3xl border-2 border-amber-400/40 bg-gradient-to-br from-amber-500/10 via-surface to-amber-500/5 p-6 sm:p-8 shadow-lg space-y-6 animate-in fade-in duration-300">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-outline-variant/60 pb-5">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs">
+                <ShieldAlert size={26} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg sm:text-xl font-extrabold text-on-surface" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+                    Account Verification Under Review
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[11px] font-bold border border-amber-500/30 animate-pulse">
+                    Pending Approval
+                  </span>
+                </div>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  Assigned Cooperative Society: <strong className="text-on-surface">{providerInfo.cooperativeId?.name || "Accredited Labour Cooperative"}</strong>
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={load}
+              className="px-3.5 py-2 rounded-xl bg-surface border border-outline-variant hover:border-primary/40 text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer shrink-0"
+            >
+              <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Check Status
+            </button>
+          </div>
+
+          {/* 3-Step Verification Progression Stepper */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-3.5 rounded-2xl bg-surface border border-emerald-500/30 flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
+                ✓
+              </div>
+              <div>
+                <p className="text-xs font-bold text-on-surface">1. Documents Uploaded</p>
+                <p className="text-[11px] text-on-surface-variant">Govt ID, Skills & Police Clearances submitted</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 flex items-start gap-3 shadow-xs">
+              <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-xs shrink-0 animate-pulse">
+                <Clock size={16} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-amber-800 dark:text-amber-200">2. Cooperative Audit</p>
+                <p className="text-[11px] text-amber-700 dark:text-amber-300">Officers inspecting certificates & KYC</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-surface border border-outline-variant/60 flex items-start gap-3 opacity-60">
+              <div className="w-8 h-8 rounded-xl bg-surface-container text-on-surface-variant flex items-center justify-center font-bold text-xs shrink-0">
+                3
+              </div>
+              <div>
+                <p className="text-xs font-bold text-on-surface">3. Dispatch Activation</p>
+                <p className="text-[11px] text-on-surface-variant">Instant order sirens & guaranteed payouts</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Submitted Documents Status Overview */}
+          {providerInfo.documentDetails && providerInfo.documentDetails.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-on-surface uppercase tracking-wider">
+                Submitted Verification Documents ({providerInfo.documentDetails.length})
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                {providerInfo.documentDetails.map((doc, idx) => (
+                  <div key={idx} className="p-3 rounded-xl bg-surface border border-outline-variant flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileCheck2 size={16} className="text-primary shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-on-surface truncate">{doc.docType}</p>
+                        <p className="text-[10.5px] text-on-surface-variant truncate">{doc.docNumber || "Verified Document"}</p>
+                      </div>
+                    </div>
+                    {doc.docUrl && (
+                      <a
+                        href={doc.docUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1 rounded-lg text-primary hover:bg-primary-container/30 transition"
+                        title="View Document"
+                      >
+                        <ExternalLink size={13} />
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="p-4 rounded-2xl bg-surface border border-outline-variant flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-on-surface-variant">
+            <p>
+              💡 <strong>Note:</strong> You can log in and browse all training resources and welfare fund features. Live job broadcast sirens will automatically unlock on this feed once your cooperative board approves your profile.
+            </p>
+            <Link
+              to="/provider/profile"
+              className="px-4 py-2 rounded-xl bg-primary text-on-primary font-bold hover:bg-primary/90 transition shadow-xs whitespace-nowrap"
+            >
+              Update Credentials
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* 15-Second Active Siren Pulsing Banner */}
       {isSirenPlaying && (

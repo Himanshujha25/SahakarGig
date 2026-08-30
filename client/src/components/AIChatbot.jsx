@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import api from "../lib/api";
 import { Bot, X, Send, Mic, Zap, ArrowRight, Droplets, ShieldCheck, FileText } from "lucide-react";
 
@@ -226,6 +227,7 @@ function processQueryIntent(query) {
 }
 
 export default function AIChatbot() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -307,7 +309,12 @@ export default function AIChatbot() {
 
   function triggerDispatch(cat, emergency) {
     setIsOpen(false);
-    navigate(`/household/dispatch?category=${encodeURIComponent(cat)}&emergency=${emergency ? "true" : "false"}`);
+    const targetUrl = `/household/dispatch?category=${encodeURIComponent(cat)}&emergency=${emergency ? "true" : "false"}`;
+    if (!user) {
+      navigate(`/signup?role=Household&redirect=${encodeURIComponent(targetUrl)}`);
+      return;
+    }
+    navigate(targetUrl);
   }
 
   return (

@@ -1,11 +1,13 @@
 import { useRef, useState } from "react";
-import { Upload, X, FileText, Image as ImageIcon } from "lucide-react";
+import { Upload, X, FileText, Image as ImageIcon, Loader2 } from "lucide-react";
+import api from "../lib/api";
 
-// Reusable evidence/file uploader that reads a file and returns its base64
-// data-url via `onSelect`. Accepts images + PDF and enforces a size cap.
-export default function FileUpload({ label = "Upload evidence", onSelect, maxSizeMB = 5, multiple = true }) {
+// Reusable evidence/file uploader that uploads directly to Cloudinary CDN
+// and returns the optimized CDN URL via `onSelect`.
+export default function FileUpload({ label = "Upload file / photo", onSelect, maxSizeMB = 10, multiple = true, folder = "sahakargig/evidence" }) {
   const inputRef = useRef(null);
   const [files, setFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
   const toDataUrl = (file) =>
@@ -20,26 +22,43 @@ export default function FileUpload({ label = "Upload evidence", onSelect, maxSiz
     const chosen = Array.from(e.target.files || []);
     setError("");
     if (chosen.length === 0) return;
-    const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
     const sizeOk = chosen.every((f) => f.size <= maxSizeMB * 1024 * 1024);
     if (!sizeOk) {
       setError(`Each file must be under ${maxSizeMB} MB.`);
       return;
     }
+
+    setUploading(true);
     try {
       const loaded = [];
       for (const f of chosen) {
         if (!allowed.includes(f.type)) {
-          setError("Only JPG, PNG, WEBP or PDF files are allowed.");
+          setError("Only JPG, PNG, WEBP, GIF or PDF files are allowed.");
           continue;
         }
+
         const dataUrl = await toDataUrl(f);
-        loaded.push({ name: f.name, dataUrl });
-        onSelect(dataUrl);
+
+        // Upload to Cloudinary CDN via API
+        let finalUrl = dataUrl;
+        try {
+          const { data } = await api.post("/upload", { file: dataUrl, folder });
+          if (data?.url) {
+            finalUrl = data.url;
+          }
+        } catch {
+          // Fallback to dataUrl if offline
+        }
+
+        loaded.push({ name: f.name, dataUrl: finalUrl });
+        onSelect(finalUrl);
       }
       setFiles((prev) => [...prev, ...loaded]);
     } catch {
-      setError("Could not read the selected file.");
+      setError("Could not upload the selected file.");
+    } finally {
+      setUploading(false);
     }
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -50,13 +69,15 @@ export default function FileUpload({ label = "Upload evidence", onSelect, maxSiz
 
   return (
     <div className="space-y-2">
-      <label className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-outline-variant bg-surface-container-low px-4 py-5 text-center cursor-pointer hover:border-primary/50 hover:bg-primary-container/20 transition-all">
+      <label className={`flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-outline-variant bg-surface-container-low px-4 py-5 text-center cursor-pointer hover:border-primary/50 hover:bg-primary-container/20 transition-all ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-container text-on-primary-container">
-          <Upload size={18} />
+          {uploading ? <Loader2 size={18} className="animate-spin text-primary" /> : <Upload size={18} />}
         </div>
-        <span className="text-[13px] font-semibold text-on-surface">{label}</span>
-        <span className="text-[11px] text-on-surface-variant">JPG, PNG, WEBP or PDF · up to {maxSizeMB} MB{multiple ? " each" : ""}</span>
-        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple={multiple} onChange={handleChange} className="hidden" />
+        <span className="text-[13px] font-semibold text-on-surface">
+          {uploading ? "Optimizing & uploading to Cloudinary CDN..." : label}
+        </span>
+        <span className="text-[11px] text-on-surface-variant">Cloudinary auto-optimized CDN delivery · up to {maxSizeMB} MB{multiple ? " each" : ""}</span>
+        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,application/pdf" multiple={multiple} onChange={handleChange} className="hidden" disabled={uploading} />
       </label>
 
       {error && <p className="text-[12px] font-semibold text-error">{error}</p>}

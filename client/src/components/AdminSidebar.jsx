@@ -29,6 +29,35 @@ export default function AdminSidebar() {
   const navigate = useNavigate();
   const [coopName, setCoopName] = useState("");
 
+  const [liveAvatar, setLiveAvatar] = useState(() => {
+    return (
+      user?.avatarUrl ||
+      user?.avatar ||
+      user?.profileImage ||
+      localStorage.getItem("sg_admin_avatar") ||
+      localStorage.getItem("sg_coop_avatar") ||
+      localStorage.getItem("sg_avatar") ||
+      ""
+    );
+  });
+
+  useEffect(() => {
+    function syncAvatar() {
+      const av =
+        user?.avatarUrl ||
+        user?.avatar ||
+        user?.profileImage ||
+        localStorage.getItem("sg_admin_avatar") ||
+        localStorage.getItem("sg_coop_avatar") ||
+        localStorage.getItem("sg_avatar") ||
+        "";
+      if (av) setLiveAvatar(av);
+    }
+    syncAvatar();
+    window.addEventListener("storage", syncAvatar);
+    return () => window.removeEventListener("storage", syncAvatar);
+  }, [user]);
+
   useEffect(() => {
     api.get("/admin/dashboard").then(({ data }) => {
       if (data?.cooperativeName) setCoopName(data.cooperativeName);
@@ -116,10 +145,10 @@ export default function AdminSidebar() {
 
       {/* User card */}
       <div className="mx-3 mb-4 p-3 rounded-xl bg-surface-container border border-outline-variant/40 flex items-center gap-3">
-        {user?.avatarUrl ? (
+        {liveAvatar ? (
           <img
-            src={user.avatarUrl}
-            alt={user.name || "Admin"}
+            src={liveAvatar}
+            alt={user?.name || "Admin"}
             className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-primary/20"
           />
         ) : (

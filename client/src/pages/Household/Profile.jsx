@@ -91,10 +91,15 @@ export default function Profile() {
       setName(user.name || "");
       setEmail(user.email || "");
       if (user.phone) setPhone(user.phone);
+      if (user.avatarUrl) setAvatarUrl(user.avatarUrl);
     }
     api.get("/auth/me")
       .then((r) => {
         const d = r.data || {};
+        if (d.avatarUrl) {
+          setAvatarUrl(d.avatarUrl);
+          localStorage.setItem("sg_avatar", d.avatarUrl);
+        }
         if (d.notificationPrefs) setPrefs(d.notificationPrefs);
         if (d.phone) setPhone(d.phone);
         if (d.address) setAddress(d.address);
@@ -171,15 +176,32 @@ export default function Profile() {
     ? name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
     : "HH";
 
-  // Handle avatar photo selection & preview
-  function handlePhotoUpload(e) {
+  // Handle avatar photo selection & Cloudinary upload
+  async function handlePhotoUpload(e) {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setSaveError("Profile photo must be under 5 MB.");
+        return;
+      }
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const result = reader.result;
         setAvatarUrl(result);
-        localStorage.setItem("sg_avatar", result);
+        try {
+          // Direct upload to Cloudinary CDN
+          const { data } = await api.post("/upload", { file: result, folder: "sahakargig/avatars" });
+          if (data?.url) {
+            setAvatarUrl(data.url);
+            localStorage.setItem("sg_avatar", data.url);
+            await api.patch("/auth/me", { avatarUrl: data.url });
+            if (updateProfile) updateProfile({ avatarUrl: data.url });
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+          }
+        } catch (err) {
+          console.error("Cloudinary photo upload error:", err);
+        }
       };
       reader.readAsDataURL(file);
     }

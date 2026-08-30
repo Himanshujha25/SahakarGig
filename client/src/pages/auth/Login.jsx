@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Icon from "../../components/Icon";
 import AuthShell from "../../components/AuthShell";
@@ -10,6 +10,8 @@ const HERO_IMAGE =
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "";
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -23,6 +25,11 @@ export default function Login() {
     setLoading(true);
     try {
       const u = await login(identifier, password);
+      
+      if (redirectUrl && redirectUrl.startsWith("/")) {
+        navigate(redirectUrl);
+        return;
+      }
       
       // Check for active 2-minute search intent
       let searchIntent = null;

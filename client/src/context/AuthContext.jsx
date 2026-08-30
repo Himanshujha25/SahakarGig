@@ -83,6 +83,12 @@ export function AuthProvider({ children }) {
     }
   }
 
+  async function googleLogin(payload) {
+    const { data } = await api.post('/auth/google', payload);
+    setSession(data);
+    return data.user;
+  }
+
   function logout() {
     localStorage.clear();
     setUser(null);
@@ -90,7 +96,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthCtx.Provider value={{ user, login, signup, logout, updateProfile, refreshUser }}>
+    <AuthCtx.Provider value={{ user, login, signup, googleLogin, logout, updateProfile, refreshUser }}>
       {children}
     </AuthCtx.Provider>
   );

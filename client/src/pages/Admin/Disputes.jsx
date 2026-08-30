@@ -89,6 +89,33 @@ export default function Disputes() {
                 {d.issue || "A dispute has been raised on this booking."}
               </div>
 
+              {/* On-Site Work Proofs (Before / After) */}
+              {(d.startWorkProof?.photo || d.completionProof?.photo) && (
+                <div className="rounded-xl bg-surface-container-low px-4 py-3 border border-outline-variant/30 space-y-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">On-Site Work Proofs</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {d.startWorkProof?.photo && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-purple-700 block">Before Work</span>
+                        <a href={d.startWorkProof.photo} target="_blank" rel="noreferrer">
+                          <img src={d.startWorkProof.photo} alt="Before Work" className="h-16 w-full rounded-lg object-cover border border-outline-variant" />
+                        </a>
+                        <p className="text-[10px] text-on-surface-variant truncate">"{d.startWorkProof.description}"</p>
+                      </div>
+                    )}
+                    {d.completionProof?.photo && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-emerald-700 block">After Work (Solved)</span>
+                        <a href={d.completionProof.photo} target="_blank" rel="noreferrer">
+                          <img src={d.completionProof.photo} alt="After Work" className="h-16 w-full rounded-lg object-cover border border-outline-variant" />
+                        </a>
+                        <p className="text-[10px] text-on-surface-variant truncate">"{d.completionProof.description}"</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Category + evidence */}
               {d.disputeCategory && (
                 <div className="flex items-center gap-2">

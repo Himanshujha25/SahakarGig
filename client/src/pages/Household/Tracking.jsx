@@ -26,6 +26,10 @@ import {
   X,
   MessageSquare,
   Sparkles,
+  Key,
+  Copy,
+  Check,
+  Camera,
 } from "lucide-react";
 
 const STEPS = [
@@ -62,6 +66,7 @@ export default function Tracking() {
   const [disputing, setDisputing] = useState(false);
   const [submittingDispute, setSubmittingDispute] = useState(false);
   const [disputeError, setDisputeError] = useState("");
+  const [copiedOtp, setCopiedOtp] = useState(false);
 
   // Reschedule state
   const [rescheduling, setRescheduling] = useState(false);
@@ -73,6 +78,13 @@ export default function Tracking() {
   const [livePos, setLivePos] = useState(null);
 
   const chatBottomRef = useRef(null);
+
+  const handleCopyOtp = (code) => {
+    if (!code) return;
+    navigator.clipboard.writeText(String(code));
+    setCopiedOtp(true);
+    setTimeout(() => setCopiedOtp(false), 2000);
+  };
 
   const load = () => {
     api
@@ -328,7 +340,7 @@ export default function Tracking() {
             </span>
           ) : (
             <span className="px-3 py-1 rounded-full bg-primary-container/50 text-primary text-xs font-bold border border-primary/20 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-primary" />
               {STEPS.find((s) => s.key === booking.status)?.label || booking.status}
             </span>
           )}
@@ -410,8 +422,122 @@ export default function Tracking() {
             )}
           </div>
 
-          {/* 2. Interactive Milestone Stepper Card */}
+          {/* ── 2. HIGH PRIORITY: SERVICE COMPLETION OTP CODE ── */}
+          {booking.status === "in-progress" && booking.completionOtp && (
+            <div className="rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary-container/40 via-surface to-primary-container/20 p-5 sm:p-6 shadow-md space-y-4 animate-in fade-in duration-300">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-primary text-on-primary flex items-center justify-center font-black shadow-xs">
+                    <Key size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-primary" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+                      Service Completion OTP Code
+                    </h3>
+                    <p className="text-[11px] text-on-surface-variant">Generated for on-site job sign-off</p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-primary text-on-primary text-[10.5px] font-bold flex items-center gap-1 shadow-xs animate-pulse">
+                  <ShieldCheck size={12} /> Share On Completion Only
+                </span>
+              </div>
+
+              {/* OTP Digits Display */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface/90 backdrop-blur-xs p-4 rounded-xl border border-outline-variant">
+                <div className="flex items-center gap-2.5">
+                  {String(booking.completionOtp).split("").map((digit, idx) => (
+                    <div
+                      key={idx}
+                      className="w-11 h-13 rounded-xl bg-surface-container-low border-2 border-primary text-primary flex items-center justify-center text-2xl font-black shadow-xs tracking-wider"
+                    >
+                      {digit}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopyOtp(booking.completionOtp)}
+                  className="h-10 px-4 rounded-xl bg-primary hover:opacity-90 text-on-primary text-xs font-bold flex items-center gap-1.5 transition shadow-xs cursor-pointer shrink-0"
+                >
+                  {copiedOtp ? <Check size={14} /> : <Copy size={14} />}
+                  <span>{copiedOtp ? "Copied to Clipboard!" : "Copy 4-Digit OTP"}</span>
+                </button>
+              </div>
+
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs">
+                <AlertTriangle size={15} className="shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                <p className="leading-relaxed">
+                  <span className="font-bold">Important Security Rule:</span> Please give this 4-digit code to the technician <span className="font-bold underline">only after you have inspected their work</span> and verified that the problem is completely fixed. Entering this OTP authorizes escrow settlement.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ── 3. WORK PROOFS & PHOTO QUALITY AUDIT ── */}
+          {(booking.startWorkProof?.photo || booking.completionProof?.photo) && (
+            <div className="rounded-2xl border border-outline-variant bg-surface p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-outline-variant/60 pb-3">
+                <div className="flex items-center gap-2">
+                  <Camera size={16} className="text-primary" />
+                  <h3 className="text-sm font-bold text-on-surface" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+                    On-Site Work Verification &amp; Inspection Proofs
+                  </h3>
+                </div>
+                {booking.otpVerified && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10.5px] font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                    <ShieldCheck size={12} /> OTP Verified ✓
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Before Work Proof */}
+                {booking.startWorkProof?.photo && (
+                  <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant space-y-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
+                        1. Before Work (Diagnosis Photo)
+                      </span>
+                      <span className="text-on-surface-variant/70 font-medium">
+                        {new Date(booking.startWorkProof.startedAt || booking.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <div className="h-40 rounded-lg overflow-hidden border border-outline-variant bg-slate-900 flex items-center justify-center">
+                      <img src={booking.startWorkProof.photo} alt="Initial Issue Inspection" className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-xs text-on-surface leading-relaxed font-medium">
+                      <span className="font-bold text-on-surface">Worker Diagnosis:</span> "{booking.startWorkProof.description}"
+                    </p>
+                  </div>
+                )}
+
+                {/* After Work Proof */}
+                {booking.completionProof?.photo && (
+                  <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant space-y-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                        2. After Work (Problem Solved Photo)
+                      </span>
+                      <span className="text-on-surface-variant/70 font-medium">
+                        {new Date(booking.completionProof.completedAt || booking.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <div className="h-40 rounded-lg overflow-hidden border border-outline-variant bg-slate-900 flex items-center justify-center">
+                      <img src={booking.completionProof.photo} alt="Problem Solved Proof" className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-xs text-on-surface leading-relaxed font-medium">
+                      <span className="font-bold text-on-surface">Resolution Summary:</span> "{booking.completionProof.description}"
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 4. Interactive Milestone Stepper Card */}
           <div className="rounded-2xl border border-outline-variant bg-surface p-5 sm:p-6 shadow-xs space-y-4">
+
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-on-surface" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
                 Order Lifecycle Timeline

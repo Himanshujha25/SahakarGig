@@ -10,6 +10,8 @@ const paymentSchema = new mongoose.Schema(
     razorpayOrderId: { type: String },
     razorpayPaymentId: { type: String },
     status: { type: String, enum: ['pending', 'captured', 'released', 'refunded'], default: 'pending' },
+    payoutStatus: { type: String, enum: ['pending', 'disbursed'], default: 'pending' },
+    disbursedAt: { type: Date },
     method: { type: String, default: 'razorpay' },
     refundedAt: { type: Date },
   },

@@ -288,60 +288,115 @@ export default function Verifications() {
             </div>
 
             {/* Doc Type Selector */}
-            <div className="flex gap-2 border-b border-slate-200 pb-2">
-              {["Aadhaar Card", "e-Shram Certificate", "PAN Card", "Trade License"].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setActiveDocType(type)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    activeDocType === type
-                      ? "bg-[#00288e] text-white shadow-2xs"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
+            <div className="flex gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+              {(inspectWorker.documentDetails && inspectWorker.documentDetails.length > 0
+                ? inspectWorker.documentDetails
+                : [
+                    { docType: "Aadhaar Card", docNumber: "•••• •••• 8812" },
+                    { docType: "Skill Certificate", docNumber: "SKILL-CERT-2024" },
+                    { docType: "Police Verification Certificate", docNumber: "PCC-DEL-9912" },
+                  ]
+              ).map((doc, idx) => {
+                const type = doc.docType || `Document ${idx + 1}`;
+                return (
+                  <button
+                    key={type + idx}
+                    type="button"
+                    onClick={() => setActiveDocType(type)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      activeDocType === type
+                        ? "bg-[#00288e] text-white shadow-2xs"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    {type}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Document Preview Card */}
-            <div className="p-6 rounded-2xl bg-slate-900 text-white space-y-4 shadow-md border border-slate-800">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-emerald-400 font-bold text-xs">
-                    ✓
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-300">{activeDocType}</p>
-                    <p className="text-[11px] text-slate-400">Government of India · Verified Format</p>
-                  </div>
-                </div>
-                <span className="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-0.5 rounded border border-emerald-800">
-                  DIGITALLY STAMPED
-                </span>
-              </div>
+            {(() => {
+              const currentDoc = inspectWorker.documentDetails?.find((d) => d.docType === activeDocType) || {
+                docType: activeDocType,
+                docNumber: "Verified Statutory Document",
+              };
+              const isImage = currentDoc.docUrl && (currentDoc.docUrl.includes(".png") || currentDoc.docUrl.includes(".jpg") || currentDoc.docUrl.includes(".jpeg") || currentDoc.docUrl.includes(".webp") || currentDoc.docUrl.startsWith("data:image"));
+              const isPdf = currentDoc.docUrl && (currentDoc.docUrl.includes(".pdf") || currentDoc.docUrl.startsWith("data:application/pdf"));
 
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold">Full Legal Name</p>
-                  <p className="font-bold text-white mt-0.5 text-sm">{inspectWorker.userId?.name || "Worker"}</p>
+              return (
+                <div className="p-6 rounded-2xl bg-slate-900 text-white space-y-4 shadow-md border border-slate-800">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-emerald-400 font-bold text-xs">
+                        ✓
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-300">{currentDoc.docType}</p>
+                        <p className="text-[11px] text-slate-400">Government of India / Cooperative Verified Format</p>
+                      </div>
+                    </div>
+                    {currentDoc.docUrl ? (
+                      <a
+                        href={currentDoc.docUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-950/60 hover:bg-emerald-900/80 px-2.5 py-1 rounded border border-emerald-800 flex items-center gap-1 transition"
+                      >
+                        <ExternalLink size={12} /> View Full File
+                      </a>
+                    ) : (
+                      <span className="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-0.5 rounded border border-emerald-800">
+                        DIGITALLY STAMPED
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Real Document Preview Render */}
+                  {currentDoc.docUrl && (
+                    <div className="rounded-xl overflow-hidden border border-slate-700 bg-slate-950 max-h-60 flex items-center justify-center p-2">
+                      {isImage ? (
+                        <img src={currentDoc.docUrl} alt={currentDoc.docType} className="max-h-56 w-auto object-contain rounded" />
+                      ) : (
+                        <div className="text-center py-6 space-y-2">
+                          <FileText size={36} className="mx-auto text-primary" />
+                          <p className="text-xs font-bold text-slate-200">PDF Document Uploaded</p>
+                          <a
+                            href={currentDoc.docUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary/90"
+                          >
+                            <ExternalLink size={12} /> Open PDF in New Tab
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Full Legal Name</p>
+                      <p className="font-bold text-white mt-0.5 text-sm">{inspectWorker.userId?.name || "Worker"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Document Number</p>
+                      <p className="font-mono font-bold text-slate-200 mt-0.5">
+                        {currentDoc.docNumber || "DOC-VERIFIED-2026"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Primary Trade Skill</p>
+                      <p className="font-semibold text-slate-200 mt-0.5">{inspectWorker.skills?.[0] || "General Service"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Registered Mobile</p>
+                      <p className="font-mono text-slate-200 mt-0.5">{inspectWorker.userId?.phone || "+91 9811000004"}</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold">Document Number</p>
-                  <p className="font-mono font-bold text-slate-200 mt-0.5">
-                    {activeDocType.includes("Aadhaar") ? "•••• •••• 8812" : activeDocType.includes("e-Shram") ? "UAN-9912-8834-1102" : "ABCDE1234F"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold">Primary Trade Skill</p>
-                  <p className="font-semibold text-slate-200 mt-0.5">{inspectWorker.skills?.[0] || "General Service"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold">Registered Mobile</p>
-                  <p className="font-mono text-slate-200 mt-0.5">{inspectWorker.userId?.phone || "+91 9811000004"}</p>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Action Bar */}
             <div className="flex items-center justify-between pt-3 border-t border-slate-100 gap-2 flex-wrap">

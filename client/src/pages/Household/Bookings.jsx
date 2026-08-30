@@ -390,7 +390,7 @@ export default function Bookings() {
                     const s = STATUS_STYLE[b.status] || STATUS_STYLE.requested;
                     return (
                       <tr key={b._id}
-                        onClick={() => setSelectedBooking(b)}
+                        onClick={() => navigate(`/household/tracking/${b._id}`)}
                         className="hover:bg-surface-container-low/50 transition-colors cursor-pointer">
                         <td className="px-6 py-3.5">
                           <div className="flex items-center gap-2">
@@ -416,10 +416,17 @@ export default function Bookings() {
                           {b.providerId?.userId?.name || (b.dispatchMode === 'broadcast' && b.broadcastStatus === 'broadcasting' ? "Searching for provider..." : "Provider")}
                         </td>
                         <td className="px-6 py-3.5">
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${s.bg}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                            {s.label}
-                          </span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${s.bg}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                              {s.label}
+                            </span>
+                            {b.status === "in-progress" && b.completionOtp && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#e8edff] text-[#00288e] border border-[#00288e]/30 text-[10.5px] font-black tracking-wider">
+                                OTP: {b.completionOtp}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-2">

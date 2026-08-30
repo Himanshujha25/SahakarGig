@@ -51,6 +51,22 @@ const bookingSchema = new mongoose.Schema(
       penaltyAmount: { type: Number, default: 0 },
       status: { type: String, enum: ['open', 'investigating', 'resolved', 'escalated'], default: 'open' },
     },
+    // Before-work verification (Worker uploads on site before starting)
+    startWorkProof: {
+      photo: { type: String },
+      description: { type: String },
+      startedAt: { type: Date },
+    },
+    // After-work verification (Worker uploads upon completing repair)
+    completionProof: {
+      photo: { type: String },
+      description: { type: String },
+      completedAt: { type: Date },
+    },
+    // Completion OTP (Generated on household side when worker marks in-progress)
+    completionOtp: { type: String },
+    otpVerified: { type: Boolean, default: false },
+
     cancelReason: { type: String },
     chat: [{ sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, message: String, at: { type: Date, default: Date.now } }],
     // Recurring bookings (same provider, same service, auto re-booked).

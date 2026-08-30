@@ -3,10 +3,9 @@ import { useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import socket from "../../lib/socket";
 import {
-  Search, Users, Trophy, MessageSquare, Ban, CheckCircle2,
-  Trash2, UserPlus, Megaphone, X, Send, ShieldAlert, AlertTriangle,
-  Phone, Mail, Plus, ShieldCheck, Clock, ExternalLink, Copy,
-  Building2, Briefcase, DollarSign, UserCheck
+  Search, Users, MessageSquare, Ban, CheckCircle2,
+  Trash2, UserPlus, Megaphone, X, Send, ShieldAlert,
+  Phone, Mail, ShieldCheck, ExternalLink, UserCheck
 } from "lucide-react";
 
 export default function Providers() {
@@ -23,7 +22,7 @@ export default function Providers() {
   });
 
   // Modal / Split View states
-  const [messageModalUser, setMessageModalUser] = useState(null); // null, "ALL", or provider object
+  const [messageModalUser, setMessageModalUser] = useState(null);
   const [messageText, setMessageText] = useState("");
   const [messageType, setMessageType] = useState("announcement");
   const [durationMins, setDurationMins] = useState("15");
@@ -71,8 +70,9 @@ export default function Providers() {
     if (!q) return items;
     return items.filter(
       (p) =>
-        (p.userId?.name || "").toLowerCase().includes(q) ||
-        (p.userId?.email || "").toLowerCase().includes(q) ||
+        (p.userId?.name || p.name || "").toLowerCase().includes(q) ||
+        (p.userId?.email || p.email || "").toLowerCase().includes(q) ||
+        (p.userId?.phone || p.phone || "").toLowerCase().includes(q) ||
         (p.skills || []).some((s) => s.toLowerCase().includes(q))
     );
   }, [items, query]);
@@ -88,10 +88,10 @@ export default function Providers() {
     let updated;
     if (blockedIds.includes(providerId)) {
       updated = blockedIds.filter((id) => id !== providerId);
-      showToast(`Worker ${workerName || ""} unblocked. Dispatch job alerts enabled.`);
+      showToast(`Worker ${workerName || ""} unblocked. Dispatch alerts enabled.`);
     } else {
       updated = [...blockedIds, providerId];
-      showToast(`Worker ${workerName || ""} suspended. Job dispatch alerts disabled.`);
+      showToast(`Worker ${workerName || ""} suspended. Job alerts disabled.`);
     }
     setBlockedIds(updated);
     localStorage.setItem("sg_blocked_providers", JSON.stringify(updated));
@@ -110,9 +110,7 @@ export default function Providers() {
 
   useEffect(() => {
     loadCoopMessages();
-    const handleStorage = () => {
-      loadCoopMessages();
-    };
+    const handleStorage = () => { loadCoopMessages(); };
     const interval = setInterval(loadCoopMessages, 2000);
     window.addEventListener("coop_message_updated", loadCoopMessages);
     window.addEventListener("storage", handleStorage);
@@ -133,70 +131,30 @@ export default function Providers() {
     showToast("Announcement alert removed.");
   }
 
-  // Remove Worker from Agency
-  async function removeWorker(providerId, workerName) {
-    if (window.confirm(`Are you sure you want to remove ${workerName || "this worker"} from your cooperative roster?`)) {
-      try {
-        await api.delete(`/admin/members/${providerId}`);
-      } catch {}
-      setItems((prev) => prev.filter((p) => p._id !== providerId));
-      showToast(`Worker ${workerName || ""} removed from cooperative roster.`);
-    }
-  }
-
   // Handle Send Message or Broadcast Alert
   function handleSendMessage(e) {
     if (e && e.preventDefault) e.preventDefault();
     const textValue = (messageText || "").trim();
-
-    if (!textValue) {
-      showToast("Please type a message before sending!");
-      return;
-    }
+    if (!textValue) return;
 
     const isBroadcast = messageModalUser === "ALL";
-    const recipient = isBroadcast
-      ? "All Connected Cooperative Members"
-      : messageModalUser?.userId?.name || "Worker";
+    const recipient = isBroadcast ? "All Active Cooperative Workers" : (messageModalUser?.userId?.name || "Member Worker");
 
-    const durationMinsNum = isBroadcast ? (parseInt(durationMins, 10) || 0) : 0;
-    const expiresAt = (isBroadcast && durationMinsNum > 0) ? Date.now() + durationMinsNum * 60 * 1000 : null;
-
-    const msgObj = {
+    const newMsg = {
       id: "msg_" + Date.now(),
-      sender: "Karol Bagh Labour Cooperative Society",
-      senderRole: "Cooperative Admin",
-      recipient: recipient,
-      recipientId: isBroadcast ? "ALL" : (messageModalUser?._id || messageModalUser?.userId?._id),
-      title: isBroadcast
-        ? (messageType === "urgent" ? "🚨 URGENT DISPATCH ALERT" : messageType === "bonus" ? "🎁 BONUS PAY INCENTIVE" : "📢 COOPERATIVE ANNOUNCEMENT")
-        : `💬 Direct Message from Cooperative Admin`,
+      target: isBroadcast ? "ALL" : messageModalUser?._id,
+      title: isBroadcast ? (messageType === "urgent" ? "🚨 Urgent Dispatch Advisory" : messageType === "bonus" ? "🎁 Incentive Pay Announcement" : "📢 Cooperative Federation Notice") : "Admin Notice",
       body: textValue,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: new Date().toLocaleDateString(),
-      type: isBroadcast ? (messageType || "announcement") : "direct",
-      durationMins: durationMinsNum,
-      expiresAt: expiresAt,
-      read: false
+      type: messageType,
+      expiresAt: Date.now() + (parseInt(durationMins) || 15) * 60 * 1000,
+      createdAt: new Date().toISOString(),
     };
 
-    const existingMsgs = JSON.parse(localStorage.getItem("sg_coop_messages") || "[]");
-    localStorage.setItem("sg_coop_messages", JSON.stringify([msgObj, ...existingMsgs]));
-    
-    // Also save to admin notices if broadcast
-    if (isBroadcast) {
-      api.post('/admin/notices', {
-        title: msgObj.title,
-        content: textValue,
-        category: messageType === 'urgent' ? 'Urgent' : messageType === 'bonus' ? 'Incentive' : 'General',
-        priority: messageType === 'urgent' ? 'Urgent' : 'Normal',
-      }).catch(() => {});
-    }
-
-    window.dispatchEvent(new Event("storage"));
-    window.dispatchEvent(new Event("coop_message_updated"));
     try {
-      socket.emit("notification", msgObj);
+      const existingMsgs = JSON.parse(localStorage.getItem("sg_coop_messages") || "[]");
+      localStorage.setItem("sg_coop_messages", JSON.stringify([newMsg, ...existingMsgs]));
+      window.dispatchEvent(new Event("storage"));
+      window.dispatchEvent(new Event("coop_message_updated"));
     } catch {}
 
     setMessageText("");
@@ -220,11 +178,7 @@ export default function Providers() {
 
     const newProvider = {
       _id: validObjectId,
-      userId: {
-        name,
-        email,
-        phone,
-      },
+      userId: { name, email, phone },
       skills: [skill],
       hourlyRate: parseInt(rate) || 350,
       verified: false,
@@ -244,337 +198,466 @@ export default function Providers() {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-6 pt-6 pb-20 space-y-6 text-slate-900 font-sans">
+    <div className="space-y-4 sm:space-y-6 text-on-surface">
       {/* Toast Alert */}
       {toastMsg && (
-        <div className="fixed top-5 right-5 z-[99999] px-4 py-3 rounded-2xl bg-slate-900 text-white font-bold text-xs shadow-2xl flex items-center gap-2 border border-slate-700 animate-fade-in">
-          <CheckCircle2 size={16} className="text-emerald-400" />
+        <div className="fixed top-5 right-5 z-[99999] px-4 py-3 rounded-2xl bg-surface border border-outline-variant text-on-surface font-bold text-xs shadow-2xl flex items-center gap-2 animate-fade-in">
+          <CheckCircle2 size={16} className="text-emerald-500" />
           <span>{toastMsg}</span>
         </div>
       )}
 
       {/* ── HEADER & ACTIONS ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/60 pb-3">
         <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
               Cooperative Member Workforce
             </h1>
-            <span className="px-3 py-1 rounded-full bg-blue-50 text-[#00288e] border border-blue-200 text-xs font-bold flex items-center gap-1">
-              <Users size={13} />
+            <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold flex items-center gap-1">
+              <Users size={12} />
               {totalCount} Connected Members
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Manage your cooperative member roster, broadcast emergency notices, inspect credentials, and manage welfare enrolments.
+          <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
+            Manage your cooperative member roster, broadcast emergency notices, and inspect credentials.
           </p>
         </div>
 
-        {/* Top Action CTAs in Primary Blue */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Top Action CTAs */}
+        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
           <button
             type="button"
             onClick={() => setMessageModalUser("ALL")}
-            className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+            className="px-3.5 py-2 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
           >
-            <Megaphone size={14} className="text-[#00288e]" />
-            <span>Broadcast Notice to All</span>
+            <Megaphone size={14} className="text-primary" />
+            <span>Broadcast Notice</span>
           </button>
 
           <button
             type="button"
             onClick={() => setAddWorkerModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-[#00288e] hover:bg-[#001f70] text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-md"
+            className="px-3.5 py-2 rounded-xl bg-primary hover:opacity-90 text-on-primary text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-98"
           >
             <UserPlus size={14} />
-            <span>Add New Worker</span>
+            <span>Add Member</span>
           </button>
         </div>
       </div>
 
-      {/* ── 4 KPI STAT TILES (Blue Aligned) ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-1">
-          <div className="flex items-start justify-between mb-2">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Members</p>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#00288e] flex items-center justify-center font-bold">
-              <Users size={15} />
+      {/* ── 4 KPI STAT TILES (Compact 2x2 Grid on Mobile) ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="p-3.5 sm:p-5 rounded-2xl border border-outline-variant/60 bg-surface shadow-2xs space-y-1">
+          <div className="flex items-start justify-between mb-1 sm:mb-2">
+            <p className="text-[10.5px] sm:text-[11px] font-bold text-on-surface-variant uppercase tracking-wider truncate">Total Members</p>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
+              <Users size={14} />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900">{totalCount}</p>
-          <p className="text-[11px] font-semibold text-slate-500">Registered in Society</p>
+          <p className="text-xl sm:text-2xl font-black text-on-surface">{totalCount}</p>
+          <p className="text-[10.5px] sm:text-[11px] font-medium text-on-surface-variant truncate">Registered in Society</p>
         </div>
 
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-1">
-          <div className="flex items-start justify-between mb-2">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Workers</p>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-              <UserCheck size={15} />
+        <div className="p-3.5 sm:p-5 rounded-2xl border border-outline-variant/60 bg-surface shadow-2xs space-y-1">
+          <div className="flex items-start justify-between mb-1 sm:mb-2">
+            <p className="text-[10.5px] sm:text-[11px] font-bold text-on-surface-variant uppercase tracking-wider truncate">Active Workers</p>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
+              <UserCheck size={14} />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900">{activeCount}</p>
-          <p className="text-[11px] font-bold text-emerald-700">Receiving Dispatch Alerts</p>
+          <p className="text-xl sm:text-2xl font-black text-on-surface">{activeCount}</p>
+          <p className="text-[10.5px] sm:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 truncate">Receiving Alerts</p>
         </div>
 
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-1">
-          <div className="flex items-start justify-between mb-2">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Suspended</p>
-            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center font-bold">
-              <Ban size={15} />
+        <div className="p-3.5 sm:p-5 rounded-2xl border border-outline-variant/60 bg-surface shadow-2xs space-y-1">
+          <div className="flex items-start justify-between mb-1 sm:mb-2">
+            <p className="text-[10.5px] sm:text-[11px] font-bold text-on-surface-variant uppercase tracking-wider truncate">Suspended</p>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold shrink-0">
+              <Ban size={14} />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900">{blockedCount}</p>
-          <p className="text-[11px] font-semibold text-rose-600">Alerts Paused</p>
+          <p className="text-xl sm:text-2xl font-black text-on-surface">{blockedCount}</p>
+          <p className="text-[10.5px] sm:text-[11px] font-medium text-rose-600 dark:text-rose-400 truncate">Alerts Paused</p>
         </div>
 
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-1">
-          <div className="flex items-start justify-between mb-2">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Verified Badged</p>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
-              <ShieldCheck size={15} />
+        <div className="p-3.5 sm:p-5 rounded-2xl border border-outline-variant/60 bg-surface shadow-2xs space-y-1">
+          <div className="flex items-start justify-between mb-1 sm:mb-2">
+            <p className="text-[10.5px] sm:text-[11px] font-bold text-on-surface-variant uppercase tracking-wider truncate">Verified Badged</p>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shrink-0">
+              <ShieldCheck size={14} />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900">{verifiedCount}</p>
-          <p className="text-[11px] font-semibold text-amber-700">Cooperative Badged</p>
+          <p className="text-xl sm:text-2xl font-black text-on-surface">{verifiedCount}</p>
+          <p className="text-[10.5px] sm:text-[11px] font-medium text-amber-600 dark:text-amber-400 truncate">Cooperative Badged</p>
         </div>
       </div>
 
       {/* ── Active Broadcast Announcements Bar ── */}
       {coopMessages.length > 0 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none pt-1">
-          <span className="text-[10px] font-bold uppercase px-2.5 py-1 rounded-full bg-blue-50 text-[#00288e] border border-blue-200 shrink-0">
+          <span className="text-[10px] font-bold uppercase px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0">
             Active Broadcasts ({coopMessages.length})
           </span>
           {coopMessages.map((m) => (
             <div
               key={m.id}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 shrink-0 shadow-2xs"
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-low border border-outline-variant/60 text-xs font-bold text-on-surface shrink-0 shadow-2xs"
             >
-              <span className="truncate max-w-[280px] sm:max-w-[360px]">
+              <span className="truncate max-w-[240px] sm:max-w-[360px]">
                 {m.title}: {m.body}
               </span>
               <button
                 type="button"
                 onClick={() => deleteAnnouncement(m.id)}
-                className="text-slate-400 hover:text-red-600 transition-colors cursor-pointer ml-1 p-0.5 rounded-full hover:bg-red-50"
+                className="text-on-surface-variant hover:text-rose-600 transition-colors cursor-pointer ml-1 p-0.5 rounded-full hover:bg-rose-500/10"
                 title="Delete Announcement"
               >
-                <Trash2 size={13} />
+                <Trash2 size={12} />
               </button>
             </div>
           ))}
         </div>
       )}
 
-      {/* ── SEARCH & TABLE CONTAINER ── */}
-      <div className="space-y-4">
+      {/* ── SEARCH & TABLE / CARD CONTAINER ── */}
+      <div className="space-y-3 sm:space-y-4">
         {/* Search Bar */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-3">
           <div className="relative w-full">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search member workers by name, skill, email..."
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 outline-none focus:border-[#00288e] focus:ring-1 focus:ring-[#00288e] transition-all shadow-2xs"
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface placeholder:text-on-surface-variant/60 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all shadow-2xs"
             />
           </div>
-          <span className="text-xs text-slate-400 font-bold shrink-0">Showing {filtered.length} members</span>
+          <span className="text-xs text-on-surface-variant font-bold shrink-0 hidden sm:inline">Showing {filtered.length} members</span>
         </div>
 
-        {/* Member Table Card */}
+        {/* Loading / Empty State */}
         {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-3 shadow-2xs">
+          <div className="rounded-2xl border border-outline-variant bg-surface p-6 space-y-3 shadow-2xs">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse h-12 bg-slate-100 rounded-xl" />
+              <div key={i} className="animate-pulse h-12 bg-surface-container rounded-xl" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center space-y-3 shadow-2xs">
-            <Users size={40} className="mx-auto text-slate-300" />
-            <p className="text-base font-bold text-slate-800">No member workers found</p>
-            <p className="text-xs text-slate-400">Try adjusting your search query or register a new member.</p>
+          <div className="rounded-2xl border border-outline-variant bg-surface p-8 sm:p-12 text-center space-y-2.5 shadow-2xs">
+            <Users size={36} className="mx-auto text-on-surface-variant/40" />
+            <p className="text-sm sm:text-base font-bold text-on-surface">No member workers found</p>
+            <p className="text-xs text-on-surface-variant">Try adjusting your search query or register a new member.</p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                    <th className="px-5 py-3.5">Worker Member</th>
-                    <th className="px-5 py-3.5">Trade Skill</th>
-                    <th className="px-5 py-3.5">Hourly Rate</th>
-                    <th className="px-5 py-3.5">Status</th>
-                    <th className="px-5 py-3.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filtered.map((p) => {
-                    const isBlocked = blockedIds.includes(p._id);
-                    const name = p.userId?.name || p.name || "Worker Member";
-                    const email = p.userId?.email || p.email || "";
-                    const phone = p.userId?.phone || p.phone || "";
-                    const skill = (p.skills || [])[0] || "Electrician";
-                    const rate = p.hourlyRate || 350;
+          <>
+            {/* ── MOBILE WORKER CARD VIEW (< 768px) ── */}
+            <div className="md:hidden space-y-2.5">
+              {filtered.map((p) => {
+                const isBlocked = blockedIds.includes(p._id);
+                const name = p.userId?.name || p.name || "Worker Member";
+                const email = p.userId?.email || p.email || "";
+                const phone = p.userId?.phone || p.phone || "";
+                const skill = (p.skills || [])[0] || "Electrician";
+                const rate = p.hourlyRate || 350;
+                const storedProviderAvatar = localStorage.getItem("sg_provider_avatar");
+                const rawAvatar =
+                  localStorage.getItem("sg_worker_avatar_" + p._id) ||
+                  p.userId?.avatarUrl ||
+                  p.avatarUrl ||
+                  p.avatar ||
+                  p.userId?.profileImage ||
+                  p.profileImage ||
+                  storedProviderAvatar ||
+                  "";
+                const avatar = rawAvatar
+                  ? (rawAvatar.startsWith("http") || rawAvatar.startsWith("data:")
+                      ? rawAvatar
+                      : `http://localhost:5000${rawAvatar}`)
+                  : null;
 
-                    const initials = name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .filter(Boolean)
-                      .slice(0, 2)
-                      .join("")
-                      .toUpperCase() || "WK";
+                const initials = name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase() || "WK";
 
-                    const detailUrl = `/admin/providers/detail?id=${p._id}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&skill=${encodeURIComponent(skill)}&rate=${rate}&coopName=${encodeURIComponent("Karol Bagh Labour Cooperative")}`;
+                const detailUrl = `/admin/providers/detail?id=${p._id}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&skill=${encodeURIComponent(skill)}&rate=${rate}&avatar=${encodeURIComponent(avatar || "")}&coopName=${encodeURIComponent("Karol Bagh Labour Cooperative")}`;
 
-                    return (
-                      <tr key={p._id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-[#00288e] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs border-2 border-slate-100">
-                              {initials}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-bold text-slate-900 hover:text-[#00288e] cursor-pointer" onClick={() => navigate(detailUrl)}>
-                                {name}
-                              </p>
-                              <p className="text-[11px] text-slate-400 truncate">
-                                {email || phone || "Member"}
-                              </p>
-                            </div>
+                return (
+                  <div
+                    key={p._id}
+                    className="p-3.5 rounded-2xl border border-outline-variant/60 bg-surface space-y-3 shadow-2xs"
+                  >
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {avatar ? (
+                          <img
+                            src={avatar}
+                            alt={name}
+                            className="w-10 h-10 rounded-xl object-cover border border-outline-variant shrink-0 shadow-xs"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                            {initials}
                           </div>
-                        </td>
+                        )}
+                        <div className="min-w-0">
+                          <p
+                            className="font-bold text-on-surface text-sm truncate hover:text-primary cursor-pointer leading-tight"
+                            onClick={() => navigate(detailUrl)}
+                          >
+                            {name}
+                          </p>
+                          <p className="text-[11px] text-on-surface-variant truncate mt-0.5">
+                            {phone || email || "Member"}
+                          </p>
+                        </div>
+                      </div>
 
-                        <td className="px-5 py-3.5">
-                          <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-[#00288e] font-bold text-[11px] border border-blue-100">
-                            {skill}
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">₹{rate}/hr</p>
+                        <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary font-bold text-[10px]">
+                          {skill}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Status and Action Buttons */}
+                    <div className="flex items-center justify-between pt-2 border-t border-outline-variant/40">
+                      <div>
+                        {isBlocked ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 font-bold text-[10.5px]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                            Suspended
                           </span>
-                        </td>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold text-[10.5px]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            Active Member ✓
+                          </span>
+                        )}
+                      </div>
 
-                        <td className="px-5 py-3.5 font-bold text-emerald-700">
-                          ₹{rate}/hr
-                        </td>
-
-                        <td className="px-5 py-3.5">
-                          {isBlocked ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[11px]">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                              Suspended
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[11px]">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                              Active Member ✓
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="px-5 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => navigate(detailUrl)}
-                              className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-[#00288e] transition-all cursor-pointer shadow-2xs"
-                              title="Inspect Full Worker Profile & Service Ledger"
-                            >
-                              <ExternalLink size={13} />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setMessageModalUser(p)}
-                              className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-[#00288e] transition-all cursor-pointer shadow-2xs"
-                              title="Send Direct Admin Notice"
-                            >
-                              <MessageSquare size={13} />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => toggleBlockWorker(p._id, name)}
-                              className={`p-2 rounded-xl border transition-all cursor-pointer shadow-2xs ${
-                                isBlocked
-                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                                  : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                              }`}
-                              title={isBlocked ? "Reactivate Worker" : "Suspend Worker"}
-                            >
-                              <Ban size={13} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => navigate(detailUrl)}
+                          className="p-1.5 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-bold transition cursor-pointer"
+                          title="Inspect Profile"
+                        >
+                          <ExternalLink size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMessageModalUser(p)}
+                          className="p-1.5 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-bold transition cursor-pointer"
+                          title="Message Worker"
+                        >
+                          <MessageSquare size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleBlockWorker(p._id, name)}
+                          className={`p-1.5 rounded-xl border transition cursor-pointer ${
+                            isBlocked
+                              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              : "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                          }`}
+                          title={isBlocked ? "Reactivate Worker" : "Suspend Worker"}
+                        >
+                          <Ban size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+
+            {/* ── DESKTOP TABLE VIEW (>= 768px) ── */}
+            <div className="hidden md:block rounded-2xl border border-outline-variant/60 bg-surface overflow-hidden shadow-2xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-surface-container-low border-b border-outline-variant/60 text-on-surface-variant font-bold uppercase tracking-wider text-[10.5px]">
+                      <th className="px-5 py-3.5">Worker Member</th>
+                      <th className="px-5 py-3.5">Trade Skill</th>
+                      <th className="px-5 py-3.5">Hourly Rate</th>
+                      <th className="px-5 py-3.5">Status</th>
+                      <th className="px-5 py-3.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/40">
+                    {filtered.map((p) => {
+                      const isBlocked = blockedIds.includes(p._id);
+                      const name = p.userId?.name || p.name || "Worker Member";
+                      const email = p.userId?.email || p.email || "";
+                      const phone = p.userId?.phone || p.phone || "";
+                      const skill = (p.skills || [])[0] || "Electrician";
+                      const rate = p.hourlyRate || 350;
+
+                      const initials = name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase() || "WK";
+
+                      const detailUrl = `/admin/providers/detail?id=${p._id}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&skill=${encodeURIComponent(skill)}&rate=${rate}&coopName=${encodeURIComponent("Karol Bagh Labour Cooperative")}`;
+
+                      return (
+                        <tr key={p._id} className="hover:bg-surface-container-low transition-colors">
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-primary text-on-primary flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                                {initials}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-bold text-on-surface hover:text-primary cursor-pointer truncate" onClick={() => navigate(detailUrl)}>
+                                  {name}
+                                </p>
+                                <p className="text-[11px] text-on-surface-variant truncate">
+                                  {email || phone || "Member"}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-3.5">
+                            <span className="px-2.5 py-1 rounded-xl bg-primary/10 text-primary font-bold text-[11px] border border-primary/20">
+                              {skill}
+                            </span>
+                          </td>
+
+                          <td className="px-5 py-3.5 font-bold text-emerald-600 dark:text-emerald-400">
+                            ₹{rate}/hr
+                          </td>
+
+                          <td className="px-5 py-3.5">
+                            {isBlocked ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 font-bold text-[11px]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                Suspended
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold text-[11px]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                Active Member ✓
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="px-5 py-3.5 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => navigate(detailUrl)}
+                                className="p-2 rounded-xl border border-outline-variant bg-surface hover:bg-surface-container text-on-surface-variant hover:text-primary transition-all cursor-pointer shadow-2xs"
+                                title="Inspect Full Worker Profile"
+                              >
+                                <ExternalLink size={13} />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setMessageModalUser(p)}
+                                className="p-2 rounded-xl border border-outline-variant bg-surface hover:bg-surface-container text-on-surface-variant hover:text-primary transition-all cursor-pointer shadow-2xs"
+                                title="Send Direct Admin Notice"
+                              >
+                                <MessageSquare size={13} />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => toggleBlockWorker(p._id, name)}
+                                className={`p-2 rounded-xl border transition-all cursor-pointer shadow-2xs ${
+                                  isBlocked
+                                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+                                    : "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20"
+                                }`}
+                                title={isBlocked ? "Reactivate Worker" : "Suspend Worker"}
+                              >
+                                <Ban size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
       {/* ── MODAL 1: ADD NEW WORKER ── */}
       {addWorkerModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setAddWorkerModalOpen(false)}>
-          <div className="w-full max-w-md bg-white text-slate-900 rounded-3xl p-6 lg:p-8 space-y-5 border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+          <div className="w-full max-w-md bg-surface text-on-surface rounded-3xl p-6 lg:p-8 space-y-4 border border-outline-variant shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-outline-variant/60 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#00288e] text-white flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-2xl bg-primary text-on-primary flex items-center justify-center font-bold">
                   <UserPlus size={18} />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">Register New Member Worker</h2>
-                  <p className="text-xs text-slate-500">Add to cooperative workforce roster</p>
+                  <h2 className="text-base font-bold text-on-surface">Register Member Worker</h2>
+                  <p className="text-xs text-on-surface-variant">Add to cooperative workforce roster</p>
                 </div>
               </div>
-              <button onClick={() => setAddWorkerModalOpen(false)} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer">
+              <button onClick={() => setAddWorkerModalOpen(false)} className="p-2 rounded-xl text-on-surface-variant hover:bg-surface-container cursor-pointer">
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleAddNewWorker} className="space-y-4 text-xs">
+            <form onSubmit={handleAddNewWorker} className="space-y-3.5 text-xs">
               <div className="space-y-1">
-                <label className="font-bold text-slate-700">Full Name</label>
+                <label className="font-bold text-on-surface-variant">Full Name</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Suresh Kumar"
                   value={newWorkerName}
                   onChange={(e) => setNewWorkerName(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#00288e] focus:bg-white"
+                  className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-container-low outline-none focus:border-primary text-on-surface"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-bold text-slate-700">Email Address</label>
+                <label className="font-bold text-on-surface-variant">Email Address</label>
                 <input
                   type="email"
                   required
                   placeholder="e.g. suresh.worker@gmail.com"
                   value={newWorkerEmail}
                   onChange={(e) => setNewWorkerEmail(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#00288e] focus:bg-white"
+                  className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-container-low outline-none focus:border-primary text-on-surface"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-bold text-slate-700">Mobile Phone</label>
+                <label className="font-bold text-on-surface-variant">Mobile Phone</label>
                 <input
                   type="tel"
                   placeholder="e.g. +91 98112 44556"
                   value={newWorkerPhone}
                   onChange={(e) => setNewWorkerPhone(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#00288e] focus:bg-white"
+                  className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-container-low outline-none focus:border-primary text-on-surface"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Primary Skill</label>
+                  <label className="font-bold text-on-surface-variant">Primary Skill</label>
                   <select
                     value={newWorkerSkill}
                     onChange={(e) => setNewWorkerSkill(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#00288e] focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-container-low outline-none focus:border-primary text-on-surface"
                   >
                     <option value="Electrician">Electrician</option>
                     <option value="Plumber">Plumber</option>
@@ -586,27 +669,27 @@ export default function Providers() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Hourly Rate (₹)</label>
+                  <label className="font-bold text-on-surface-variant">Hourly Rate (₹)</label>
                   <input
                     type="number"
                     value={newWorkerRate}
                     onChange={(e) => setNewWorkerRate(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#00288e] focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-container-low outline-none focus:border-primary text-on-surface"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant/60">
                 <button
                   type="button"
                   onClick={() => setAddWorkerModalOpen(false)}
-                  className="px-4 py-2.5 rounded-full border border-slate-200 font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-outline-variant font-bold text-on-surface-variant hover:bg-surface-container cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-full bg-[#00288e] text-white font-bold hover:bg-[#001f70] shadow-md cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-primary text-on-primary font-bold hover:opacity-90 shadow-xs cursor-pointer"
                 >
                   Add Worker
                 </button>
@@ -619,35 +702,35 @@ export default function Providers() {
       {/* ── MODAL 2: BROADCAST OR DIRECT MESSAGE ── */}
       {messageModalUser !== null && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setMessageModalUser(null)}>
-          <div className="w-full max-w-lg bg-white text-slate-900 rounded-3xl p-6 lg:p-8 space-y-5 border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+          <div className="w-full max-w-lg bg-surface text-on-surface rounded-3xl p-6 lg:p-8 space-y-4 border border-outline-variant shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-outline-variant/60 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#00288e] text-white flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-2xl bg-primary text-on-primary flex items-center justify-center font-bold">
                   <Megaphone size={18} />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">
+                  <h2 className="text-base font-bold text-on-surface">
                     {messageModalUser === "ALL" ? "Broadcast Notice to All Workers" : `Send Direct Message: ${messageModalUser?.userId?.name || "Worker"}`}
                   </h2>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-on-surface-variant">
                     {messageModalUser === "ALL" ? "Broadcasts instant push notification to all member devices" : "Private admin instruction"}
                   </p>
                 </div>
               </div>
-              <button onClick={() => setMessageModalUser(null)} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer">
+              <button onClick={() => setMessageModalUser(null)} className="p-2 rounded-xl text-on-surface-variant hover:bg-surface-container cursor-pointer">
                 <X size={18} />
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
+            <div className="space-y-3.5 text-xs">
               {messageModalUser === "ALL" && (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Notice Category</label>
+                    <label className="font-bold text-on-surface-variant">Notice Category</label>
                     <select
                       value={messageType}
                       onChange={(e) => setMessageType(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#00288e] focus:bg-white"
+                      className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-container-low outline-none focus:border-primary text-on-surface"
                     >
                       <option value="announcement">📢 General Announcement</option>
                       <option value="urgent">🚨 Urgent Dispatch Alert</option>
@@ -655,11 +738,11 @@ export default function Providers() {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Display Duration</label>
+                    <label className="font-bold text-on-surface-variant">Display Duration</label>
                     <select
                       value={durationMins}
                       onChange={(e) => setDurationMins(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#00288e] focus:bg-white"
+                      className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-container-low outline-none focus:border-primary text-on-surface"
                     >
                       <option value="15">15 Minutes</option>
                       <option value="30">30 Minutes</option>
@@ -671,29 +754,29 @@ export default function Providers() {
               )}
 
               <div className="space-y-1">
-                <label className="font-bold text-slate-700">Notice Content</label>
+                <label className="font-bold text-on-surface-variant">Notice Content</label>
                 <textarea
                   id="broadcast_message_textarea"
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
                   rows={3}
                   placeholder="Type official notice, safety advisory, or surge dispatch instruction..."
-                  className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#00288e] focus:bg-white resize-none"
+                  className="w-full p-3 rounded-xl border border-outline-variant bg-surface-container-low outline-none focus:border-primary text-on-surface resize-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant/60">
                 <button
                   type="button"
                   onClick={() => setMessageModalUser(null)}
-                  className="px-4 py-2.5 rounded-full border border-slate-200 font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-outline-variant font-bold text-on-surface-variant hover:bg-surface-container cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleSendMessage}
-                  className="px-6 py-2.5 rounded-full bg-[#00288e] text-white font-bold hover:bg-[#001f70] shadow-md cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-primary text-on-primary font-bold hover:opacity-90 shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
                   <Send size={13} />
                   <span>Send Broadcast</span>

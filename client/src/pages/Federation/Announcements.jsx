@@ -3,7 +3,7 @@ import api from "../../lib/api";
 import {
   Megaphone, Plus, Search, Calendar, Users, Building2, Tag,
   Clock, Trash2, CheckCircle2, AlertCircle, Sparkles, Filter,
-  Send, Pin, Layers, X, ShieldAlert, BadgeInfo
+  Send, Pin, Layers, X, ShieldAlert, BadgeInfo, RefreshCw, BadgeCheck
 } from "lucide-react";
 
 export default function FederationAnnouncements() {
@@ -92,7 +92,7 @@ export default function FederationAnnouncements() {
       await api.delete(`/federation/announcements/${id}`);
       showToast("Announcement removed.");
       load();
-    } catch (err) {
+    } catch {
       showToast("Failed to delete announcement.");
     }
   }
@@ -103,363 +103,299 @@ export default function FederationAnnouncements() {
   });
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-6 lg:p-8 space-y-6">
+    <div className="space-y-4 sm:space-y-6 text-on-surface">
       {/* Toast */}
       {toastMsg && (
-        <div className="fixed top-5 right-5 z-50 rounded-xl bg-slate-900 text-white px-4 py-3 text-sm font-semibold shadow-2xl flex items-center gap-2 border border-slate-700 animate-slide-up">
-          <CheckCircle2 size={18} className="text-emerald-400" />
+        <div className="fixed top-5 right-5 z-50 rounded-xl bg-slate-900 text-white px-4 py-3 text-xs font-semibold shadow-2xl flex items-center gap-2 border border-slate-700 animate-slide-up">
+          <BadgeCheck size={16} className="text-emerald-400" />
           <span>{toastMsg}</span>
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-outline-variant pb-5">
+      {/* ── Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/60 pb-3">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-1">
-            <Megaphone size={16} />
-            <span>Federation Broadcast Center</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+              Network Announcements
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
+              Broadcast Center
+            </span>
           </div>
-          <h1 className="font-heading text-2xl lg:text-3xl font-bold text-on-surface">
-            Network Announcements
-          </h1>
-          <p className="text-sm text-on-surface-variant mt-0.5">
-            Publish official policies, government welfare updates, and targeted notices to member cooperatives and gig workers.
+          <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
+            Publish official policies, government welfare updates, and targeted notices to member cooperatives.
           </p>
         </div>
 
-        <button
-          onClick={() => setComposeOpen(true)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-on-primary font-heading text-sm font-semibold hover:shadow-lg active:scale-95 transition-all cursor-pointer self-start sm:self-auto"
-        >
-          <Plus size={16} strokeWidth={2.5} />
-          <span>Create Announcement</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => setComposeOpen(true)}
+            className="px-3.5 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-98"
+          >
+            <Plus size={14} strokeWidth={2.5} />
+            <span>Create Notice</span>
+          </button>
+          <button
+            onClick={load}
+            className="p-2 rounded-xl border border-outline-variant/60 bg-surface-container-low text-on-surface hover:bg-surface-container transition-colors cursor-pointer shadow-2xs"
+            title="Refresh list"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          </button>
+        </div>
       </div>
 
-      {/* Search & Counter */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-on-surface-variant">
-          <span>{announcements.length} Total Announcements</span>
+      {/* ── Search & Counter ── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2 text-xs font-semibold text-on-surface-variant">
+          <span>{announcements.length} Total Notices</span>
           <span>·</span>
           <span>{announcements.filter((a) => a.status === "scheduled").length} Scheduled</span>
         </div>
 
         <div className="relative w-full sm:w-72">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search announcements..."
-            className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface text-xs font-semibold text-on-surface outline-none focus:border-primary"
+            placeholder="Search notices..."
+            className="w-full h-9 pl-8 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-medium text-on-surface outline-none focus:border-primary shadow-2xs"
           />
         </div>
       </div>
 
-      {/* Announcements List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* ── Announcements Grid ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         {loading ? (
           [1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-44 rounded-2xl bg-surface-container-low animate-pulse border border-outline-variant/60" />
+            <div key={i} className="h-36 rounded-2xl bg-surface-container animate-pulse border border-outline-variant/60" />
           ))
         ) : filtered.length === 0 ? (
-          <div className="col-span-full p-12 text-center rounded-2xl border border-dashed border-outline-variant bg-surface space-y-2">
-            <Megaphone size={36} className="mx-auto text-primary/40" />
-            <h3 className="text-base font-bold text-on-surface">No announcements found</h3>
+          <div className="col-span-full p-10 text-center rounded-2xl border border-dashed border-outline-variant bg-surface space-y-2">
+            <Megaphone size={32} className="mx-auto text-primary/40" />
+            <h3 className="text-sm font-bold text-on-surface">No announcements found</h3>
             <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
-              Click &quot;Create Announcement&quot; above to broadcast an official notice or scheme update.
+              Click &quot;Create Notice&quot; above to broadcast an official notice or scheme update.
             </p>
           </div>
         ) : (
-          filtered.map((a) => {
-            const isScheduledItem = a.status === "scheduled";
-            return (
-              <div
-                key={a._id}
-                className="rounded-2xl border border-outline-variant bg-surface p-5 space-y-3 hover:shadow-md transition-all flex flex-col justify-between"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase ${
-                          a.category === "safety"
-                            ? "bg-red-100 text-red-800"
-                            : a.category === "bonus"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : a.category === "scheme"
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-[#e8edff] text-[#00288e]"
-                        }`}
-                      >
-                        {a.category}
+          filtered.map((a) => (
+            <div
+              key={a._id}
+              className="rounded-2xl border border-outline-variant/60 bg-surface p-4 space-y-3 shadow-2xs flex flex-col justify-between"
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="px-2 py-0.5 rounded-full text-[10.5px] font-bold uppercase bg-surface-container text-on-surface-variant border border-outline-variant/40"
+                    >
+                      {a.category}
+                    </span>
+                    {a.isPinned && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold border border-amber-500/20">
+                        <Pin size={10} /> Pinned
                       </span>
-                      {a.isPinned && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10.5px] font-bold">
-                          <Pin size={11} /> Pinned
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-on-surface-variant flex items-center gap-1">
-                        <Clock size={12} />
-                        {new Date(a.scheduledFor || a.createdAt).toLocaleDateString()}
-                      </span>
-                      <button
-                        onClick={() => handleDelete(a._id)}
-                        className="p-1 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/30 transition-colors cursor-pointer"
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                    )}
                   </div>
 
-                  <div>
-                    <h3 className="text-base font-bold text-on-surface leading-snug">{a.title}</h3>
-                    <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed whitespace-pre-line line-clamp-3">
-                      {a.body}
-                    </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10.5px] text-on-surface-variant flex items-center gap-1 font-medium">
+                      <Clock size={11} />
+                      {new Date(a.scheduledFor || a.createdAt).toLocaleDateString()}
+                    </span>
+                    <button
+                      onClick={() => handleDelete(a._id)}
+                      className="p-1 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/30 transition-colors cursor-pointer"
+                      title="Delete"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 </div>
 
-                {/* Target Audience Footer Badge */}
-                <div className="pt-3 border-t border-outline-variant/60 flex items-center justify-between text-xs text-on-surface-variant">
-                  <div className="flex items-center gap-1">
-                    <Users size={13} className="text-primary" />
-                    <span>
-                      Audience:{" "}
-                      <strong className="text-on-surface">
-                        {a.targetAudience === "all"
-                          ? "All Federation Workers"
-                          : a.targetAudience === "specific_coop"
-                          ? `${a.targetCooperativeIds?.length || 1} Selected Cooperatives`
-                          : `${a.targetSkills?.join(", ") || "Selected Skills"}`}
-                      </strong>
-                    </span>
-                  </div>
-
-                  {isScheduledItem && (
-                    <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
-                      Scheduled
-                    </span>
-                  )}
+                <div>
+                  <h3 className="text-sm font-bold text-on-surface leading-snug">{a.title}</h3>
+                  <p className="text-xs text-on-surface-variant mt-1 leading-relaxed whitespace-pre-line line-clamp-3">
+                    {a.body}
+                  </p>
                 </div>
               </div>
-            );
-          })
+
+              {/* Target Audience Footer Badge */}
+              <div className="pt-2.5 border-t border-outline-variant/40 flex items-center justify-between text-xs text-on-surface-variant">
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <Users size={12} className="text-primary" />
+                  <span>
+                    Audience:{" "}
+                    <strong className="text-on-surface font-semibold">
+                      {a.targetAudience === "all"
+                        ? "All Federation Workers"
+                        : a.targetAudience === "specific_coop"
+                        ? `${a.targetCooperativeIds?.length || 1} Selected Cooperatives`
+                        : `${a.targetSkills?.join(", ") || "Selected Skills"}`}
+                    </strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))
         )}
       </div>
 
-      {/* ── Create Announcement Modal ── */}
+      {/* ── Compose Modal ── */}
       {composeOpen && (
         <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setComposeOpen(false)}>
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-surface border border-outline-variant rounded-3xl shadow-2xl p-6 lg:p-8 space-y-5 animate-scale-in" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto bg-surface border border-outline-variant rounded-3xl shadow-2xl p-6 space-y-4 animate-scale-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-outline-variant pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-primary text-on-primary flex items-center justify-center font-bold">
-                  <Megaphone size={20} />
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-primary text-on-primary flex items-center justify-center font-bold">
+                  <Megaphone size={15} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-on-surface">Broadcast New Announcement</h2>
-                  <p className="text-xs text-on-surface-variant">Targeted notice to affiliated societies and registered gig workers.</p>
+                  <h2 className="text-sm sm:text-base font-bold text-on-surface">Publish Broadcast Notice</h2>
+                  <p className="text-[11px] text-on-surface-variant">Distribute to affiliated primary cooperatives.</p>
                 </div>
               </div>
-              <button onClick={() => setComposeOpen(false)} className="p-2 rounded-xl text-on-surface-variant hover:bg-surface-container cursor-pointer">
-                <X size={18} />
+              <button onClick={() => setComposeOpen(false)} className="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container cursor-pointer">
+                <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateAnnouncement} className="space-y-4">
-              {/* Category Picker */}
+            <form onSubmit={handleCreateAnnouncement} className="space-y-3.5 text-xs">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Announcement Category</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[
-                    { id: "official", label: "Official Notice", icon: BadgeInfo },
-                    { id: "scheme", label: "Govt. Scheme / Welfare", icon: Sparkles },
-                    { id: "safety", label: "Safety Alert", icon: ShieldAlert },
-                    { id: "bonus", label: "Incentive / Bonus", icon: Tag },
-                  ].map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setCategory(c.id)}
-                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                        category === c.id
-                          ? "border-primary bg-primary-container text-on-primary-container ring-1 ring-primary"
-                          : "border-outline-variant bg-surface hover:bg-surface-container-low text-on-surface"
-                      }`}
-                    >
-                      <c.icon size={14} />
-                      <span>{c.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Title */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Subject / Title</label>
+                <label className="font-bold text-on-surface-variant">Notice Title</label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Mandatory e-Shram Verification Deadline & PMSBY Claim Window"
-                  className="w-full h-11 px-4 rounded-xl border border-outline-variant bg-surface text-sm font-semibold text-on-surface outline-none focus:border-primary font-heading"
+                  placeholder="e.g. Mandatory Safety Gear Compliance & Welfare Grant"
+                  className="w-full h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary"
                   required
                 />
               </div>
 
-              {/* Body */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface-variant">Category</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full h-9 px-2.5 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary"
+                  >
+                    <option value="official">Official Directive</option>
+                    <option value="scheme">Govt Scheme / Welfare</option>
+                    <option value="bonus">Bonus / Incentive</option>
+                    <option value="safety">Safety &amp; Compliance</option>
+                    <option value="general">General Notice</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface-variant">Target Audience</label>
+                  <select
+                    value={targetAudience}
+                    onChange={(e) => setTargetAudience(e.target.value)}
+                    className="w-full h-9 px-2.5 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary"
+                  >
+                    <option value="all">All Cooperatives &amp; Workers</option>
+                    <option value="specific_coop">Specific Cooperatives</option>
+                    <option value="skills">Target Specific Skills</option>
+                  </select>
+                </div>
+              </div>
+
+              {targetAudience === "specific_coop" && (
+                <div className="space-y-1.5 p-3 rounded-xl bg-surface-container-low border border-outline-variant/40">
+                  <label className="font-bold text-on-surface-variant">Select Cooperatives</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-36 overflow-y-auto">
+                    {cooperatives.map((c) => (
+                      <label key={c._id} className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-surface text-xs cursor-pointer text-on-surface">
+                        <input
+                          type="checkbox"
+                          checked={selectedCoopIds.includes(c._id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedCoopIds([...selectedCoopIds, c._id]);
+                            else setSelectedCoopIds(selectedCoopIds.filter((id) => id !== c._id));
+                          }}
+                          className="rounded text-primary"
+                        />
+                        <span className="truncate">{c.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {targetAudience === "skills" && (
+                <div className="space-y-1.5 p-3 rounded-xl bg-surface-container-low border border-outline-variant/40">
+                  <label className="font-bold text-on-surface-variant">Select Trade Skills</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SKILL_OPTIONS.map((skill) => {
+                      const selected = selectedSkills.includes(skill);
+                      return (
+                        <button
+                          key={skill}
+                          type="button"
+                          onClick={() => {
+                            if (selected) setSelectedSkills(selectedSkills.filter((s) => s !== skill));
+                            else setSelectedSkills([...selectedSkills, skill]);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            selected
+                              ? "bg-primary text-on-primary"
+                              : "bg-surface text-on-surface-variant border border-outline-variant"
+                          }`}
+                        >
+                          {skill}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-1">
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Announcement Content</label>
+                <label className="font-bold text-on-surface-variant">Notice Content</label>
                 <textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   rows={4}
-                  placeholder="Type the detailed circular or guidelines to be distributed across worker apps..."
-                  className="w-full p-3.5 rounded-xl border border-outline-variant bg-surface text-xs text-on-surface outline-none focus:border-primary font-medium leading-relaxed"
+                  placeholder="Enter full details of the notice..."
+                  className="w-full p-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs text-on-surface outline-none focus:border-primary"
                   required
                 />
               </div>
 
-              {/* Target Audience Filter */}
-              <div className="space-y-2 border-t border-outline-variant/60 pt-3">
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Target Audience</label>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {[
-                    { id: "all", label: "Broadcast to ALL Cooperatives" },
-                    { id: "specific_coop", label: "Filter by Cooperative" },
-                    { id: "skills", label: "Filter by Skill Categories" },
-                  ].map((aud) => (
-                    <button
-                      key={aud.id}
-                      type="button"
-                      onClick={() => setTargetAudience(aud.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all ${
-                        targetAudience === aud.id
-                          ? "bg-[#00288e] text-white shadow-2xs"
-                          : "border border-outline-variant bg-surface text-on-surface hover:bg-surface-container-low"
-                      }`}
-                    >
-                      {aud.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Sub-selectors for targeted audience */}
-                {targetAudience === "specific_coop" && (
-                  <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/60 space-y-2">
-                    <span className="text-[11px] font-bold text-on-surface-variant">Select Cooperatives to receive this alert:</span>
-                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-                      {cooperatives.map((coop) => {
-                        const isSel = selectedCoopIds.includes(coop._id);
-                        return (
-                          <button
-                            key={coop._id}
-                            type="button"
-                            onClick={() =>
-                              setSelectedCoopIds((prev) =>
-                                isSel ? prev.filter((id) => id !== coop._id) : [...prev, coop._id]
-                              )
-                            }
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
-                              isSel
-                                ? "bg-primary text-on-primary"
-                                : "bg-surface border border-outline-variant text-on-surface"
-                            }`}
-                          >
-                            {coop.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {targetAudience === "skills" && (
-                  <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/60 space-y-2">
-                    <span className="text-[11px] font-bold text-on-surface-variant">Select Trade Categories:</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {SKILL_OPTIONS.map((skill) => {
-                        const isSel = selectedSkills.includes(skill);
-                        return (
-                          <button
-                            key={skill}
-                            type="button"
-                            onClick={() =>
-                              setSelectedSkills((prev) =>
-                                isSel ? prev.filter((s) => s !== skill) : [...prev, skill]
-                              )
-                            }
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
-                              isSel
-                                ? "bg-primary text-on-primary"
-                                : "bg-surface border border-outline-variant text-on-surface"
-                            }`}
-                          >
-                            {skill}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Schedule & Pin Controls */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-outline-variant/60 pt-3">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-on-surface">
-                  <input
-                    type="checkbox"
-                    checked={isScheduled}
-                    onChange={(e) => setIsScheduled(e.target.checked)}
-                    className="rounded accent-primary h-4 w-4"
-                  />
-                  <Calendar size={14} className="text-primary" />
-                  <span>Schedule for Future Date</span>
-                </label>
-
-                {isScheduled && (
-                  <input
-                    type="datetime-local"
-                    value={scheduledFor}
-                    onChange={(e) => setScheduledFor(e.target.value)}
-                    className="h-9 px-3 rounded-xl border border-outline-variant bg-surface text-xs font-semibold text-on-surface outline-none focus:border-primary"
-                    required={isScheduled}
-                  />
-                )}
-
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-on-surface">
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-on-surface">
                   <input
                     type="checkbox"
                     checked={isPinned}
                     onChange={(e) => setIsPinned(e.target.checked)}
-                    className="rounded accent-primary h-4 w-4"
+                    className="rounded text-primary"
                   />
-                  <Pin size={14} className="text-amber-600" />
-                  <span>Pin to Top of Worker Feed</span>
+                  <span>Pin to top of feed</span>
                 </label>
               </div>
 
-              {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant/60">
+              <div className="pt-2 flex justify-end gap-2 border-t border-outline-variant/60">
                 <button
                   type="button"
                   onClick={() => setComposeOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-outline-variant text-xs font-bold text-on-surface hover:bg-surface-container cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-outline-variant text-xs font-bold text-on-surface hover:bg-surface-container cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={sending}
-                  className="px-6 py-2.5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:shadow-lg active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold hover:opacity-90 transition cursor-pointer shadow-2xs disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  <Send size={14} />
-                  <span>{sending ? "Broadcasting…" : isScheduled ? "Schedule Announcement" : "Publish Announcement"}</span>
+                  <Send size={13} />
+                  <span>{sending ? "Publishing..." : "Broadcast Notice"}</span>
                 </button>
               </div>
             </form>

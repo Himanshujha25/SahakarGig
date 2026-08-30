@@ -1,4 +1,4 @@
-﻿const router = require('express').Router();
+const router = require('express').Router();
 const rateLimit = require('express-rate-limit');
 const c = require('../controllers/authController');
 const auth = require('../middleware/auth');
@@ -15,6 +15,7 @@ const authLimiter = rateLimit({
 
 router.post('/signup', authLimiter, asyncHandler(c.signup));
 router.post('/login', authLimiter, asyncHandler(c.login));
+router.post('/google', authLimiter, asyncHandler(c.googleAuth));
 router.get('/me', auth, asyncHandler(c.me));
 router.patch('/me', auth, asyncHandler(c.updateMe));
 

@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import api from "../../lib/api";
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area, PieChart, Pie, Cell,
-  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend
+  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
 import {
   TrendingUp, BarChart3, Users, Award, MapPin, Star,
-  ShieldCheck, ArrowUpRight, Flame, Layers, Sparkles, RefreshCw
+  ShieldCheck, ArrowUpRight, Flame, Layers, Sparkles, RefreshCw,
+  BadgeCheck, ChevronRight
 } from "lucide-react";
 
 const COLORS = ["#00288e", "#0284c7", "#0d9488", "#16a34a", "#ca8a04", "#dc2626", "#9333ea"];
@@ -33,97 +34,104 @@ export default function FederationAnalytics() {
 
   if (loading || !data) {
     return (
-      <div className="w-full max-w-7xl mx-auto p-6 lg:p-8 space-y-6">
-        <div className="h-10 w-72 bg-surface-container-low rounded-xl animate-pulse" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-72 bg-surface-container-low rounded-2xl animate-pulse" />
-          <div className="h-72 bg-surface-container-low rounded-2xl animate-pulse" />
+      <div className="space-y-4">
+        <div className="h-6 w-48 bg-surface-container rounded-xl animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="h-64 bg-surface-container rounded-2xl animate-pulse" />
+          <div className="h-64 bg-surface-container rounded-2xl animate-pulse" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-6 lg:p-8 space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-outline-variant pb-5">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-1">
-            <BarChart3 size={16} />
-            <span>Operational Business Intelligence</span>
+    <div className="space-y-4 sm:space-y-6 text-on-surface">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between gap-3 border-b border-outline-variant/60 pb-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+              Operational Analytics
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
+              Business Intelligence
+            </span>
           </div>
-          <h1 className="font-heading text-2xl lg:text-3xl font-bold text-on-surface">
-            Federation Market Analytics
-          </h1>
-          <p className="text-sm text-on-surface-variant mt-0.5">
+          <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
             Real-time fulfillment metrics, provider leaderboards, and geographic demand heatmaps.
           </p>
         </div>
 
         <button
           onClick={load}
-          className="p-2.5 rounded-xl border border-outline-variant text-on-surface hover:bg-surface-container transition-colors cursor-pointer self-start sm:self-auto flex items-center gap-1.5 text-xs font-bold"
+          className="p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-low text-on-surface hover:bg-surface-container transition-colors cursor-pointer shadow-2xs shrink-0"
+          title="Refresh analytics"
         >
-          <RefreshCw size={15} />
-          <span>Refresh Analytics</span>
+          <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* 1. Monthly Booking Growth & GMV (Col-7) */}
-        <div className="lg:col-span-7 rounded-2xl border border-outline-variant bg-surface p-6 space-y-4 shadow-xs">
+      {/* ── Charts Grid ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4">
+        {/* 1. Monthly Booking Growth & GMV */}
+        <div className="lg:col-span-7 rounded-2xl border border-outline-variant/60 bg-surface p-4 sm:p-5 space-y-3 shadow-2xs">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-heading text-base font-bold text-on-surface flex items-center gap-2">
-                <TrendingUp size={18} className="text-primary" /> Monthly Booking Volume &amp; GMV Trend
+              <h3 className="text-xs sm:text-sm font-bold text-on-surface flex items-center gap-1.5">
+                <TrendingUp size={15} className="text-primary" /> Monthly Booking Volume &amp; Demand
               </h3>
-              <p className="text-xs text-on-surface-variant">Continuous aggregate demand across all member cooperatives</p>
+              <p className="text-[11px] text-on-surface-variant">Continuous aggregate demand across all member cooperatives</p>
             </div>
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-              +38% MoM Growth
+            <span className="text-[10.5px] font-bold text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-lg border border-outline-variant/40">
+              Live Trajectory
             </span>
           </div>
 
-          <div className="h-64 w-full">
+          <div className="h-56 sm:h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.monthlyTrend}>
                 <defs>
                   <linearGradient id="colorGmv" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00288e" stopOpacity={0.4} />
+                    <stop offset="5%" stopColor="#00288e" stopOpacity={0.35} />
                     <stop offset="95%" stopColor="#00288e" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="month" stroke="#64748b" fontSize={12} tickLine={false} />
-                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.1} />
+                <XAxis dataKey="month" stroke="currentColor" opacity={0.6} fontSize={11} tickLine={false} />
+                <YAxis stroke="currentColor" opacity={0.6} fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 8px 30px rgba(0,0,0,0.1)" }}
+                  contentStyle={{
+                    backgroundColor: "var(--color-surface, #ffffff)",
+                    color: "var(--color-on-surface, #0f172a)",
+                    borderRadius: "12px",
+                    border: "1px solid var(--color-outline-variant, #e2e8f0)",
+                    fontSize: "12px"
+                  }}
                 />
-                <Area type="monotone" dataKey="bookings" stroke="#00288e" strokeWidth={3} fillOpacity={1} fill="url(#colorGmv)" name="Bookings" />
+                <Area type="monotone" dataKey="bookings" stroke="#00288e" strokeWidth={2.5} fillOpacity={1} fill="url(#colorGmv)" name="Bookings" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* 2. Top Performing Trade Categories (Col-5) */}
-        <div className="lg:col-span-5 rounded-2xl border border-outline-variant bg-surface p-6 space-y-4 shadow-xs flex flex-col justify-between">
+        {/* 2. Top Performing Trade Categories */}
+        <div className="lg:col-span-5 rounded-2xl border border-outline-variant/60 bg-surface p-4 sm:p-5 space-y-3 shadow-2xs flex flex-col justify-between">
           <div>
-            <h3 className="font-heading text-base font-bold text-on-surface flex items-center gap-2">
-              <Layers size={18} className="text-primary" /> Top Service Demand Share
+            <h3 className="text-xs sm:text-sm font-bold text-on-surface flex items-center gap-1.5">
+              <Layers size={15} className="text-primary" /> Top Service Demand Share
             </h3>
-            <p className="text-xs text-on-surface-variant">Breakdown by total customer service requests</p>
+            <p className="text-[11px] text-on-surface-variant">Breakdown by customer requests across trades</p>
           </div>
 
-          <div className="h-56 w-full flex items-center justify-center">
+          <div className="h-44 sm:h-52 w-full flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={data.topCategories}
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
+                  innerRadius={45}
+                  outerRadius={70}
                   paddingAngle={4}
                   dataKey="bookings"
                 >
@@ -131,15 +139,23 @@ export default function FederationAnalytics() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0" }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--color-surface, #ffffff)",
+                    color: "var(--color-on-surface, #0f172a)",
+                    borderRadius: "12px",
+                    border: "1px solid var(--color-outline-variant, #e2e8f0)",
+                    fontSize: "12px"
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="flex flex-wrap gap-2 justify-center">
+          <div className="flex flex-wrap gap-1.5 justify-center pt-1">
             {data.topCategories.slice(0, 4).map((c, i) => (
-              <span key={c.name} className="inline-flex items-center gap-1.5 text-xs text-on-surface font-semibold">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+              <span key={c.name} className="inline-flex items-center gap-1.5 text-[11px] text-on-surface font-medium bg-surface-container-low px-2 py-0.5 rounded-md border border-outline-variant/30">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                 {c.name} ({c.bookings})
               </span>
             ))}
@@ -147,44 +163,38 @@ export default function FederationAnalytics() {
         </div>
       </div>
 
-      {/* 3. Provider Leaderboard & High Performers */}
-      <div className="rounded-2xl border border-outline-variant bg-surface overflow-hidden shadow-xs">
-        <div className="p-6 border-b border-outline-variant flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center font-bold">
-              <Award size={18} />
-            </div>
-            <div>
-              <h3 className="font-heading text-base font-bold text-on-surface">Federation Provider Leaderboard</h3>
-              <p className="text-xs text-on-surface-variant">Top rated cooperative workers ranked by verified completions &amp; customer trust score.</p>
-            </div>
+      {/* ── 3. Provider Leaderboard ── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Award size={16} className="text-amber-500" />
+            <h2 className="text-xs sm:text-sm font-bold text-on-surface">
+              Federation Provider Leaderboard
+            </h2>
           </div>
-          <span className="text-xs font-bold text-primary bg-[#e8edff] px-3 py-1 rounded-full border border-[#00288e]/20">
-            Top 10 High Performers
+          <span className="text-[11px] font-bold text-on-surface-variant bg-surface-container px-2.5 py-0.5 rounded-full border border-outline-variant/40">
+            Top 10 Performers
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[700px]">
-            <thead>
-              <tr className="border-b border-outline-variant bg-surface-container-low text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
-                <th className="px-6 py-3 w-16">Rank</th>
-                <th className="px-6 py-3">Gig Worker</th>
-                <th className="px-6 py-3">Affiliated Cooperative</th>
-                <th className="px-6 py-3">Primary Skill</th>
-                <th className="px-6 py-3">Trust Score</th>
-                <th className="px-6 py-3">Jobs Done</th>
-                <th className="px-6 py-3 text-right">Total Payout</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/60 text-xs">
-              {data.leaderboard.map((p) => (
-                <tr key={p.id} className="hover:bg-surface-container-low/50 transition-colors">
-                  <td className="px-6 py-3.5">
+        {/* ── Mobile Leaderboard Cards (< 768px) ── */}
+        <div className="md:hidden space-y-2.5">
+          {(data.leaderboard || []).length === 0 ? (
+            <div className="p-6 rounded-2xl border border-dashed border-outline-variant text-center text-xs text-on-surface-variant bg-surface">
+              No worker performance records yet.
+            </div>
+          ) : (
+            (data.leaderboard || []).map((p) => (
+              <div
+                key={p.id}
+                className="p-3.5 rounded-2xl border border-outline-variant/60 bg-surface space-y-2 shadow-2xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
                     <span
-                      className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
+                      className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
                         p.rank === 1
-                          ? "bg-amber-400 text-slate-950 shadow-md font-extrabold"
+                          ? "bg-amber-400 text-slate-950 font-black shadow-xs"
                           : p.rank === 2
                           ? "bg-slate-300 text-slate-900 font-bold"
                           : p.rank === 3
@@ -192,81 +202,137 @@ export default function FederationAnalytics() {
                           : "bg-surface-container text-on-surface"
                       }`}
                     >
-                      {p.rank}
+                      #{p.rank}
                     </span>
-                  </td>
-                  <td className="px-6 py-3.5 font-bold text-sm text-on-surface">
-                    <div className="flex items-center gap-2">
-                      <span>{p.name}</span>
-                      {p.verified && <ShieldCheck size={14} className="text-[#006d30]" />}
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-bold text-sm text-on-surface">{p.name}</h3>
+                        {p.verified && <ShieldCheck size={13} className="text-emerald-500" />}
+                      </div>
+                      <p className="text-[11px] text-on-surface-variant">{p.cooperativeName}</p>
                     </div>
-                  </td>
-                  <td className="px-6 py-3.5 text-on-surface-variant font-semibold">{p.cooperativeName}</td>
-                  <td className="px-6 py-3.5 font-semibold text-primary">{p.skills[0]}</td>
-                  <td className="px-6 py-3.5">
-                    <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                      <Star size={12} fill="currentColor" /> {p.trustScore}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3.5 font-bold text-on-surface">{p.jobsCompleted}</td>
-                  <td className="px-6 py-3.5 text-right font-extrabold text-sm text-[#006d30]">
-                    ₹{p.totalEarnings.toLocaleString()}
-                  </td>
+                  </div>
+
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-500 bg-surface-container px-2 py-0.5 rounded-md border border-outline-variant/40">
+                    <Star size={11} fill="currentColor" /> {p.trustScore}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-1 text-xs border-t border-outline-variant/40">
+                  <div className="p-1.5 rounded-lg bg-surface-container-low border border-outline-variant/30 space-y-0.5">
+                    <span className="text-[9.5px] text-on-surface-variant font-medium">Trade Skill</span>
+                    <p className="font-bold text-on-surface truncate">{p.skills?.[0] || "General"}</p>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-surface-container-low border border-outline-variant/30 space-y-0.5">
+                    <span className="text-[9.5px] text-on-surface-variant font-medium">Jobs Done</span>
+                    <p className="font-bold text-on-surface">{p.jobsCompleted}</p>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-surface-container-low border border-outline-variant/30 space-y-0.5">
+                    <span className="text-[9.5px] text-on-surface-variant font-medium">Total Payout</span>
+                    <p className="font-bold text-on-surface">₹{p.totalEarnings.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ── Desktop Leaderboard Table (>= 768px) ── */}
+        <div className="hidden md:block rounded-2xl border border-outline-variant bg-surface overflow-hidden shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left min-w-[700px] text-xs">
+              <thead>
+                <tr className="border-b border-outline-variant bg-surface-container-low text-[10.5px] font-bold uppercase tracking-wider text-on-surface-variant">
+                  <th className="px-5 py-3 w-16">Rank</th>
+                  <th className="px-5 py-3">Gig Worker</th>
+                  <th className="px-5 py-3">Affiliated Cooperative</th>
+                  <th className="px-5 py-3">Primary Skill</th>
+                  <th className="px-5 py-3">Trust Score</th>
+                  <th className="px-5 py-3">Jobs Done</th>
+                  <th className="px-5 py-3 text-right">Total Payout</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/60">
+                {(data.leaderboard || []).map((p) => (
+                  <tr key={p.id} className="hover:bg-surface-container-low/50 transition-colors">
+                    <td className="px-5 py-3">
+                      <span
+                        className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs ${
+                          p.rank === 1
+                            ? "bg-amber-400 text-slate-950 font-black shadow-2xs"
+                            : p.rank === 2
+                            ? "bg-slate-300 text-slate-900 font-bold"
+                            : p.rank === 3
+                            ? "bg-amber-700 text-white font-bold"
+                            : "bg-surface-container text-on-surface"
+                        }`}
+                      >
+                        {p.rank}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 font-bold text-on-surface">
+                      <div className="flex items-center gap-2">
+                        <span>{p.name}</span>
+                        {p.verified && <ShieldCheck size={14} className="text-emerald-500" />}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-on-surface-variant font-medium">{p.cooperativeName}</td>
+                    <td className="px-5 py-3 font-semibold text-primary">{p.skills?.[0] || "General"}</td>
+                    <td className="px-5 py-3">
+                      <span className="inline-flex items-center gap-1 font-bold text-on-surface bg-surface-container px-2 py-0.5 rounded-full border border-outline-variant/40 text-xs">
+                        <Star size={11} className="text-amber-500 fill-amber-500" /> {p.trustScore}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 font-bold text-on-surface">{p.jobsCompleted}</td>
+                    <td className="px-5 py-3 text-right font-black text-on-surface">
+                      ₹{p.totalEarnings.toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      {/* 4. Geographic Heatmap / Area Fulfillment Density */}
-      <div className="rounded-2xl border border-outline-variant bg-surface p-6 space-y-4 shadow-xs">
+      {/* ── 4. Geographic Demand Heatmap ── */}
+      <div className="rounded-2xl border border-outline-variant/60 bg-surface p-4 sm:p-5 space-y-3 shadow-2xs">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-              <MapPin size={18} />
-            </div>
+          <div className="flex items-center gap-2">
+            <MapPin size={16} className="text-primary" />
             <div>
-              <h3 className="font-heading text-base font-bold text-on-surface">Geographic Demand Density &amp; Response Heatmap</h3>
-              <p className="text-xs text-on-surface-variant">Live geospatial concentration of service requests across NCR districts.</p>
+              <h3 className="text-xs sm:text-sm font-bold text-on-surface">Geographic Demand &amp; Regional Heatmap</h3>
+              <p className="text-[11px] text-on-surface-variant">Live geospatial concentration of service requests across NCT districts.</p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-on-surface-variant">Updated hourly via GPS telemetry</span>
+          <span className="text-[11px] text-on-surface-variant font-medium">GPS Telemetry</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-          {data.geographicHeatmap.map((item) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 pt-1">
+          {(data.geographicHeatmap || []).map((item, idx) => (
             <div
-              key={item.pinCode}
-              className="p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant hover:border-primary/40 transition-all space-y-2.5 shadow-2xs"
+              key={item.pinCode || idx}
+              className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/50 space-y-2 shadow-2xs"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-on-surface">{item.area}</span>
-                <span
-                  className={`text-[10.5px] font-bold px-2 py-0.5 rounded-full ${
-                    item.density === "Very High"
-                      ? "bg-red-100 text-red-800"
-                      : item.density === "High"
-                      ? "bg-amber-100 text-amber-800"
-                      : "bg-blue-100 text-blue-800"
-                  }`}
-                >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-on-surface truncate">{item.area}</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant/40 shrink-0">
                   {item.density} Density
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 text-xs pt-1 border-t border-outline-variant/60">
-                <div>
-                  <p className="text-[10px] text-on-surface-variant font-bold uppercase">PIN Code</p>
-                  <p className="font-mono font-bold text-on-surface mt-0.5">{item.pinCode}</p>
+              <div className="grid grid-cols-3 gap-1.5 text-xs pt-1 border-t border-outline-variant/40">
+                <div className="space-y-0.5">
+                  <p className="text-[9.5px] text-on-surface-variant font-semibold uppercase">PIN Code</p>
+                  <p className="font-mono font-bold text-on-surface text-[11px]">{item.pinCode || "110001"}</p>
                 </div>
-                <div>
-                  <p className="text-[10px] text-on-surface-variant font-bold uppercase">Bookings</p>
-                  <p className="font-bold text-primary mt-0.5">{item.bookings}</p>
+                <div className="space-y-0.5">
+                  <p className="text-[9.5px] text-on-surface-variant font-semibold uppercase">Bookings</p>
+                  <p className="font-bold text-on-surface text-[11px]">{item.bookings}</p>
                 </div>
-                <div>
-                  <p className="text-[10px] text-on-surface-variant font-bold uppercase">Avg Arrival</p>
-                  <p className="font-bold text-[#006d30] mt-0.5">{item.avgResponseMin} mins</p>
+                <div className="space-y-0.5">
+                  <p className="text-[9.5px] text-on-surface-variant font-semibold uppercase">Avg Response</p>
+                  <p className="font-bold text-on-surface text-[11px]">{item.avgResponseMin} mins</p>
                 </div>
               </div>
             </div>

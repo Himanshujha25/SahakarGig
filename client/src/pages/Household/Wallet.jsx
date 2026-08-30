@@ -173,9 +173,6 @@ export default function WalletPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="orvia-badge-lime hidden sm:inline-flex"><span className="w-2 h-2 rounded-full bg-[#65a30d] animate-pulse" />Prepaid Credits & Insights</span>
-          </div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-on-surface"
             style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
             Wallet & Spending
@@ -238,15 +235,20 @@ export default function WalletPage() {
               <IconShieldCheck size={13} className="text-primary" />
               Wallets are escrow-protected — refunds go straight back here.
             </p>
-
             <div className="space-y-2.5 sm:space-y-3">
+              <span className="text-[11px] font-bold text-on-surface-variant block">Quick Add Balance</span>
               <div className="flex items-center gap-2 flex-wrap">
                 {QUICK_TOPUPS.map((q) => (
-                  <button key={q} onClick={() => setAmount(q)}
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => setAmount(String(q))}
                     className={`px-3 sm:px-3.5 h-8 sm:h-9 rounded-full text-xs font-bold border transition-all duration-200 active:scale-95 cursor-pointer ${
-                      amount === q
+                      amount === String(q)
                         ? "bg-primary text-on-primary border-primary shadow-xs"
-                        : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/50 hover:text-primary active:scale-95"}`}>
+                        : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/50 hover:text-primary"
+                    }`}
+                  >
                     ₹{q}
                   </button>
                 ))}
@@ -254,25 +256,50 @@ export default function WalletPage() {
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <IconCurrencyRupee size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/70" />
-                  <input type="number" min={100} value={amount}
+                  <input
+                    type="number"
+                    min={100}
+                    value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     className="w-full h-10 sm:h-11 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm font-bold outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-on-surface-variant/60 transition-all"
-                    placeholder="Custom amount" />
+                    placeholder="Custom amount"
+                  />
                 </div>
-                <button onClick={() => addMoney(true)} disabled={adding}
-                  className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary/90 disabled:opacity-60 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => addMoney(true)}
+                  disabled={adding}
+                  className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary/90 disabled:opacity-60 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shadow-xs"
+                >
                   {adding ? <IconLoader2 size={14} className="animate-spin" /> : <IconPlus size={14} />}
                   Add
                 </button>
               </div>
+
+              {/* Dev Mock Simulation Button */}
+              {data.isTestMode && (
+                <button
+                  type="button"
+                  onClick={() => simulateDevTopup(500)}
+                  disabled={adding}
+                  className="w-full h-8 sm:h-9 mt-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[11.5px] font-extrabold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                >
+                  <IconSparkles size={14} className="text-amber-500" />
+                  <span>⚡ Instant Dev Test Top-up (+₹500)</span>
+                </button>
+              )}
+
               {error && (
                 <p className="text-[11px] font-bold text-error flex items-center gap-1">
                   <IconAlertCircle size={12} /> {error}
                 </p>
               )}
-              <p className="hidden sm:block text-[10px] text-on-surface-variant/70 font-medium">Min top-up ₹100 · Instant credit via UPI / Cards / NetBanking</p>
+              <p className="hidden sm:block text-[10px] text-on-surface-variant/70 font-medium">
+                Min top-up ₹100 · Instant credit via UPI / Cards / NetBanking
+              </p>
             </div>
           </div>
+
 
           {/* Transactions */}
           <div className="lg:col-span-2 orvia-card p-6 space-y-4">

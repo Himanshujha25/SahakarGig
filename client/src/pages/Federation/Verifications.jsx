@@ -3,7 +3,7 @@ import api from "../../lib/api";
 import {
   ShieldCheck, CheckCircle2, XCircle, AlertCircle, FileText,
   Search, Filter, Check, Eye, RefreshCw, Users, IdCard, ExternalLink,
-  ChevronRight, Building2, BadgeCheck, X, AlertTriangle, Layers
+  ChevronRight, Building2, BadgeCheck, X, AlertTriangle, Layers, ChevronDown
 } from "lucide-react";
 
 export default function FederationVerifications() {
@@ -124,45 +124,62 @@ export default function FederationVerifications() {
         </div>
       )}
 
-      {/* Header & Bulk Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-outline-variant pb-5">
+      {/* ── Header & Bulk Actions ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/60 pb-3">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-1">
-            <ShieldCheck size={16} />
-            <span>Federation Regulatory Oversight</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+              Provider Verification Queue
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
+              {providers.length} In Review
+            </span>
           </div>
-          <h1 className="font-heading text-2xl lg:text-3xl font-bold text-on-surface">
-            Provider Verification Queue
-          </h1>
-          <p className="text-sm text-on-surface-variant mt-0.5">
+          <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
             Audit identity credentials, e-Shram certifications, and approve worker memberships.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
           {selectedIds.length > 0 && (
             <button
               onClick={handleBulkApprove}
               disabled={actionBusy}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#006d30] text-white text-xs font-bold hover:bg-[#005a26] transition-all shadow-md active:scale-95 cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#006d30] text-white text-xs font-bold hover:bg-[#005a26] transition-all shadow-2xs active:scale-95 cursor-pointer disabled:opacity-50"
             >
-              <CheckCircle2 size={15} />
-              <span>Bulk Approve ({selectedIds.length} Selected)</span>
+              <CheckCircle2 size={14} />
+              <span>Bulk Approve ({selectedIds.length})</span>
             </button>
           )}
           <button
             onClick={load}
-            className="p-2 rounded-xl border border-outline-variant text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+            className="p-2 rounded-xl border border-outline-variant/60 bg-surface-container-low text-on-surface hover:bg-surface-container transition-colors cursor-pointer shadow-2xs"
             title="Refresh list"
           >
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
           </button>
         </div>
       </div>
 
-      {/* Status Filter Tabs & Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 w-full sm:w-auto">
+      {/* ── Status Filter Tabs & Search Bar (Dropdown on Mobile, Pills on Desktop) ── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+        {/* Mobile Dropdown Select (< 640px) */}
+        <div className="sm:hidden relative w-full">
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="w-full h-10 px-3.5 pr-8 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-bold text-on-surface outline-none focus:border-primary shadow-2xs appearance-none"
+          >
+            <option value="pending">Pending Review ({providers.filter((p) => !p.verified).length})</option>
+            <option value="re_verification">Re-Verification Req. ({providers.filter((p) => p.verificationStatus === "re_verification_requested").length})</option>
+            <option value="verified">Verified Active ({providers.filter((p) => p.verified).length})</option>
+            <option value="all">All Records ({providers.length})</option>
+          </select>
+          <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+        </div>
+
+        {/* Desktop Segmented Pill Tabs (>= 640px) */}
+        <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {[
             { key: "pending", label: "Pending Review", count: providers.filter((p) => !p.verified).length },
             { key: "re_verification", label: "Re-Verification Req.", count: providers.filter((p) => p.verificationStatus === "re_verification_requested").length },
@@ -172,31 +189,150 @@ export default function FederationVerifications() {
             <button
               key={tab.key}
               onClick={() => setFilterStatus(tab.key)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
                 filterStatus === tab.key
-                  ? "bg-[#e8edff] text-[#00288e] border border-[#00288e]/30 shadow-2xs"
-                  : "text-on-surface-variant hover:bg-surface-container-low"
+                  ? "bg-primary text-on-primary shadow-2xs"
+                  : "text-on-surface-variant hover:bg-surface-container border border-outline-variant/40"
               }`}
             >
               <span>{tab.label}</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${filterStatus === tab.key ? "bg-white/20 text-white" : "bg-surface-container-high text-on-surface-variant"}`}>
+                {tab.count}
+              </span>
             </button>
           ))}
         </div>
 
         <div className="relative w-full sm:w-72">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search provider, cooperative..."
-            className="w-full h-9 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface text-xs font-semibold text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="w-full h-9 pl-8 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-medium text-on-surface outline-none focus:border-primary shadow-2xs"
           />
         </div>
       </div>
 
-      {/* Verification Queue Table */}
-      <div className="rounded-2xl border border-outline-variant bg-surface overflow-hidden shadow-xs">
+      {/* ── MOBILE PROVIDER VERIFICATION CARDS (< 768px) ── */}
+      <div className="md:hidden space-y-2.5">
+        {loading ? (
+          <div className="p-8 text-center text-xs text-on-surface-variant">
+            <RefreshCw size={22} className="animate-spin mx-auto text-primary mb-2" />
+            Loading credentials...
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-8 rounded-2xl border border-dashed border-outline-variant text-center text-xs text-on-surface-variant bg-surface">
+            No provider verification requests matching this filter.
+          </div>
+        ) : (
+          filtered.map((p) => {
+            const isSelected = selectedIds.includes(p._id);
+            const isVer = !!p.verified;
+            const isReVer = p.verificationStatus === "re_verification_requested";
+
+            return (
+              <div
+                key={p._id}
+                className="p-3.5 rounded-2xl border border-outline-variant/60 bg-surface space-y-2.5 shadow-2xs"
+              >
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectOne(p._id)}
+                      className="rounded accent-primary cursor-pointer h-4 w-4 shrink-0"
+                    />
+                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                      {p.userId?.name?.[0]?.toUpperCase() || "W"}
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <h3 className="text-sm font-bold text-on-surface truncate">{p.userId?.name || "Provider Member"}</h3>
+                      <p className="text-[11px] text-on-surface-variant truncate font-medium">
+                        {p.cooperativeId?.name || "Independent"} &middot; {p.userId?.phone || "No phone"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {isVer ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] border border-emerald-500/20 shrink-0">
+                      <BadgeCheck size={11} /> Verified
+                    </span>
+                  ) : isReVer ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] border border-amber-500/20 shrink-0">
+                      <AlertCircle size={11} /> Re-verify
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-bold text-[10px] shrink-0">
+                      Pending
+                    </span>
+                  )}
+                </div>
+
+                {/* Skills & Docs */}
+                <div className="flex items-center justify-between gap-2 flex-wrap text-xs pt-1">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {(p.skills || ["General"]).map((s) => (
+                      <span key={s} className="px-2 py-0.5 rounded-md bg-surface-container-low text-on-surface text-[10.5px] font-medium border border-outline-variant/30">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {(p.documentDetails || []).map((d, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setSelectedDoc({ ...d, providerName: p.userId?.name })}
+                        className="px-2 py-0.5 rounded-md border border-outline-variant/60 bg-surface-container-low text-[10.5px] font-bold text-primary flex items-center gap-1 cursor-pointer"
+                      >
+                        <FileText size={11} />
+                        <span>{d.docType?.split(" ")[0]}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-outline-variant/40">
+                  {!isVer ? (
+                    <>
+                      <button
+                        onClick={() => setReVerifyModal(p)}
+                        disabled={actionBusy}
+                        className="px-3 py-1 rounded-xl border border-outline-variant bg-surface-container-low text-on-surface-variant hover:text-on-surface text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Request Doc
+                      </button>
+                      <button
+                        onClick={() => handleVerify(p._id, "verified")}
+                        disabled={actionBusy}
+                        className="px-3.5 py-1 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all cursor-pointer shadow-2xs"
+                      >
+                        Approve
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setReVerifyModal(p)}
+                      disabled={actionBusy}
+                      className="px-3 py-1 rounded-xl border border-outline-variant bg-surface-container-low text-on-surface-variant text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Re-Audit
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ── DESKTOP VERIFICATION QUEUE TABLE (>= 768px) ── */}
+      <div className="hidden md:block rounded-2xl border border-outline-variant bg-surface overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[750px]">
             <thead>

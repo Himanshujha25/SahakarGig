@@ -27,6 +27,22 @@ export default function HouseholdLayout() {
   const [drawerClosing, setDrawerClosing] = useState(false);
   const closeTimer = useRef(null);
 
+  const [liveAvatar, setLiveAvatar] = useState(() => {
+    return user?.avatarUrl || user?.avatar || localStorage.getItem('sg_avatar') || null;
+  });
+
+  useEffect(() => {
+    const local = user?.avatarUrl || user?.avatar || localStorage.getItem('sg_avatar') || null;
+    if (local) setLiveAvatar(local);
+
+    const onStorage = () => {
+      const updated = localStorage.getItem('sg_avatar') || null;
+      if (updated) setLiveAvatar(updated);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [user]);
+
   function openDrawer() { setDrawerOpen(true); setDrawerClosing(false); }
   function closeDrawer() {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -122,8 +138,8 @@ export default function HouseholdLayout() {
         </div>
 
         <div className="mx-3 mb-4 p-3 rounded-xl bg-surface-container border border-outline-variant/40 flex items-center gap-3">
-          {user?.avatarUrl ? (
-            <img src={user.avatarUrl} alt={user.name || "Household"}
+          {liveAvatar ? (
+            <img src={liveAvatar} alt={user?.name || "Household"}
               className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-primary/20" />
           ) : (
             <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white text-[13px] font-bold shrink-0">{initials}</div>
@@ -183,8 +199,8 @@ export default function HouseholdLayout() {
               <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-on-primary/30" />
+                  {liveAvatar ? (
+                    <img src={liveAvatar} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-on-primary/30" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-on-primary/20 flex items-center justify-center text-[13px] font-bold ring-1 ring-on-primary/30">{initials}</div>
                   )}

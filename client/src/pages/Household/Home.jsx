@@ -85,11 +85,7 @@ export default function Home() {
             Hey, {firstName} 👋
           </p>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-container/40 text-primary text-[10.5px] font-bold border border-primary/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-              Live Cooperative Network
-            </span>
-            <span className="hidden sm:inline text-[11px] text-on-surface-variant/70 font-medium">• {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+            <span className="hidden sm:inline text-[11px] text-on-surface-variant/70 font-medium">Date:-{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
           </div>
           <p className="hidden sm:block text-[12px] sm:text-[13px] text-on-surface-variant mt-1.5 leading-snug">
             Book verified providers endorsed by your cooperative society.
@@ -103,8 +99,7 @@ export default function Home() {
             onClick={() => setIsVoiceOpen(true)}
             className="h-9 inline-flex items-center gap-2 px-3.5 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-xs hover:opacity-90 active:scale-98 transition-all cursor-pointer"
           >
-            <Mic size={14} className="animate-bounce" />
-            <span>Voice AI</span>
+            <Mic size={14} />
           </button>
 
           {walletBalance !== null && (
