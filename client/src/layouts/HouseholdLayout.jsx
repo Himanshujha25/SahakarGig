@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
@@ -24,6 +24,20 @@ export default function HouseholdLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerClosing, setDrawerClosing] = useState(false);
+  const closeTimer = useRef(null);
+
+  function openDrawer() { setDrawerOpen(true); setDrawerClosing(false); }
+  function closeDrawer() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setDrawerClosing(true);
+    closeTimer.current = setTimeout(() => {
+      setDrawerOpen(false);
+      setDrawerClosing(false);
+    }, 240);
+  }
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
+
   const initials = user?.name
     ? user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     : 'HH';
@@ -126,7 +140,7 @@ export default function HouseholdLayout() {
       <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-14 flex items-center justify-between px-3.5 bg-surface/95 backdrop-blur border-b border-outline-variant/60">
         {/* Hamburger */}
         <button
-          onClick={() => setDrawerOpen(true)}
+          onClick={openDrawer}
           aria-label="Open menu"
           className="w-10 h-10 -ml-1.5 flex items-center justify-center rounded-xl text-on-surface hover:bg-surface-container transition-colors cursor-pointer active:scale-95"
         >
@@ -152,12 +166,17 @@ export default function HouseholdLayout() {
       </header>
 
       {/* ── Slide-in Drawer (Mobile) ── */}
-      {drawerOpen && (
+      {(drawerOpen || drawerClosing) && (
         <div className="lg:hidden fixed inset-0 z-50">
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm animate-chat-backdrop" onClick={() => setDrawerOpen(false)} />
+          <div
+            className={`absolute inset-0 bg-black/45 backdrop-blur-sm ${drawerOpen ? 'animate-chat-backdrop' : 'animate-chat-backdrop-out'}`}
+            onClick={closeDrawer}
+          />
           {/* Panel */}
-          <div className="absolute left-0 top-0 bottom-0 w-[78%] max-w-[320px] bg-surface flex flex-col shadow-[8px_0_40px_rgba(0,0,0,0.25)] animate-drawer-slide">
+          <div
+            className={`absolute left-0 top-0 bottom-0 w-[78%] max-w-[320px] bg-surface flex flex-col shadow-[8px_0_40px_rgba(0,0,0,0.25)] ${drawerOpen ? 'animate-drawer-slide' : 'animate-drawer-close'}`}
+          >
 
             {/* Drawer header */}
             <div className="bg-primary text-on-primary px-4 pt-5 pb-4 relative">
@@ -174,7 +193,7 @@ export default function HouseholdLayout() {
                     <p className="text-[11px] text-on-primary/80 truncate">{user?.email}</p>
                   </div>
                 </div>
-                <button onClick={() => setDrawerOpen(false)} className="w-9 h-9 rounded-full bg-on-primary/15 hover:bg-on-primary/25 flex items-center justify-center cursor-pointer shrink-0" aria-label="Close menu">
+                <button onClick={closeDrawer} className="w-9 h-9 rounded-full bg-on-primary/15 hover:bg-on-primary/25 flex items-center justify-center cursor-pointer shrink-0" aria-label="Close menu">
                   <X size={18} />
                 </button>
               </div>
@@ -216,32 +235,11 @@ export default function HouseholdLayout() {
       )}
 
       {/* ── Page content ── */}
-      <main className="flex-1 lg:ml-[260px] pt-14 lg:pt-0 pb-24 lg:pb-0 min-h-screen">
+      <main className="flex-1 min-w-0 lg:ml-[260px] pt-14 lg:pt-0 pb-8 lg:pb-0 min-h-screen">
         <div className="w-full max-w-7xl mx-auto">
           <Outlet />
         </div>
       </main>
-
-      {/* ── Mobile Bottom Nav — Premium pill ── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40">
-        <div className="mx-3 mb-2 rounded-2xl bg-surface/95 backdrop-blur border border-outline-variant/60 shadow-[0_4px_24px_rgba(0,0,0,0.08)] flex px-1.5 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          {NAV.slice(0, 5).map(({ label, Icon, to, end }) => (
-            <NavLink key={label} to={to} end={end}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[46px] active:scale-95 transition-transform cursor-pointer">
-              {({ isActive }) => (
-                <>
-                  <Icon size={19} strokeWidth={isActive ? 2.4 : 1.8}
-                    className={isActive ? 'text-primary' : 'text-on-surface-variant'} />
-                  <span className={`text-[10px] font-semibold ${isActive ? 'text-primary' : 'text-on-surface-variant'}`}>
-                    {label}
-                  </span>
-                </>
-              )}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
-
     </div>
   );
 }

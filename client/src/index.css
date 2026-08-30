@@ -757,19 +757,6 @@ html.dark {
     border-radius: 9999px;
   }
 
-  .badge-verified {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    border-radius: 9999px;
-    background-color: var(--color-secondary-container);
-    padding: 0.25rem 0.75rem;
-    font-family: var(--font-heading);
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--color-on-secondary-container);
-  }
-
   .status-pill {
     display: inline-flex;
     align-items: center;
@@ -978,6 +965,22 @@ html.dark {
   animation: chatDrawerIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+    transform-origin: top center;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transform-origin: top center;
+  }
+}
+.animate-dropdown-in {
+  animation: dropdownIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @keyframes drawerSlide {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
@@ -985,6 +988,22 @@ html.dark {
 
 .animate-drawer-slide {
   animation: drawerSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes drawerClose {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+.animate-drawer-close {
+  animation: drawerClose 0.24s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes chatBackdropOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.animate-chat-backdrop-out {
+  animation: chatBackdropOut 0.24s ease-out forwards;
 }
 
 /* ── WhatsApp-Style Typing Indicator ── */

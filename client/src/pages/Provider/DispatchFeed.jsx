@@ -439,26 +439,26 @@ export default function DispatchFeed() {
             style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
             Live Job Dispatch
           </h1>
-          <p className="text-[14px] text-on-surface-variant mt-0.5">
+          <p className="hidden sm:block text-[14px] text-on-surface-variant mt-0.5">
             Auto-escalates in 60s if unclaimed. First worker to accept wins the job.
           </p>
         </div>
 
         {/* Audio & Notification Controls */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {/* Test 15s Siren Button */}
           <button
             type="button"
             onClick={isSirenPlaying ? handleSilenceSiren : handleTestAlarm}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[12.5px] font-bold transition-all cursor-pointer ${
+            className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2.5 sm:py-2 rounded-xl border text-[12.5px] font-bold transition-all cursor-pointer ${
               isSirenPlaying
                 ? "border-error bg-error text-white shadow-md animate-pulse"
                 : "border-primary/30 bg-[#e8edff] text-[#00288e] hover:bg-[#d7e3ff]"
             }`}
             title="Test 15-second loud emergency siren"
           >
-            {isSirenPlaying ? <Square size={13} fill="currentColor" /> : <Play size={14} className="fill-[#00288e]" />}
-            {isSirenPlaying ? "Stop Siren (15s)" : "Test Loud Siren (15s)"}
+            {isSirenPlaying ? <Square size={16} fill="currentColor" /> : <Play size={16} className="fill-[#00288e]" />}
+            <span className="hidden sm:inline">{isSirenPlaying ? "Stop Siren (15s)" : "Test Loud Siren (15s)"}</span>
           </button>
 
           {/* Mute Toggle Button */}
@@ -468,15 +468,15 @@ export default function DispatchFeed() {
               if (!alarmMuted) stopAlarmSound();
               setAlarmMuted((m) => !m);
             }}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[12.5px] font-bold transition-all cursor-pointer ${
+            className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2.5 sm:py-2 rounded-xl border text-[12.5px] font-bold transition-all cursor-pointer ${
               alarmMuted
                 ? "border-error/40 bg-error-container/50 text-on-error-container"
                 : "border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary/40"
             }`}
             title={alarmMuted ? "Alarm Sound Muted" : "Alarm Sound Enabled"}
           >
-            {alarmMuted ? <VolumeX size={15} className="text-error" /> : <Volume2 size={15} className="text-[#00288e]" />}
-            {alarmMuted ? "Muted" : "Sound ON"}
+            {alarmMuted ? <VolumeX size={18} className="text-error" /> : <Volume2 size={18} className="text-[#00288e]" />}
+            <span className="hidden sm:inline">{alarmMuted ? "Muted" : "Sound ON"}</span>
           </button>
 
           {/* Push Notification Button */}
@@ -484,15 +484,15 @@ export default function DispatchFeed() {
             <button
               type="button"
               onClick={handleEnablePush}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-on-primary text-[12.5px] font-bold hover:shadow-md transition-all cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2.5 sm:py-2 rounded-xl bg-primary text-on-primary text-[12.5px] font-bold hover:shadow-md transition-all cursor-pointer"
             >
-              <Bell size={14} /> Enable Push Alerts
+              <Bell size={17} /> <span className="hidden sm:inline">Enable Push Alerts</span>
             </button>
           )}
 
           {jobs.length > 0 && (
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#e8edff] text-[#00288e] text-[12.5px] font-bold">
-              <Radio size={15} /> {jobs.length} live job{jobs.length > 1 ? "s" : ""}
+            <div className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2.5 sm:py-2 rounded-xl bg-[#e8edff] text-[#00288e] text-[12.5px] font-bold">
+              <Radio size={17} /> <span className="hidden sm:inline">{jobs.length} live job{jobs.length > 1 ? "s" : ""}</span>
             </div>
           )}
         </div>
@@ -543,103 +543,102 @@ export default function DispatchFeed() {
 
             return (
               <div
-                key={j._id}
-                className={`flex flex-col justify-between gap-4 rounded-2xl border bg-surface p-5 transition-all duration-300 hover:shadow-[0_4px_24px_rgba(0,40,142,0.08)] ${
-                  remainingSec <= 15
-                    ? "border-error shadow-[0_0_0_2px_rgba(186,26,26,0.2)] bg-error-container/5"
-                    : j.isNew
-                    ? "border-[#00288e] shadow-[0_0_0_3px_rgba(0,40,142,0.15)]"
-                    : j.isEmergency
-                    ? "border-error/50 bg-error-container/10"
-                    : "border-outline-variant/60 hover:border-outline"
-                }`}
-              >
-                <div className="space-y-3">
-                  {/* Top Bar with Badge + 1-Minute Countdown Timer */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      {j.isNew ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#00288e] text-white text-[10.5px] font-bold animate-pulse">
-                          <BellRing size={11} /> NEW
-                        </span>
-                      ) : j.isEmergency ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-error text-white text-[10.5px] font-bold">
-                          <Zap size={11} /> EMERGENCY
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#e8edff] text-[#00288e] text-[10.5px] font-bold">
-                          <Radio size={11} /> BROADCAST
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Auto-escalation 60s countdown badge */}
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-tight ${
-                        remainingSec <= 15
-                          ? "bg-error text-white animate-pulse"
-                          : "bg-surface-container-high text-on-surface-variant"
-                      }`}
-                    >
-                      <Clock size={11} /> {remainingSec}s left
+            className={`flex flex-col justify-between gap-4 rounded-2xl border bg-surface p-5 sm:p-5 transition-all duration-300 hover:shadow-[0_4px_24px_rgba(0,40,142,0.08)] ${
+              remainingSec <= 15
+                ? "border-error shadow-[0_0_0_2px_rgba(186,26,26,0.2)] bg-error-container/5"
+                : j.isNew
+                ? "border-[#00288e] shadow-[0_0_0_3px_rgba(0,40,142,0.15)]"
+                : j.isEmergency
+                ? "border-error/50 bg-error-container/10"
+                : "border-outline-variant/60 hover:border-outline"
+            }`}
+          >
+            <div className="space-y-3.5">
+              {/* Top Bar with Badge + 1-Minute Countdown Timer */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  {j.isNew ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#00288e] text-white text-[11px] font-bold animate-pulse">
+                      <BellRing size={12} /> NEW
                     </span>
-                  </div>
-
-                  {/* 60-Second Auto-Escalation Progress Bar */}
-                  <div className="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-1000 ${
-                        remainingSec <= 15 ? "bg-error" : "bg-[#00288e]"
-                      }`}
-                      style={{ width: `${progressPct}%` }}
-                    />
-                  </div>
-
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-[17px] font-bold text-on-surface">{j.targetCategory || j.service}</h3>
-                      <p className="text-[12.5px] text-on-surface-variant mt-0.5 flex items-center gap-1">
-                        <Users size={13} /> {j.householdId?.name || "Verified Household"}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="flex items-center justify-end gap-0.5 text-[17px] font-extrabold text-[#00288e]">
-                        <IndianRupee size={15} /> {j.price ?? 250}
-                      </p>
-                      <p className="text-[10.5px] text-on-surface-variant font-semibold">per hour</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 rounded-xl bg-surface-container-low border border-outline-variant/30 p-3 text-[13px]">
-                    <p className="flex items-center gap-2 text-on-surface font-semibold truncate">
-                      <MapPin size={15} className="text-[#00288e] shrink-0" /> {j.locationText || j.targetCategory}
-                    </p>
-                    {j.isEmergency && (
-                      <p className="text-[11.5px] font-bold text-error flex items-center gap-1">
-                        <ShieldAlert size={13} /> Priority instant emergency response required
-                      </p>
-                    )}
-                  </div>
+                  ) : j.isEmergency ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-error text-white text-[11px] font-bold">
+                      <Zap size={12} /> EMERGENCY
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#e8edff] text-[#00288e] text-[11px] font-bold">
+                      <Radio size={12} /> BROADCAST
+                    </span>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    disabled={busy === j._id}
-                    onClick={() => accept(j)}
-                    className="h-11 flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#00288e] text-white text-[13.5px] font-bold hover:bg-[#173bab] hover:shadow-md active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer"
-                  >
-                    <Check size={16} strokeWidth={2.5} />
-                    {busy === j._id ? "Accepting Job…" : "Accept & Claim Job"}
-                  </button>
-                  <button
-                    onClick={() => declineJob(j)}
-                    title="Reject this job"
-                    className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border border-outline-variant bg-surface-container text-on-surface-variant hover:bg-error-container/40 hover:text-error hover:border-error/40 active:scale-[0.98] transition-all duration-200 cursor-pointer"
-                  >
-                    <X size={17} strokeWidth={2.5} />
-                  </button>
+                {/* Auto-escalation 60s countdown badge */}
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-tight ${
+                    remainingSec <= 15
+                      ? "bg-error text-white animate-pulse"
+                      : "bg-surface-container-high text-on-surface-variant"
+                  }`}
+                >
+                  <Clock size={12} /> {remainingSec}s left
+                </span>
+              </div>
+
+              {/* 60-Second Auto-Escalation Progress Bar */}
+              <div className="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-1000 ${
+                    remainingSec <= 15 ? "bg-error" : "bg-[#00288e]"
+                  }`}
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[17px] font-bold text-on-surface leading-snug truncate">{j.targetCategory || j.service}</h3>
+                  <p className="text-[12.5px] text-on-surface-variant mt-1 flex items-center gap-1 truncate">
+                    <Users size={14} className="shrink-0" /> <span className="truncate">{j.householdId?.name || "Verified Household"}</span>
+                  </p>
+                </div>
+                <div className="text-right shrink-0 pl-3">
+                  <p className="flex items-center justify-end gap-0.5 text-[18px] font-extrabold text-[#00288e]">
+                    <IndianRupee size={16} /> {j.price ?? 250}
+                  </p>
+                  <p className="text-[10.5px] text-on-surface-variant font-semibold">per hour</p>
                 </div>
               </div>
+
+              <div className="space-y-1.5 rounded-xl bg-surface-container-low border border-outline-variant/30 p-3 text-[13px]">
+                <p className="flex items-center gap-2 text-on-surface font-semibold truncate">
+                  <MapPin size={15} className="text-[#00288e] shrink-0" /> <span className="truncate">{j.locationText || j.targetCategory}</span>
+                </p>
+                {j.isEmergency && (
+                  <p className="text-[11.5px] font-bold text-error flex items-center gap-1">
+                    <ShieldAlert size={13} /> Priority instant emergency response required
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                disabled={busy === j._id}
+                onClick={() => accept(j)}
+                className="h-11 flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#00288e] text-white text-[13.5px] font-bold hover:bg-[#173bab] hover:shadow-md active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer"
+              >
+                <Check size={16} strokeWidth={2.5} />
+                {busy === j._id ? "Accepting Job…" : "Accept & Claim Job"}
+              </button>
+              <button
+                onClick={() => declineJob(j)}
+                title="Reject this job"
+                className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border border-outline-variant bg-surface-container text-on-surface-variant hover:bg-error-container/40 hover:text-error hover:border-error/40 active:scale-[0.98] transition-all duration-200 cursor-pointer"
+              >
+                <X size={17} strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
             );
           })}
         </div>

@@ -2,10 +2,10 @@ import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import api from "../../lib/api";
 import {
-  Wallet as WalletIcon, IndianRupee, Plus, ArrowDownLeft, ArrowUpRight,
-  TrendingUp, CalendarDays, ReceiptText, Sparkles, ShieldCheck, LoaderCircle,
-  CircleAlert, Trophy, BaggageClaim, Crown, Check, BadgeCent
-} from "lucide-react";
+  IconWallet, IconCurrencyRupee, IconPlus, IconArrowDownLeft, IconArrowUpRight,
+  IconTrendingUp, IconCalendar, IconReceipt, IconSparkles, IconShieldCheck,
+  IconLoader2, IconAlertCircle, IconTrophy, IconBriefcase, IconCrown, IconCheck
+} from "@tabler/icons-react";
 
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -174,18 +174,18 @@ export default function WalletPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="orvia-badge-lime"><span className="w-2 h-2 rounded-full bg-[#65a30d] animate-pulse" />Prepaid Credits & Insights</span>
+            <span className="orvia-badge-lime hidden sm:inline-flex"><span className="w-2 h-2 rounded-full bg-[#65a30d] animate-pulse" />Prepaid Credits & Insights</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-on-surface"
             style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
             Wallet & Spending
           </h1>
-          <p className="text-sm text-on-surface-variant/80 mt-0.5">
+          <p className="hidden sm:block text-sm text-on-surface-variant/80 mt-0.5">
             Top up your cooperative wallet, pay bookings instantly, and see where your money goes.
           </p>
         </div>
-        <Link to="/household/bookings" className="orvia-pill-selected inline-flex items-center gap-2">
-          <ReceiptText size={14} /> My Bookings
+        <Link to="/household/bookings" className="orvia-pill-selected hidden sm:inline-flex items-center gap-2">
+          <IconReceipt size={14} /> My Bookings
         </Link>
       </div>
 
@@ -194,17 +194,17 @@ export default function WalletPage() {
         <button onClick={() => setTab("wallet")}
           className={`h-9 px-5 rounded-full text-xs font-bold transition-all cursor-pointer ${
             tab === "wallet" ? "orvia-btn-primary" : "text-on-surface-variant hover:text-on-surface"}`}>
-          <WalletIcon size={13} className="inline mr-1.5" />Wallet
+          <IconWallet size={13} className="inline mr-1.5" />Wallet
         </button>
         <button onClick={() => setTab("insights")}
           className={`h-9 px-5 rounded-full text-xs font-bold transition-all cursor-pointer ${
             tab === "insights" ? "orvia-btn-primary" : "text-on-surface-variant hover:text-on-surface"}`}>
-          <TrendingUp size={13} className="inline mr-1.5" />Insights
+          <IconTrendingUp size={13} className="inline mr-1.5" />Insights
         </button>
         <button onClick={() => setTab("plans")}
           className={`h-9 px-5 rounded-full text-xs font-bold transition-all cursor-pointer ${
             tab === "plans" ? "orvia-btn-primary" : "text-on-surface-variant hover:text-on-surface"}`}>
-          <Crown size={13} className="inline mr-1.5" />Plans
+          <IconCrown size={13} className="inline mr-1.5" />Plans
         </button>
       </div>
 
@@ -217,51 +217,60 @@ export default function WalletPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
 
           {/* Balance card */}
-          <div className="orvia-card p-6 flex flex-col gap-5 shadow-md border-[#1e6b65]/20 bg-gradient-to-br from-[#0f172a] via-[#12335f] to-[#1e6b65] text-white">
+          <div className="orvia-card p-5 sm:p-6 flex flex-col gap-3.5 sm:gap-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-white/70 flex items-center gap-1.5">
-                <WalletIcon size={14} /> Available Balance
-              </span>
-              <Sparkles size={18} className="text-[#a3e635]" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary-container/60 text-primary flex items-center justify-center shrink-0">
+                  <IconWallet size={18} stroke={2} />
+                </div>
+                <span className="text-xs sm:text-[13px] font-bold uppercase tracking-wider text-on-surface">Available Balance</span>
+              </div>
             </div>
-            <p className="text-4xl font-black tracking-tight">{fmt(data.balance)}</p>
-            <p className="text-[11px] text-white/70 flex items-center gap-1">
-              <ShieldCheck size={13} className="text-[#a3e635]" />
+
+            <p className="text-4xl sm:text-5xl font-black tracking-tight text-on-surface leading-none">
+              {fmt(data.balance)}
+              <span className="ml-1.5 align-middle text-[10px] sm:text-[11px] font-extrabold tracking-widest uppercase text-on-surface-variant/70">INR</span>
+            </p>
+
+            <div className="hidden sm:block h-px bg-outline-variant/70" />
+
+            <p className="hidden sm:flex text-[11px] text-on-surface-variant items-center gap-1">
+              <IconShieldCheck size={13} className="text-primary" />
               Wallets are escrow-protected — refunds go straight back here.
             </p>
 
-            <div className="pt-1 space-y-3">
-              <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="space-y-2.5 sm:space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 {QUICK_TOPUPS.map((q) => (
                   <button key={q} onClick={() => setAmount(q)}
-                    className={`px-3 h-8 rounded-full text-xs font-extrabold border transition-all cursor-pointer ${
+                    className={`px-3 sm:px-3.5 h-8 sm:h-9 rounded-full text-xs font-bold border transition-all duration-200 active:scale-95 cursor-pointer ${
                       amount === q
-                        ? "bg-[#a3e635] text-[#0f2e12] border-[#a3e635]"
-                        : "bg-white/10 text-white border-white/20 hover:bg-white/20"}`}>
+                        ? "bg-primary text-on-primary border-primary shadow-xs"
+                        : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/50 hover:text-primary active:scale-95"}`}>
                     ₹{q}
                   </button>
                 ))}
               </div>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
-                  <IndianRupee size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60" />
+                  <IconCurrencyRupee size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/70" />
                   <input type="number" min={100} value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full h-10 pl-8 pr-3 rounded-full border border-white/20 bg-white/10 text-white text-sm font-bold outline-none focus:border-[#a3e635] placeholder:text-white/50"
+                    className="w-full h-10 sm:h-11 pl-9 pr-3 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm font-bold outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-on-surface-variant/60 transition-all"
                     placeholder="Custom amount" />
                 </div>
                 <button onClick={() => addMoney(true)} disabled={adding}
-                  className="h-10 px-4 rounded-full bg-[#a3e635] text-[#0f2e12] text-xs font-extrabold hover:bg-[#bef264] disabled:opacity-60 flex items-center gap-1 cursor-pointer">
-                  {adding ? <LoaderCircle size={14} className="animate-spin" /> : <Plus size={14} />}
+                  className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary/90 disabled:opacity-60 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shadow-xs">
+                  {adding ? <IconLoader2 size={14} className="animate-spin" /> : <IconPlus size={14} />}
                   Add
                 </button>
               </div>
               {error && (
-                <p className="text-[11px] font-bold text-[#fca5a5] flex items-center gap-1">
-                  <CircleAlert size={12} /> {error}
+                <p className="text-[11px] font-bold text-error flex items-center gap-1">
+                  <IconAlertCircle size={12} /> {error}
                 </p>
               )}
-              <p className="text-[10px] text-white/60 font-medium">Min top-up ₹100 · Instant credit via UPI / Cards / NetBanking</p>
+              <p className="hidden sm:block text-[10px] text-on-surface-variant/70 font-medium">Min top-up ₹100 · Instant credit via UPI / Cards / NetBanking</p>
             </div>
           </div>
 
@@ -270,7 +279,7 @@ export default function WalletPage() {
             <div className="flex items-center justify-between pb-3 border-b border-outline-variant/60">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-primary-container/50 text-primary flex items-center justify-center shrink-0">
-                  <BaggageClaim size={17} strokeWidth={2} />
+                  <IconBriefcase size={17} stroke={2} />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-on-surface">Recent Transactions</h3>
@@ -281,7 +290,7 @@ export default function WalletPage() {
 
             {data.transactions.length === 0 ? (
               <div className="py-10 text-center space-y-2">
-                <WalletIcon size={40} className="mx-auto text-on-surface-variant/60" strokeWidth={1.5} />
+                <IconWallet size={40} className="mx-auto text-on-surface-variant/60" stroke={1.5} />
                 <p className="text-sm font-semibold text-on-surface">No wallet activity yet</p>
                 <p className="text-xs text-on-surface-variant/70">Add money above to get started.</p>
               </div>
@@ -291,7 +300,7 @@ export default function WalletPage() {
                   <div key={tx._id} className="flex items-center gap-3 py-3">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                       tx.type === "credit" ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400" : "bg-primary-container/50 text-primary"}`}>
-                      {tx.type === "credit" ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
+                      {tx.type === "credit" ? <IconArrowDownLeft size={16} /> : <IconArrowUpRight size={16} />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-[13px] font-bold text-on-surface truncate">{tx.note || (tx.type === "credit" ? "Wallet top-up" : "Booking payment")}</p>
@@ -315,7 +324,7 @@ export default function WalletPage() {
             <div className={`orvia-card p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border ${sub.active.plan === "premium" ? "border-[#c9a227]/50" : "border-primary/30"}`}>
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#c9a227] to-[#e5c15c] text-[#3b2c00] flex items-center justify-center shrink-0">
-                  <Crown size={20} />
+                  <IconCrown size={20} />
                 </div>
                 <div>
                   <p className="text-sm font-extrabold text-on-surface">
@@ -337,7 +346,7 @@ export default function WalletPage() {
           )}
 
           {error && sub?.active && (
-            <p className="text-xs font-bold text-error flex items-center gap-1"><CircleAlert size={12} /> {error}</p>
+            <p className="text-xs font-bold text-error flex items-center gap-1"><IconAlertCircle size={12} /> {error}</p>
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -353,14 +362,14 @@ export default function WalletPage() {
                       </p>
                     </div>
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${p.plan === "premium" ? "bg-gradient-to-br from-[#c9a227] to-[#e5c15c] text-[#3b2c00]" : "bg-primary-container/50 text-primary"}`}>
-                      <Crown size={18} />
+                      <IconCrown size={18} />
                     </div>
                   </div>
                   <p className="text-xs text-on-surface-variant/70 font-medium leading-relaxed">{p.desc}</p>
                   <div className="space-y-2">
                     {p.perks.map((perk) => (
                       <div key={perk} className="flex items-center gap-2 text-xs font-semibold text-on-surface">
-                        <Check size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" /> {perk}
+                        <IconCheck size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" /> {perk}
                       </div>
                     ))}
                   </div>
@@ -374,7 +383,7 @@ export default function WalletPage() {
                           ? "bg-gradient-to-r from-[#b7941d] to-[#e5c15c] text-[#3b2c00] hover:opacity-90"
                           : "orvia-btn-primary"
                     }`}>
-                    {subBusy ? <LoaderCircle size={14} className="animate-spin" /> : <Sparkles size={13} />}
+                    {subBusy ? <IconLoader2 size={14} className="animate-spin" /> : <IconSparkles size={13} />}
                     {isActive ? "Active plan" : `Switch to ${p.plan}`}
                   </button>
                 </div>
@@ -382,7 +391,7 @@ export default function WalletPage() {
             })}
           </div>
           <p className="text-center text-xs text-on-surface-variant/70 font-medium flex items-center justify-center gap-1.5">
-            <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400" />
+            <IconShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400" />
             Plans are billed monthly. Wallet debit when you have balance, Razorpay otherwise. Cancel anytime.
           </p>
         </div>
@@ -390,7 +399,7 @@ export default function WalletPage() {
         <div className="space-y-4">
           {!insights ? (
             <div className="orvia-card p-10 text-center space-y-2">
-              <ReceiptText size={40} className="mx-auto text-on-surface-variant/60" strokeWidth={1.5} />
+              <IconReceipt size={40} className="mx-auto text-on-surface-variant/60" stroke={1.5} />
               <p className="text-sm font-semibold text-on-surface">Complete a paid booking to see insights</p>
               <p className="text-xs text-on-surface-variant/70">Once you pay for jobs, trends & breakdowns appear here.</p>
             </div>
@@ -398,16 +407,16 @@ export default function WalletPage() {
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { label: "Total Spent", value: fmt(insights.totalPaid), Icon: IndianRupee, bg: "bg-primary-container/50 text-primary" },
-                  { label: "This Month", value: fmt(insights.monthSpent), Icon: CalendarDays, bg: "bg-primary-container/50 text-primary" },
-                  { label: "Paid Bookings", value: insights.paidBookings, Icon: BaggageClaim, bg: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400" },
-                  { label: "Avg / Booking", value: fmt(insights.avgPerBooking), Icon: Trophy, bg: "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300" },
+                  { label: "Total Spent", value: fmt(insights.totalPaid), Icon: IconCurrencyRupee, bg: "bg-primary-container/50 text-primary" },
+                  { label: "This Month", value: fmt(insights.monthSpent), Icon: IconCalendar, bg: "bg-primary-container/50 text-primary" },
+                  { label: "Paid Bookings", value: insights.paidBookings, Icon: IconBriefcase, bg: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400" },
+                  { label: "Avg / Booking", value: fmt(insights.avgPerBooking), Icon: IconTrophy, bg: "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300" },
                 ].map(({ label, value, Icon, bg }) => (
                   <div key={label} className="orvia-card flex flex-col justify-between">
                     <div className="flex items-start justify-between mb-3">
                       <p className="text-xs font-bold text-on-surface-variant/70 uppercase tracking-wider">{label}</p>
                       <div className={`w-9 h-9 rounded-full ${bg} flex items-center justify-center shrink-0`}>
-                        <Icon size={17} strokeWidth={2} />
+                        <Icon size={17} stroke={2} />
                       </div>
                     </div>
                     <p className="text-2xl md:text-3xl font-extrabold tracking-tight text-on-surface">{value}</p>
@@ -420,7 +429,7 @@ export default function WalletPage() {
                 <div className="orvia-card p-5 space-y-4">
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-full bg-primary-container/50 text-primary flex items-center justify-center">
-                      <TrendingUp size={17} strokeWidth={2} />
+                      <IconTrendingUp size={17} stroke={2} />
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-on-surface">Spending Trend</h3>
@@ -445,7 +454,7 @@ export default function WalletPage() {
                 <div className="orvia-card p-5 space-y-4">
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                      <BaggageClaim size={17} strokeWidth={2} />
+                      <IconBriefcase size={17} stroke={2} />
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-on-surface">Spend by Service</h3>
@@ -471,7 +480,7 @@ export default function WalletPage() {
                   )}
                   {insights.topService && (
                     <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-xs flex items-center gap-2">
-                      <Trophy size={15} className="text-emerald-600 dark:text-emerald-400" />
+                      <IconTrophy size={15} className="text-emerald-600 dark:text-emerald-400" />
                       <span className="font-semibold text-on-surface">
                         Most used: <b className="text-emerald-700 dark:text-emerald-300">{insights.topService.label}</b> ({fmt(insights.topService.value)})
                       </span>

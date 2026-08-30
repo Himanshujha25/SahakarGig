@@ -4,24 +4,25 @@ import api from "../../lib/api";
 import socket from "../../lib/socket";
 import { useAuth } from "../../context/AuthContext";
 import {
-  Users, Building2, ShieldCheck, CheckCircle2,
-  Calendar, MapPin, Send, AlertCircle, Sparkles,
-  ArrowRight, IndianRupee, Clock, FileText, ChevronRight,
-  Hammer, Zap, Wrench, Sparkle, Utensils, Paintbrush,
-  HardHat, Car, Stethoscope, Mic, CalendarDays, Heart, Star, Check
+  Mic, IndianRupee, CalendarDays, Heart, CheckCircle2,
+  ShieldCheck, Building2, MapPin, Send, Check
 } from "lucide-react";
+import {
+  IconHammer, IconBolt, IconTool, IconSpray, IconChefHat,
+  IconPaint, IconWall, IconCar, IconHeartbeat
+} from "@tabler/icons-react";
 import AIVoiceSearchModal from "../../components/AIVoiceSearchModal";
 
 const SKILLS = [
-  { label: "Carpenter", icon: Hammer, color: "bg-blue-50 text-primary", defaultRate: 800, desc: "Furniture fitting, wood works & modular assembly" },
-  { label: "Electrician", icon: Zap, color: "bg-amber-50 text-amber-700", defaultRate: 750, desc: "Wiring, switchboard installations, phase balancing" },
-  { label: "Plumber", icon: Wrench, color: "bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300", defaultRate: 700, desc: "Pipe fittings, drainage lines & sanitary setup" },
-  { label: "Cleaner", icon: Sparkle, color: "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300", defaultRate: 550, desc: "Deep site cleaning, post-construction sanitization" },
-  { label: "Cook", icon: Utensils, color: "bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300", defaultRate: 700, desc: "Event catering, bulk institutional meal prep" },
-  { label: "Painter", icon: Paintbrush, color: "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300", defaultRate: 650, desc: "Wall putty, primer & full exterior painting" },
-  { label: "Mason", icon: HardHat, color: "bg-surface-container-low text-on-surface-variant", defaultRate: 850, desc: "Bricklaying, plastering & tile flooring" },
-  { label: "Driver", icon: Car, color: "bg-blue-50 text-primary", defaultRate: 750, desc: "Commercial transport, logistics & passenger commute" },
-  { label: "Caregiver", icon: Stethoscope, color: "bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300", defaultRate: 800, desc: "Event medical assistance, patient care" },
+  { label: "Carpenter", Icon: IconHammer, defaultRate: 800 },
+  { label: "Electrician", Icon: IconBolt, defaultRate: 750 },
+  { label: "Plumber", Icon: IconTool, defaultRate: 700 },
+  { label: "Cleaner", Icon: IconSpray, defaultRate: 550 },
+  { label: "Cook", Icon: IconChefHat, defaultRate: 700 },
+  { label: "Painter", Icon: IconPaint, defaultRate: 650 },
+  { label: "Mason", Icon: IconWall, defaultRate: 850 },
+  { label: "Driver", Icon: IconCar, defaultRate: 750 },
+  { label: "Caregiver", Icon: IconHeartbeat, defaultRate: 800 },
 ];
 
 const DURATIONS = [
@@ -170,11 +171,11 @@ export default function BulkOrder() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-primary-container/50 text-primary text-xs font-bold border border-primary/20">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-primary-container/50 text-primary text-xs font-bold border border-primary/20">
               <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
               Institutional RFP & Quotations
             </span>
-            <span className="text-xs text-on-surface-variant/70 font-medium">
+            <span className="hidden sm:inline text-xs text-on-surface-variant/70 font-medium">
               • {new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
             </span>
           </div>
@@ -184,13 +185,13 @@ export default function BulkOrder() {
           >
             Bulk Workforce RFP & Quotations
           </h1>
-          <p className="text-sm text-on-surface-variant mt-0.5">
+          <p className="hidden sm:block text-sm text-on-surface-variant mt-0.5">
             Deploy certified cooperative crews in bulk with statutory 100% Escrow security.
           </p>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        {/* Action Buttons (desktop only) */}
+        <div className="hidden sm:flex items-center gap-2 flex-wrap sm:flex-nowrap">
           <button
             type="button"
             onClick={() => setIsVoiceOpen(true)}
@@ -230,19 +231,19 @@ export default function BulkOrder() {
         <AIVoiceSearchModal isOpen={isVoiceOpen} onClose={() => setIsVoiceOpen(false)} />
       </div>
 
-      {/* ── Blue-Themed Hero Banner Card (Crisp rounded-2xl) ── */}
-      <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary-container/70 via-primary-container/40 to-surface-container-low p-5 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-xs">
+      {/* ── Blue-Themed Hero Banner Card (desktop only) ── */}
+      <div className="hidden sm:flex rounded-2xl border border-primary/20 bg-gradient-to-r from-primary-container/70 via-primary-container/40 to-surface-container-low p-5 sm:p-6 flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-xs">
         <div className="space-y-1.5 max-w-2xl">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-surface border border-primary/30 text-[11px] font-bold text-primary">
               <CheckCircle2 size={12} /> 100% Escrow Protected
             </span>
-            <span className="text-xs text-on-surface-variant font-semibold">• Zero Contractor Cuts • Direct Cooperative Union Rates</span>
+            <span className="hidden sm:inline text-xs text-on-surface-variant font-semibold">• Zero Contractor Cuts • Direct Cooperative Union Rates</span>
           </div>
           <h2 className="text-lg sm:text-xl font-bold text-on-surface tracking-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
             Deploy Certified Cooperative Crews in Bulk
           </h2>
-          <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
+          <p className="hidden sm:block text-xs sm:text-sm text-on-surface-variant leading-relaxed">
             Need 10 Carpenters, 20 Electricians, or an entire sanitation crew? Directly connect with registered cooperative unions, receive transparent institutional quotations, and lock verified manpower.
           </p>
         </div>
@@ -273,28 +274,28 @@ export default function BulkOrder() {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {SKILLS.map((skill) => {
-                  const IconComponent = skill.icon;
+                  const IconComponent = skill.Icon;
                   const isSelected = selectedSkill === skill.label;
                   return (
                     <button
                       key={skill.label}
                       type="button"
                       onClick={() => setSelectedSkill(skill.label)}
-                      className={`h-[60px] p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                      className={`relative h-16 p-3.5 rounded-2xl border flex items-center gap-2.5 transition-all cursor-pointer active:scale-[0.98] ${
                         isSelected
-                          ? "border-primary bg-primary-container/50 shadow-xs"
-                          : "border-outline-variant bg-surface hover:bg-surface-container-low"
+                          ? "border-primary/70 bg-primary-container/40 ring-2 ring-primary/15 shadow-xs"
+                          : "border-outline-variant/70 bg-surface hover:border-primary/40 hover:bg-surface-container-low"
                       }`}
                     >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${skill.color}`}>
-                        <IconComponent size={16} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className={`text-[12.5px] font-bold leading-tight truncate ${isSelected ? "text-primary" : "text-on-surface"}`}>
-                          {skill.label}
-                        </p>
-                        <p className="text-[11px] text-on-surface-variant font-medium truncate mt-0.5">₹{skill.defaultRate}/day</p>
-                      </div>
+                      <IconComponent size={20} stroke={1.5} className="text-primary shrink-0" />
+                      <span className={`min-w-0 flex-1 text-[13px] font-bold leading-tight truncate ${isSelected ? "text-primary" : "text-on-surface"}`}>
+                        {skill.label}
+                      </span>
+                      {isSelected && (
+                        <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-xs">
+                          <Check size={10} strokeWidth={3.5} />
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -393,7 +394,7 @@ export default function BulkOrder() {
                 <label className="block text-[11.5px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
                   4. Site Deployment Location
                 </label>
-                <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-outline-variant bg-surface-container-low focus-within:border-primary focus-within:bg-surface transition">
+                <div className="flex items-center gap-2 px-3.5 py-3 sm:py-2.5 rounded-xl border border-outline-variant bg-surface-container-low focus-within:border-primary focus-within:bg-surface transition">
                   <MapPin size={16} className="text-primary shrink-0" />
                   <input
                     type="text"
@@ -426,7 +427,8 @@ export default function BulkOrder() {
               className="w-full h-12 rounded-xl bg-primary hover:opacity-90 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs active:scale-98 transition cursor-pointer disabled:opacity-60"
             >
               <Send size={16} />
-              <span>{submitting ? "Transmitting RFP to Cooperative..." : `Dispatch Institutional RFP for ${workerCount} ${selectedSkill}s`}</span>
+              <span className="sm:hidden">Dispatch RFP · {workerCount} {selectedSkill}s</span>
+              <span className="hidden sm:inline">{submitting ? "Transmitting RFP to Cooperative..." : `Dispatch Institutional RFP for ${workerCount} ${selectedSkill}s`}</span>
             </button>
           </form>
         </div>
@@ -441,7 +443,7 @@ export default function BulkOrder() {
                 <h3 className="text-sm sm:text-base font-bold text-on-surface" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
                   Estimated Institutional Quotation
                 </h3>
-                <p className="text-xs text-on-surface-variant">Statutory Nodal Escrow Model</p>
+                <p className="hidden sm:block text-xs text-on-surface-variant">Statutory Nodal Escrow Model</p>
               </div>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary-container/50 text-primary text-[11px] font-bold border border-primary/20">
                 <ShieldCheck size={11} /> 100% Escrow
@@ -476,7 +478,7 @@ export default function BulkOrder() {
               <div className="flex justify-between items-baseline pt-2 border-t border-outline-variant/60">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Total Transparent Quotation</p>
-                  <p className="text-[10px] text-on-surface-variant/70">Zero hidden contractor cuts</p>
+                  <p className="hidden sm:block text-[10px] text-on-surface-variant/70">Zero hidden contractor cuts</p>
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-black text-primary">₹{totalGrossWage.toLocaleString("en-IN")}</p>
@@ -492,7 +494,7 @@ export default function BulkOrder() {
                 <h3 className="text-sm sm:text-base font-bold text-on-surface" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
                   Registered Cooperative Societies
                 </h3>
-                <p className="text-xs text-on-surface-variant">Select which society union receives your RFP</p>
+                <p className="hidden sm:block text-xs text-on-surface-variant">Select which society union receives your RFP</p>
               </div>
               <Building2 size={16} className="text-primary" />
             </div>
@@ -521,7 +523,7 @@ export default function BulkOrder() {
                         />
                         <div>
                           <p className={`text-xs font-bold ${isSelected ? "text-primary" : "text-on-surface"}`}>{coop.name}</p>
-                          <p className="text-[10.5px] text-on-surface-variant">
+                          <p className="hidden sm:block text-[10.5px] text-on-surface-variant">
                             Reg: {coop.registrationNumber || "MSCS-DEL-2024"} • {coop.district || "Delhi NCR"}
                           </p>
                         </div>

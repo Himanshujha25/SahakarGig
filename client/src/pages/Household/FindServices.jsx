@@ -4,8 +4,22 @@ import api from "../../lib/api";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import FavoriteButton from "../../components/FavoriteButton";
 import { Search, SlidersHorizontal, Star, MapPin, Mic, MicOff, Heart, LocateFixed, Navigation, History, X, Map, List } from "lucide-react";
+import {
+  IconApps, IconTool, IconBolt, IconSchool, IconChefHat, IconSpray,
+  IconHeartbeat, IconCar, IconPlant2
+} from "@tabler/icons-react";
 
-const SKILLS = ["All", "Plumber", "Electrician", "Tutor", "Cook", "Cleaner", "Caregiver", "Driver", "Gardener"];
+const SKILLS = [
+  { key: "All", Icon: IconApps },
+  { key: "Plumber", Icon: IconTool },
+  { key: "Electrician", Icon: IconBolt },
+  { key: "Tutor", Icon: IconSchool },
+  { key: "Cook", Icon: IconChefHat },
+  { key: "Cleaner", Icon: IconSpray },
+  { key: "Caregiver", Icon: IconHeartbeat },
+  { key: "Driver", Icon: IconCar },
+  { key: "Gardener", Icon: IconPlant2 },
+];
 const RADII = [5, 10, 15, 25, 50];
 const SEARCH_HISTORY_KEY = "sg_search_history";
 const MAX_HISTORY = 6;
@@ -319,21 +333,21 @@ export default function FindServices() {
             style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
             Find Services
           </h1>
-          <p className="text-[14px] text-on-surface-variant mt-0.5">
+          <p className="hidden sm:block text-[14px] text-on-surface-variant mt-0.5">
             Browse verified cooperative service providers near you.
           </p>
         </div>
         {!loading && (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl badge-accepted text-[13px] font-bold">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-low border border-outline-variant/60 text-[13px] font-bold text-on-surface">
               {providers.length} providers
             </span>
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl badge-completed text-[13px] font-bold">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-low border border-outline-variant/60 text-[13px] font-bold text-on-surface">
               {verified} verified
             </span>
             <Link
               to="/household/saved"
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-[13px] font-bold w-fit border border-tertiary/30 bg-tertiary-container text-on-tertiary-container hover:border-tertiary/60 hover:opacity-90 transition-all"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-[13px] font-bold w-fit border border-outline-variant bg-surface text-on-surface hover:border-error/40 hover:text-error transition-all"
             >
               <Heart size={13} fill="currentColor" />
               Saved
@@ -355,7 +369,7 @@ export default function FindServices() {
       </div>
 
       {/* ── Geo-fenced location bar ── */}
-      <div className="rounded-2xl border border-outline-variant/60 bg-surface p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="rounded-2xl border border-outline-variant/60 bg-surface p-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Left: status + action */}
         <div className="flex items-center gap-3">
           <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${locStatus === "on" ? "bg-primary-container text-on-primary-container" : "bg-surface-container-low text-on-surface-variant"}`}>
@@ -365,7 +379,7 @@ export default function FindServices() {
             {locStatus === "on" ? (
               <>
                 <p className="text-[13px] font-bold text-on-surface">Nearby providers enabled</p>
-                <p className="text-[12px] text-on-surface-variant truncate">
+                <p className="hidden sm:block text-[12px] text-on-surface-variant truncate">
                   Showing providers within {radius} km · sorted nearest first
                 </p>
               </>
@@ -374,7 +388,7 @@ export default function FindServices() {
                 <p className="text-[13px] font-bold text-on-surface">
                   Find providers near you
                 </p>
-                <p className="text-[12px] text-on-surface-variant">
+                <p className="hidden sm:block text-[12px] text-on-surface-variant">
                   {locStatus === "error"
                     ? locError
                     : "Turn on your location to match with trusted providers nearby."}
@@ -406,7 +420,7 @@ export default function FindServices() {
               <button
                 type="button"
                 onClick={clearLocation}
-                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-3 text-[13px] font-semibold text-on-surface-variant hover:border-error/50 hover:text-error transition-all"
+                className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-3 text-[12px] font-semibold text-on-surface-variant hover:border-error/50 hover:text-error transition-all"
               >
                 Turn off
               </button>
@@ -416,9 +430,9 @@ export default function FindServices() {
               type="button"
               onClick={requestLocation}
               disabled={locStatus === "locating"}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-[13px] font-bold text-on-primary hover:opacity-90 disabled:opacity-60 transition-all"
+              className="inline-flex h-8 items-center gap-2 rounded-xl bg-primary px-3 text-[12px] font-bold text-on-primary hover:opacity-90 disabled:opacity-60 transition-all"
             >
-              <LocateFixed size={15} className={locStatus === "locating" ? "animate-spin" : ""} />
+              <LocateFixed size={13} className={locStatus === "locating" ? "animate-spin" : ""} />
               {locStatus === "locating" ? "Locating…" : "Use my location"}
             </button>
           )}
@@ -434,7 +448,7 @@ export default function FindServices() {
             onChange={e => { setQuery(e.target.value); }}
             onKeyDown={e => { if (e.key === "Enter") commitSearch(query); }}
             placeholder={isListening ? "Listening... Speak now..." : "Search by name or skill..."}
-            className={`h-10 w-full rounded-xl border bg-surface pl-9 pr-10 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary ${
+            className={`h-11 sm:h-10 w-full rounded-xl border bg-surface pl-9 pr-10 text-[14px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary ${
               isListening ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-outline-variant"
             }`}
           />
@@ -449,15 +463,16 @@ export default function FindServices() {
             {isListening ? <MicOff size={16} /> : <Mic size={16} />}
           </button>
         </div>
-        <div className="flex gap-1 p-1 rounded-xl bg-surface-container-low border border-outline-variant/40 flex-wrap">
-          {SKILLS.map(s => (
-            <button key={s} onClick={() => setSkill(s)}
-              className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
-                skill === s
-                  ? "bg-surface text-primary shadow-sm border border-outline-variant/40"
-                  : "text-on-surface-variant hover:text-on-surface"
+        <div className="flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-surface-container-low border border-outline-variant/40 items-center">
+          {SKILLS.map(({ key, Icon }) => (
+            <button key={key} onClick={() => setSkill(key)}
+              className={`h-8 px-3 rounded-lg text-[12.5px] font-semibold transition-all duration-200 inline-flex items-center justify-center gap-1.5 leading-none cursor-pointer active:scale-95 ${
+                skill === key
+                  ? "bg-primary text-on-primary shadow-sm"
+                  : "text-on-surface-variant hover:bg-surface hover:text-on-surface"
               }`}>
-              {s}
+              <Icon size={13} stroke={1.8} className="shrink-0" />
+              <span>{key}</span>
             </button>
           ))}
         </div>
@@ -625,7 +640,7 @@ export default function FindServices() {
             <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
               <MapPin size={40} strokeWidth={1.5} className="text-outline-variant" />
               <p className="text-[14px] font-semibold text-on-surface">No geolocated providers to pin</p>
-              <p className="text-[12px] text-on-surface-variant">
+              <p className="hidden sm:block text-[12px] text-on-surface-variant">
                 Providers appear here once they set their service location coordinates.
               </p>
             </div>
@@ -695,7 +710,7 @@ export default function FindServices() {
                 <div className="flex items-center gap-1.5 text-[13px] text-on-surface-variant">
                   <Star size={13} className="text-tertiary-container dark:text-tertiary" strokeWidth={2} />
                   <span className="font-semibold text-on-surface">{p.trustScore ?? "—"}</span>
-                  <span>trust score</span>
+                  <span className="hidden sm:inline">trust score</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {coords && formatDistance(p.distanceKm) && (
@@ -712,7 +727,7 @@ export default function FindServices() {
 
               {/* Book button */}
               <Link to={`/household/book/${p._id}`}
-                className="w-full h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-surface text-[13px] font-semibold text-on-surface hover:border-primary/40 hover:bg-primary-container hover:text-on-primary-container transition-all duration-200">
+                className="w-full h-11 sm:h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-surface text-[13px] font-semibold text-on-surface hover:border-primary/40 hover:bg-primary-container hover:text-on-primary-container transition-all duration-200">
                 Book Now
               </Link>
             </div>

@@ -4,8 +4,8 @@ import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/api";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import {
-  CalendarDays, Search, Star, IndianRupee, ArrowRight,
-  CheckCircle2, Clock, AlertTriangle, MapPin, Zap, Mic, Heart, Sparkles, Building2
+  CalendarDays, Star, IndianRupee, ArrowRight,
+  CheckCircle2, Clock, Zap, Mic, Heart, Sparkles, Building2
 } from "lucide-react";
 import AIVoiceSearchModal from "../../components/AIVoiceSearchModal";
 
@@ -32,7 +32,6 @@ export default function Home() {
   const [recs, setRecs]           = useState([]);
   const [recReason, setRecReason] = useState("");
   const [loading, setLoading]     = useState(true);
-  const [service, setService]     = useState("");
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
   const [walletBalance, setWalletBalance] = useState(null);
 
@@ -74,57 +73,30 @@ export default function Home() {
     { label: "Total Spent",       value: formatMoney(spent), Icon: IndianRupee,  bg: "bg-primary-container/50 text-primary" },
   ];
 
-  function goSearch(e) {
-    e.preventDefault();
-    if (!service.trim()) return;
-    navigate(`/household/find?service=${encodeURIComponent(service)}`);
-  }
-
   const firstName = user?.name?.split(" ")[0] || "there";
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12 space-y-6">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8 pb-10 space-y-4 sm:space-y-6">
 
-      {/* ── Top Header ── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* ── Top Header (desktop only) ── */}
+      <div className="hidden sm:flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary-container/40 text-primary text-[11px] font-bold border border-primary/20">
+          <p className="flex items-center gap-2 text-[13px] sm:text-sm font-semibold text-on-surface mb-0.5">
+            Hey, {firstName} 👋
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-container/40 text-primary text-[10.5px] font-bold border border-primary/20">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
               Live Cooperative Network
             </span>
-            <span className="text-[11px] text-on-surface-variant/70 font-medium">• {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+            <span className="hidden sm:inline text-[11px] text-on-surface-variant/70 font-medium">• {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
           </div>
-          <h1 className="text-[22px] md:text-[28px] font-bold tracking-tight text-on-surface"
-            style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
-            Hey, {firstName} 👋
-          </h1>
-          <p className="text-[13px] text-on-surface-variant mt-0.5">
-            Book verified service providers endorsed by your local cooperative society.
+          <p className="hidden sm:block text-[12px] sm:text-[13px] text-on-surface-variant mt-1.5 leading-snug">
+            Book verified providers endorsed by your cooperative society.
           </p>
         </div>
 
-        {/* Action Buttons & Search */}
-        <div className="lg:hidden -mt-1 w-full flex gap-2">
-          <form onSubmit={goSearch} className="flex-1 flex items-center gap-2 h-10 px-3 rounded-xl border border-outline-variant bg-surface-container-low hover:border-primary/40 focus-within:border-primary transition-all">
-            <Search size={15} className="text-on-surface-variant shrink-0" strokeWidth={2} />
-            <input
-              className="w-full min-w-0 bg-transparent text-[13px] font-medium text-on-surface outline-none placeholder:text-on-surface-variant/50"
-              placeholder="Search services…"
-              value={service}
-              onChange={e => setService(e.target.value)}
-            />
-          </form>
-          <button
-            type="button"
-            onClick={() => setIsVoiceOpen(true)}
-            className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-xl bg-primary text-on-primary shadow-xs hover:opacity-90 active:scale-95 transition-all cursor-pointer"
-            aria-label="Voice search"
-          >
-            <Mic size={16} className="animate-bounce" />
-          </button>
-        </div>
-
+        {/* Action Buttons & Search (desktop only) */}
         <div className="hidden sm:flex items-center gap-2 flex-wrap sm:flex-nowrap">
           <button
             type="button"
@@ -159,52 +131,52 @@ export default function Home() {
         <AIVoiceSearchModal isOpen={isVoiceOpen} onClose={() => setIsVoiceOpen(false)} />
       </div>
 
-      {/* ── Premium Hero Banner Card ── */}
-      <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary-container/70 via-primary-container/30 to-surface-container-low p-5 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-xs">
-        <div className="space-y-1.5 max-w-2xl">
+      {/* ── Premium Hero Banner Card (desktop only) ── */}
+      <div className="hidden sm:block rounded-2xl border border-primary/20 bg-gradient-to-br from-primary-container/70 via-primary-container/30 to-surface-container-low p-4 sm:p-6 shadow-xs">
+        <div className="space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface/60 backdrop-blur border border-primary/30 text-[11px] font-bold text-primary">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface/60 backdrop-blur border border-primary/30 text-[10.5px] font-bold text-primary">
               <CheckCircle2 size={12} /> 100% Escrow Protected
             </span>
-            <span className="text-xs text-on-surface-variant font-semibold">• Up next · Today</span>
+            <span className="hidden sm:inline text-[11px] text-on-surface-variant font-semibold">• Up next · Today</span>
           </div>
-          <h2 className="text-lg sm:text-xl font-bold text-on-surface tracking-tight" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
+          <h2 className="text-[17px] sm:text-xl font-bold text-on-surface tracking-tight leading-snug" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
             Your Care & Service Journey
           </h2>
-          <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
-            Instant geospatial AI dispatch connecting you with background-checked community experts in under 15 minutes.
+          <p className="hidden sm:block text-[12px] sm:text-sm text-on-surface-variant leading-relaxed">
+            Instant geospatial AI dispatch — background-checked community experts in under 15 minutes.
           </p>
         </div>
-        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-          <Link to="/household/bulk" className="h-10 inline-flex items-center gap-1.5 px-4 rounded-xl border border-primary/30 bg-surface/60 text-primary text-xs font-bold shadow-xs hover:bg-primary/10 transition-all">
-            <Building2 size={14} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <Link to="/household/bulk" className="h-11 inline-flex items-center justify-center gap-1.5 px-4 rounded-xl border border-primary/30 bg-surface/60 text-primary text-xs font-bold shadow-xs hover:bg-primary/10 transition-all active:scale-[0.98]">
+            <Building2 size={15} />
             <span>Bulk Crew RFP</span>
           </Link>
-          <Link to="/household/find" className="h-10 inline-flex items-center gap-2 px-4 rounded-xl bg-primary hover:opacity-90 text-on-primary text-xs font-bold shadow-xs active:scale-98 transition-all">
+          <Link to="/household/find" className="h-11 inline-flex items-center justify-center gap-2 px-4 rounded-xl bg-primary hover:opacity-90 text-on-primary text-xs font-bold shadow-xs active:scale-[0.98] transition-all">
             <span>Book Instant Service</span>
-            <ArrowRight size={14} strokeWidth={2.5} />
+            <ArrowRight size={15} strokeWidth={2.5} />
           </Link>
         </div>
       </div>
 
       {/* ── Stat Cards ── */}
       {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[0,1,2,3].map(i => <div key={i} className="animate-pulse rounded-2xl border border-outline-variant bg-surface-container-low h-28" />)}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          {[0,1,2,3].map(i => <div key={i} className="animate-pulse rounded-2xl border border-outline-variant bg-surface-container-low h-24 sm:h-28" />)}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           {STAT_CARDS.map(({ label, value, Icon, bg, accent }) => (
             <div key={label}
-              className="rounded-2xl border border-outline-variant/60 bg-surface p-4 sm:p-5 shadow-xs flex flex-col justify-between hover:border-primary/40 hover:shadow-sm transition-all group">
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-[10.5px] font-bold text-on-surface-variant/80 uppercase tracking-wider">{label}</p>
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${bg} group-hover:scale-105 transition-transform`}>
-                  <Icon size={16} strokeWidth={2} />
+              className="rounded-2xl border border-outline-variant/60 bg-surface p-3.5 sm:p-5 shadow-xs flex flex-col justify-between hover:border-primary/40 hover:shadow-sm transition-all group">
+              <div className="flex items-start justify-between mb-2.5 sm:mb-3">
+                <p className="text-[9.5px] sm:text-[10.5px] font-bold text-on-surface-variant/80 uppercase tracking-wider leading-tight">{label}</p>
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 ${bg} group-hover:scale-105 transition-transform`}>
+                  <Icon size={14} className="sm:size-4" strokeWidth={2} />
                 </div>
               </div>
               <div className="flex items-baseline justify-between">
-                <p className={`text-2xl font-black tracking-tight ${accent ? "text-primary" : "text-on-surface"}`}>
+                <p className={`text-xl sm:text-2xl font-black tracking-tight ${accent ? "text-primary" : "text-on-surface"}`}>
                   {value}
                 </p>
                 <span className="text-xs font-bold text-on-surface-variant/40 group-hover:text-primary transition-colors">↗</span>
@@ -216,7 +188,7 @@ export default function Home() {
 
       {/* ── AI Recommended for You ── */}
       {!loading && recs.length > 0 && (
-        <section className="rounded-2xl border border-outline-variant/60 bg-surface p-5 sm:p-6 shadow-xs space-y-4">
+        <section className="rounded-2xl border border-outline-variant/60 bg-surface p-4 sm:p-6 shadow-xs space-y-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-primary-container/50 text-primary flex items-center justify-center shrink-0">
@@ -224,7 +196,7 @@ export default function Home() {
               </div>
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>Recommended for You</h3>
-                <p className="text-xs text-on-surface-variant/80 font-medium">
+                <p className="hidden sm:block text-xs text-on-surface-variant/80 font-medium">
                   {recReason || "Personalised picks from your booking history"}
                 </p>
               </div>
@@ -234,7 +206,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
             {recs.slice(0, 3).map((p) => {
               let trust = p.trustScore || 50;
               if (p.verified) trust += 20;
@@ -250,7 +222,7 @@ export default function Home() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-xs sm:text-[13px] font-bold text-on-surface truncate">{p.userId?.name ?? "Provider"}</p>
+                        <p className="text-[13px] font-bold text-on-surface truncate">{p.userId?.name ?? "Provider"}</p>
                         {p.verified && <VerifiedBadge />}
                       </div>
                       <p className="text-[11px] font-medium text-on-surface-variant truncate">
@@ -259,7 +231,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] font-semibold">
+                  <div className="hidden sm:flex items-center justify-between text-[11px] font-semibold">
                     <span className="inline-flex items-center gap-1 text-amber-600">
                       <Star size={11} fill="currentColor" /> {trust}
                     </span>
@@ -269,7 +241,7 @@ export default function Home() {
                   </div>
 
                   <Link to={`/household/book/${p._id}`}
-                    className="w-full h-8 flex items-center justify-center rounded-lg text-xs font-bold text-on-primary bg-primary hover:opacity-90 transition-colors">
+                    className="w-full h-9 flex items-center justify-center rounded-lg text-xs font-bold text-on-primary bg-primary hover:opacity-90 active:scale-[0.98] transition-all">
                     Book
                   </Link>
                 </div>
@@ -281,17 +253,15 @@ export default function Home() {
 
       {/* ── Main Grid ── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-
-        {/* Recent Bookings Card */}
         <section className="lg:col-span-2 rounded-2xl border border-outline-variant/60 bg-surface overflow-hidden shadow-xs flex flex-col">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant/60 bg-surface-container-low/60">
+          <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-outline-variant/60 bg-surface-container-low/60">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-primary text-on-primary flex items-center justify-center">
                 <CalendarDays size={15} strokeWidth={2} />
               </div>
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>Recent Service Bookings</h3>
-                <p className="text-xs text-on-surface-variant font-medium">Track active dispatches & history</p>
+                <p className="hidden sm:block text-xs text-on-surface-variant font-medium">Track active dispatches & history</p>
               </div>
             </div>
             <Link to="/household/bookings"
@@ -301,9 +271,9 @@ export default function Home() {
           </div>
 
           {loading ? (
-            <div className="divide-y divide-outline-variant p-4">
+            <div className="divide-y divide-outline-variant p-3 sm:p-4">
               {[0,1,2].map(i => (
-                <div key={i} className="animate-pulse flex items-center gap-4 py-4">
+                <div key={i} className="animate-pulse flex items-center gap-3 py-3.5">
                   <div className="w-9 h-9 rounded-xl bg-surface-container-high shrink-0" />
                   <div className="flex-1 space-y-2">
                     <div className="h-3 w-1/3 rounded bg-surface-container-high" />
@@ -322,56 +292,95 @@ export default function Home() {
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto flex-1">
-              <table className="w-full min-w-[500px] text-left">
-                <thead>
-                  <tr className="border-b border-outline-variant/60 bg-surface-container-low/40">
-                    <th className="px-5 py-3 text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Service</th>
-                    <th className="px-5 py-3 text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Provider</th>
-                    <th className="px-5 py-3 text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Status</th>
-                    <th className="px-5 py-3 text-right text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/60">
-                  {bookings.slice(0, 6).map(b => {
-                    const s = STATUS_STYLE[b.status] || STATUS_STYLE.pending;
-                    return (
-                      <tr key={b._id}
-                        onClick={() => navigate(`/household/booking/${b._id}`)}
-                        className="hover:bg-surface-container-low/70 transition-colors cursor-pointer group">
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs sm:text-sm font-bold text-on-surface group-hover:text-primary transition-colors">{b.service}</p>
-                            {b.isEmergency && (
-                              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-200 text-[10px] font-bold border border-red-200 dark:border-red-800">
-                                <Zap size={9} /> Emergency
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-5 py-3.5 text-xs font-medium text-on-surface-variant">
+            <>
+              {/* Mobile: stacked booking cards */}
+              <div className="lg:hidden divide-y divide-outline-variant/60">
+                {bookings.slice(0, 6).map(b => {
+                  const s = STATUS_STYLE[b.status] || STATUS_STYLE.pending;
+                  return (
+                    <button
+                      key={b._id}
+                      onClick={() => navigate(`/household/booking/${b._id}`)}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-surface-container-low transition-colors cursor-pointer">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${s.bg}`}>
+                        <Clock size={16} strokeWidth={2} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[13px] font-bold text-on-surface truncate">{b.service}</p>
+                          {b.isEmergency && (
+                            <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-200 text-[10px] font-bold">
+                              <Zap size={9} /> Emergency
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11.5px] font-medium text-on-surface-variant mt-0.5 truncate">
                           {b.providerId?.userId?.name || "Provider"}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${s.bg}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                            {s.label}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5 text-right text-xs sm:text-sm font-extrabold text-on-surface">
-                          ₹{b.price ?? 0}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-extrabold text-on-surface">₹{b.price ?? 0}</p>
+                        <span className={`inline-flex items-center gap-1 mt-0.5 text-[10.5px] font-bold ${s.dot === "bg-primary" ? "text-primary" : "text-on-surface-variant/70"}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} /> {s.label}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Desktop: table */}
+              <div className="hidden lg:block overflow-x-auto flex-1">
+                <table className="w-full min-w-[500px] text-left">
+                  <thead>
+                    <tr className="border-b border-outline-variant/60 bg-surface-container-low/40">
+                      <th className="px-5 py-3 text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Service</th>
+                      <th className="px-5 py-3 text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Provider</th>
+                      <th className="px-5 py-3 text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Status</th>
+                      <th className="px-5 py-3 text-right text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/60">
+                    {bookings.slice(0, 6).map(b => {
+                      const s = STATUS_STYLE[b.status] || STATUS_STYLE.pending;
+                      return (
+                        <tr key={b._id}
+                          onClick={() => navigate(`/household/booking/${b._id}`)}
+                          className="hover:bg-surface-container-low/70 transition-colors cursor-pointer group">
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs sm:text-sm font-bold text-on-surface group-hover:text-primary transition-colors">{b.service}</p>
+                              {b.isEmergency && (
+                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-200 text-[10px] font-bold border border-red-200 dark:border-red-800">
+                                  <Zap size={9} /> Emergency
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5 text-xs font-medium text-on-surface-variant">
+                            {b.providerId?.userId?.name || "Provider"}
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${s.bg}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                              {s.label}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5 text-right text-xs sm:text-sm font-extrabold text-on-surface">
+                            ₹{b.price ?? 0}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </section>
 
         {/* Top Verified Providers Card */}
-        <section className="rounded-2xl border border-outline-variant/60 bg-surface p-5 shadow-xs space-y-4 flex flex-col justify-between">
+        <section className="rounded-2xl border border-outline-variant/60 bg-surface p-4 sm:p-5 shadow-xs space-y-4 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3.5 border-b border-outline-variant/60">
               <div className="flex items-center gap-2.5">
@@ -380,7 +389,7 @@ export default function Home() {
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-base font-bold text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>Top Verified Experts</h3>
-                  <p className="text-xs text-on-surface-variant font-medium">Cooperative Endorsed</p>
+                  <p className="hidden sm:block text-xs text-on-surface-variant font-medium">Cooperative Endorsed</p>
                 </div>
               </div>
               <Link to="/household/find" className="text-xs font-bold text-primary hover:underline">
@@ -423,7 +432,7 @@ export default function Home() {
                       </p>
                     </div>
                     <Link to={`/household/book/${p._id}`}
-                      className="shrink-0 text-xs font-bold text-on-primary bg-primary hover:opacity-90 px-3 py-1 rounded-lg transition-colors">
+                      className="shrink-0 h-9 inline-flex items-center text-xs font-bold text-on-primary bg-primary hover:opacity-90 px-3 rounded-lg transition-all">
                       Book
                     </Link>
                   </div>
@@ -432,7 +441,7 @@ export default function Home() {
             )}
           </div>
 
-          <div className="pt-2 border-t border-outline-variant/60 text-center">
+          <div className="hidden sm:block pt-2 border-t border-outline-variant/60 text-center">
             <span className="text-[11px] text-on-surface-variant/70 font-medium">100% Identity & Background Verified</span>
           </div>
         </section>

@@ -5,6 +5,7 @@ const asyncHandler = require('../middleware/error');
 
 router.get('/', auth, asyncHandler(c.list));
 router.patch('/read-all', auth, asyncHandler(c.markAllRead));
+router.delete('/', auth, asyncHandler(c.clearAll));
 router.patch('/:id/read', auth, asyncHandler(c.markRead));
 
 module.exports = router;

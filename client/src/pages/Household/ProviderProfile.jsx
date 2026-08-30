@@ -99,7 +99,7 @@ export default function ProviderProfile() {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="truncate font-heading text-lg font-bold text-on-surface">{provider.userId?.name}</h1>
-            {provider.verified && <VerifiedBadge />}
+            {provider.verified && <VerifiedBadge size={19} />}
           </div>
           <p className="truncate font-body-md text-sm text-on-surface-variant">{provider.cooperativeId?.name}</p>
           <p className="mt-1 font-heading text-lg font-bold text-primary">₹{provider.hourlyRate}/hr</p>
