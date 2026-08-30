@@ -148,7 +148,7 @@ export default function Home() {
             <span>Bulk Crew RFP</span>
           </Link>
           <Link to="/household/find" className="h-11 inline-flex items-center justify-center gap-2 px-4 rounded-xl bg-primary hover:opacity-90 text-on-primary text-xs font-bold shadow-xs active:scale-[0.98] transition-all">
-            <span>Book Instant Services</span>
+            <span>Book Instant Service</span>
             <ArrowRight size={15} strokeWidth={2.5} />
           </Link>
         </div>
