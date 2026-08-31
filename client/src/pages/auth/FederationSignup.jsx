@@ -12,7 +12,10 @@ export default function FederationSignup() {
   const { signup } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    fedName: '', fedReg: '', fedRegion: '',
+    fedName: '', fedReg: '', fedRegType: '',
+    fedState: '', fedDistrict: '', fedRegion: '', fedAddress: '',
+    presidentName: '', secretaryName: '',
+    commissionRate: '', welfareFundAllocation: '', tdsRate: '',
     name: '', email: '', phone: '', password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -45,6 +48,16 @@ export default function FederationSignup() {
           name: form.fedName,
           registrationId: form.fedReg,
           region: form.fedRegion,
+          state: form.fedState,
+          district: form.fedDistrict,
+          address: form.fedAddress,
+          presidentName: form.presidentName,
+          secretaryName: form.secretaryName,
+          contactEmail: form.email,
+          contactPhone: form.phone,
+          commissionRate: Number(form.commissionRate) || 2,
+          welfareFundAllocation: Number(form.welfareFundAllocation) || 10,
+          tdsRate: Number(form.tdsRate) || 1,
         },
         otp: code,
       });
@@ -143,24 +156,102 @@ export default function FederationSignup() {
             </div>
             <div>
               <label htmlFor="fedRegion" className="block text-[12.5px] font-semibold text-on-surface mb-1">
-                Region / State
+                Registration Type
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Icon name="location_on" className="text-[17px] text-outline group-focus-within:text-primary transition-colors" />
                 </div>
-                <input
-                  id="fedRegion"
-                  type="text"
-                  required
-                  value={form.fedRegion}
-                  onChange={(e) => set('fedRegion', e.target.value)}
-                  placeholder="e.g. Maharashtra"
-                  className={inputCls}
-                />
+                <select
+                  id="fedRegType"
+                  value={form.fedRegType}
+                  onChange={(e) => set('fedRegType', e.target.value)}
+                  className={inputCls + " cursor-pointer"}
+                >
+                  <option value="" disabled>Select registration type</option>
+                  {['State Federation', 'Multi-State Federation', 'National Federation', 'Apex Cooperative Federation'].map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Section: Jurisdiction & Headquarters */}
+        <div className="rounded-xl border border-outline-variant/70 bg-white p-3.5 space-y-3 shadow-xs">
+          <div className="flex items-center gap-2 pb-1 text-primary font-heading font-bold text-[13px] border-b border-outline-variant/30">
+            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
+              <Icon name="location_on" className="text-[15px]" />
+            </div>
+            <span>Jurisdiction & Headquarters</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2.5">
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">State</label>
+              <input type="text" value={form.fedState} onChange={(e) => set('fedState', e.target.value)} placeholder="Maharashtra" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">District</label>
+              <input type="text" value={form.fedDistrict} onChange={(e) => set('fedDistrict', e.target.value)} placeholder="Pune" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">Region</label>
+              <input type="text" value={form.fedRegion} onChange={(e) => set('fedRegion', e.target.value)} placeholder="Western Maharashtra" className={inputCls} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[12.5px] font-semibold text-on-surface mb-1">Headquarters Address</label>
+            <textarea rows={2} value={form.fedAddress} onChange={(e) => set('fedAddress', e.target.value)} placeholder="Registered office / HQ address" className={inputCls + " resize-none"} />
+          </div>
+        </div>
+
+        {/* Section: Federation Governance */}
+        <div className="rounded-xl border border-outline-variant/70 bg-white p-3.5 space-y-3 shadow-xs">
+          <div className="flex items-center gap-2 pb-1 text-primary font-heading font-bold text-[13px] border-b border-outline-variant/30">
+            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
+              <Icon name="manage_accounts" className="text-[15px]" />
+            </div>
+            <span>Federation Governance</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">President / Chairperson</label>
+              <input type="text" value={form.presidentName} onChange={(e) => set('presidentName', e.target.value)} placeholder="Federation head" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">Secretary Name</label>
+              <input type="text" value={form.secretaryName} onChange={(e) => set('secretaryName', e.target.value)} placeholder="Federation secretary" className={inputCls} />
+            </div>
+          </div>
+        </div>
+
+        {/* Section: Financials & Compliance */}
+        <div className="rounded-xl border border-outline-variant/70 bg-white p-3.5 space-y-3 shadow-xs">
+          <div className="flex items-center gap-2 pb-1 text-primary font-heading font-bold text-[13px] border-b border-outline-variant/30">
+            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
+              <Icon name="account_balance_wallet" className="text-[15px]" />
+            </div>
+            <span>Financials & Compliance</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2.5">
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">Default Commission (%)</label>
+              <input type="number" step="0.5" min={0} max={50} value={form.commissionRate} onChange={(e) => set('commissionRate', e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">Welfare Fund (%)</label>
+              <input type="number" step="1" min={0} max={100} value={form.welfareFundAllocation} onChange={(e) => set('welfareFundAllocation', e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">TDS Rate (%) (Sec 194O)</label>
+              <input type="number" step="0.25" min={0} max={10} value={form.tdsRate} onChange={(e) => set('tdsRate', e.target.value)} className={inputCls} />
+            </div>
+          </div>
+          <p className="text-[11px] text-on-surface-variant leading-snug flex items-center gap-1.5">
+            <Icon name="info" className="text-[14px] text-primary/60" />
+            These defaults apply platform-wide and can be tuned later per cooperative or service category.
+          </p>
         </div>
 
         {/* Section 2: Admin Account */}

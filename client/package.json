@@ -12,6 +12,7 @@
   "dependencies": {
     "@cloudinary/react": "^1.14.4",
     "@cloudinary/url-gen": "^1.22.0",
+    "@react-oauth/google": "^0.13.5",
     "@tabler/icons-react": "^3.46.0",
     "axios": "^1.19.0",
     "i18next": "^26.4.0",

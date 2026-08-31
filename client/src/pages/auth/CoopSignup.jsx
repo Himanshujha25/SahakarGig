@@ -16,7 +16,17 @@ export default function CoopSignup() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [form, setForm] = useState({
-    coopName: "", coopReg: "", coopRegion: "",
+    // Society identity
+    coopName: "", coopReg: "", coopRegType: "",
+    sector: "", foundedYear: "", memberCount: "",
+    // Jurisdiction & office
+    coopRegion: "", coopState: "", coopDistrict: "", coopAddress: "",
+    // Governance
+    presidentName: "", secretaryName: "",
+    // Financials & payout bank
+    commissionRate: "", welfareFundAllocation: "",
+    bankHolderName: "", bankAccount: "", bankIfsc: "", bankName: "",
+    // Admin account
     name: "", email: "", phone: "", password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -48,7 +58,23 @@ export default function CoopSignup() {
         cooperative: {
           name: form.coopName,
           registrationId: form.coopReg,
-          region: form.coopRegion,
+          region: `${form.coopRegion}${form.coopDistrict ? `, ${form.coopDistrict}` : ""}`,
+          state: form.coopState,
+          district: form.coopDistrict,
+          address: form.coopAddress,
+          sector: form.sector,
+          foundedYear: form.foundedYear,
+          memberCount: Number(form.memberCount) || 25,
+          presidentName: form.presidentName,
+          secretaryName: form.secretaryName,
+          commissionRate: Number(form.commissionRate) || 8,
+          welfareFundAllocation: Number(form.welfareFundAllocation) || 10,
+          payoutBank: {
+            holderName: form.bankHolderName,
+            accountNumber: form.bankAccount,
+            ifsc: form.bankIfsc,
+            bankName: form.bankName,
+          },
         },
         otp: code,
       });
@@ -146,25 +172,177 @@ export default function CoopSignup() {
               </div>
             </div>
             <div>
-              <label htmlFor="coopRegion" className="block text-[12.5px] font-semibold text-on-surface mb-1">
-                Region / City
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">
+                Registration Type
               </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Icon name="location_on" className="text-[17px] text-outline group-focus-within:text-primary transition-colors" />
+              <select
+                value={form.coopRegType}
+                onChange={(e) => set("coopRegType", e.target.value)}
+                className={inputCls + " cursor-pointer"}
+              >
+                <option value="" disabled>Select registration type</option>
+                {["State Cooperative", "Multi-State Cooperative", "National Cooperative", "Primary Cooperative"].map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Sector & Member Count */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">
+                Sector
+              </label>
+              <select
+                value={form.sector}
+                onChange={(e) => set("sector", e.target.value)}
+                className={inputCls + " cursor-pointer"}
+              >
+                <option value="" disabled>Select sector</option>
+                {["Gig & Domestic Labor Services", "Artisan & Handloom Society", "Urban Services Cooperative", "Women Empowerment Collective", "Agriculture & Dairy", "Housing Cooperative", "Credit & Thrift Society"].map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <div>
+                <label className="block text-[12.5px] font-semibold text-on-surface mb-1">
+                  Member Strength
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Icon name="groups" className="text-[17px] text-outline group-focus-within:text-primary transition-colors" />
+                  </div>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.memberCount}
+                    onChange={(e) => set("memberCount", e.target.value)}
+                    placeholder="e.g. 25"
+                    className={inputCls}
+                  />
                 </div>
-                <input
-                  id="coopRegion"
-                  type="text"
-                  required
-                  value={form.coopRegion}
-                  onChange={(e) => set("coopRegion", e.target.value)}
-                  placeholder="e.g. Pune"
-                  className={inputCls}
-                />
               </div>
             </div>
           </div>
+
+          {/* Founded Year */}
+          <div>
+            <label className="block text-[12.5px] font-semibold text-on-surface mb-1">
+              Year of Establishment
+            </label>
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Icon name="calendar_month" className="text-[17px] text-outline group-focus-within:text-primary transition-colors" />
+              </div>
+              <input
+                type="text"
+                value={form.foundedYear}
+                onChange={(e) => set("foundedYear", e.target.value)}
+                placeholder="e.g. 2015"
+                className={inputCls}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section: Jurisdiction & Office */}
+        <div className="rounded-xl border border-outline-variant/70 bg-white p-3.5 space-y-3 shadow-xs">
+          <div className="flex items-center gap-2 pb-1 text-primary font-heading font-bold text-[13px] border-b border-outline-variant/30">
+            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
+              <Icon name="location_on" className="text-[15px]" />
+            </div>
+            <span>Jurisdiction & Office Address</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2.5">
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">State</label>
+              <input type="text" value={form.coopState} onChange={(e) => set("coopState", e.target.value)} placeholder="Maharashtra" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">District</label>
+              <input type="text" value={form.coopDistrict} onChange={(e) => set("coopDistrict", e.target.value)} placeholder="Pune" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">City / Region</label>
+              <input type="text" value={form.coopRegion} onChange={(e) => set("coopRegion", e.target.value)} placeholder="Pune" className={inputCls} />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[12.5px] font-semibold text-on-surface mb-1">Registered Office Address</label>
+            <textarea rows={2} value={form.coopAddress} onChange={(e) => set("coopAddress", e.target.value)} placeholder="Full society office address" className={inputCls + " resize-none"} />
+          </div>
+        </div>
+
+        {/* Section: Society Governance */}
+        <div className="rounded-xl border border-outline-variant/70 bg-white p-3.5 space-y-3 shadow-xs">
+          <div className="flex items-center gap-2 pb-1 text-primary font-heading font-bold text-[13px] border-b border-outline-variant/30">
+            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
+              <Icon name="manage_accounts" className="text-[15px]" />
+            </div>
+            <span>Society Governance</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">President Name</label>
+              <input type="text" value={form.presidentName} onChange={(e) => set("presidentName", e.target.value)} placeholder="President of the society" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">Secretary Name</label>
+              <input type="text" value={form.secretaryName} onChange={(e) => set("secretaryName", e.target.value)} placeholder="Secretary of the society" className={inputCls} />
+            </div>
+          </div>
+        </div>
+
+        {/* Section: Financials & Payout Bank */}
+        <div className="rounded-xl border border-outline-variant/70 bg-white p-3.5 space-y-3 shadow-xs">
+          <div className="flex items-center gap-2 pb-1 text-primary font-heading font-bold text-[13px] border-b border-outline-variant/30">
+            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
+              <Icon name="account_balance" className="text-[15px]" />
+            </div>
+            <span>Financials & Payout Bank</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">
+                Commission Rate (%) <span className="text-outline-variant">— per booking</span>
+              </label>
+              <input type="number" step="0.5" min={0} max={50} value={form.commissionRate} onChange={(e) => set("commissionRate", e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">
+                Welfare Fund Allocation (%)
+              </label>
+              <input type="number" step="1" min={0} max={100} value={form.welfareFundAllocation} onChange={(e) => set("welfareFundAllocation", e.target.value)} className={inputCls} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">Account Holder Name</label>
+              <input type="text" value={form.bankHolderName} onChange={(e) => set("bankHolderName", e.target.value)} placeholder="Society's account holder" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">Bank Name</label>
+              <input type="text" value={form.bankName} onChange={(e) => set("bankName", e.target.value)} placeholder="e.g. State Bank of India" className={inputCls} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">Account Number</label>
+              <input type="text" inputMode="numeric" value={form.bankAccount} onChange={(e) => set("bankAccount", e.target.value)} placeholder="Society bank account" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[12.5px] font-semibold text-on-surface mb-1">IFSC Code</label>
+              <input type="text" value={form.bankIfsc} onChange={(e) => set("bankIfsc", e.target.value)} placeholder="e.g. SBIN0000001" className={inputCls} />
+            </div>
+          </div>
+          <p className="text-[11px] text-on-surface-variant leading-snug flex items-center gap-1.5">
+            <Icon name="info" className="text-[14px] text-primary/60" />
+            Used for settling commission payouts to your society's account.
+          </p>
         </div>
 
         {/* Section 2: Admin Account */}

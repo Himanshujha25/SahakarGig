@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const Otp = require('../models/Otp');
 const Cooperative = require('../models/Cooperative');
@@ -8,6 +9,16 @@ const Federation = require('../models/Federation');
 const { signToken } = require('../utils/helpers');
 const { sendOtpEmail } = require('../utils/email');
 const { uploadMedia } = require('../lib/cloudinary');
+
+const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+// IMPORTANT: both the client id AND the client secret must be passed to the
+// constructor. google-auth-library's OAuth2Client.getToken() only reads
+// client_id / client_secret from the constructor options — any values passed
+// inside getToken({ ... }) are ignored. Without the secret here, the code
+// exchange fails with Google's "client_secret is missing" error even though
+// GOOGLE_CLIENT_SECRET is present in .env.
+const googleClient = new OAuth2Client(googleClientId, googleClientSecret);
 
 const OTP_TTL_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
@@ -67,7 +78,72 @@ async function verifyOtp(email, code, purpose) {
 
 
 async function googleAuth(req, res) {
-  const { email, name, avatarUrl, googleId } = req.body;
+  const { credential, code } = req.body;
+
+  let email, name, picture;
+
+  const extractFromIdToken = (idToken) => {
+    const parts = idToken.split('.');
+    const data = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+    return {
+      email: data.email,
+      name: data.name || data.given_name || '',
+      picture: data.picture || '',
+    };
+  };
+
+  try {
+    if (code) {
+      // Standard OAuth2 authorization-code flow: exchange the code for tokens
+      // server-side so the client secret never leaves the backend.
+      if (!googleClientId || !googleClientSecret) {
+        console.error('[googleAuth] Missing Google OAuth env vars:', { googleClientId: !!googleClientId, googleClientSecret: !!googleClientSecret });
+        return res.status(500).json({ message: 'Google OAuth is not configured on the server. Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET.' });
+      }
+      // Official Google OAuth2 server-side pattern: the client secret is passed
+      // via the constructor and the code is exchanged using the popup flow's
+      // reserved 'postmessage' redirect URI.
+      const { tokens } = await googleClient.getToken({
+        code,
+        redirect_uri: 'postmessage',
+      });
+      const ticket = await googleClient.verifyIdToken({
+        idToken: tokens.id_token,
+        audience: googleClientId,
+      });
+      const payload = ticket.getPayload();
+      email = payload.email;
+      name = payload.name || payload.given_name || '';
+      picture = payload.picture || '';
+    } else if (credential) {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: googleClientId || '',
+      });
+      const payload = ticket.getPayload();
+      email = payload.email;
+      name = payload.name || payload.given_name || '';
+      picture = payload.picture || '';
+    } else {
+      return res.status(400).json({ message: 'Google credential or code is required.' });
+    }
+  } catch (err) {
+    // Dev fallback: if GOOGLE_CLIENT_ID is not configured, trust the raw ID token
+    // so the feature remains testable without Google Cloud credentials.
+    if (!process.env.GOOGLE_CLIENT_ID && credential) {
+      try {
+        const data = extractFromIdToken(credential);
+        email = data.email;
+        name = data.name;
+        picture = data.picture;
+      } catch (_) {
+        return res.status(401).json({ message: 'Invalid Google credential.' });
+      }
+    } else {
+      return res.status(401).json({ message: 'Invalid Google credential. Could not verify with Google servers.' });
+    }
+  }
+
   const normalizedEmail = String(email || '').trim().toLowerCase();
   if (!normalizedEmail || !EMAIL_RE.test(normalizedEmail)) {
     return res.status(400).json({ message: 'Valid Google email is required.' });
@@ -75,7 +151,6 @@ async function googleAuth(req, res) {
 
   let user = await User.findOne({ email: normalizedEmail });
   if (!user) {
-    // Instant frictionless household creation with Google identity
     const randomPass = crypto.randomBytes(16).toString('hex');
     const passwordHash = await bcrypt.hash(randomPass, 10);
     user = await User.create({
@@ -83,13 +158,73 @@ async function googleAuth(req, res) {
       email: normalizedEmail,
       passwordHash,
       role: 'Household',
-      avatarUrl: avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      avatarUrl: picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
       emailVerified: true,
     });
   }
 
   const token = signToken(user);
   res.json({ token, user: publicUser(user) });
+}
+
+// Verify a Google auth code and return the user's profile WITHOUT creating an
+// account or session. Used by the signup form to auto-fill fields; the user
+// then completes the remaining role-specific fields and submits normally.
+async function googleProfile(req, res) {
+  const { code, credential } = req.body;
+  if (!code && !credential) return res.status(400).json({ message: 'Google credential or code is required.' });
+
+  let email, name, picture, givenName;
+  try {
+    if (credential) {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: googleClientId,
+      });
+      const payload = ticket.getPayload();
+      email = payload.email;
+      name = payload.name || payload.given_name || '';
+      picture = payload.picture || '';
+      givenName = payload.given_name || '';
+    } else {
+      if (!googleClientId || !googleClientSecret) {
+        console.error('[googleProfile] Missing Google OAuth env vars:', { googleClientId: !!googleClientId, googleClientSecret: !!googleClientSecret });
+        return res.status(500).json({ message: 'Google OAuth is not configured on the server. Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET.' });
+      }
+      const { tokens } = await googleClient.getToken({
+        code,
+        redirect_uri: 'postmessage',
+      });
+      const ticket = await googleClient.verifyIdToken({
+        idToken: tokens.id_token,
+        audience: googleClientId,
+      });
+      const payload = ticket.getPayload();
+      email = payload.email;
+      name = payload.name || payload.given_name || '';
+      picture = payload.picture || '';
+      givenName = payload.given_name || '';
+    }
+  } catch (err) {
+    console.error('[googleProfile] Google verification failed:', err?.response?.data || err?.message || err);
+    return res.status(401).json({ message: 'Invalid Google credential. Could not verify with Google servers.', detail: err?.response?.data || err?.message });
+  }
+
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail || !EMAIL_RE.test(normalizedEmail)) {
+    return res.status(400).json({ message: 'Valid Google email is required.' });
+  }
+
+  const existing = await User.findOne({ email: normalizedEmail });
+  res.json({
+    profile: {
+      email: normalizedEmail,
+      name: String(name || normalizedEmail.split('@')[0]).trim(),
+      givenName: givenName,
+      avatarUrl: picture || '',
+    },
+    emailRegistered: !!existing,
+  });
 }
 
 async function signup(req, res) {
@@ -120,13 +255,43 @@ async function signup(req, res) {
   if (!check.ok) return res.status(400).json({ message: check.message });
 
   const passwordHash = await bcrypt.hash(password, 10);
+  // Rich profile fields captured at signup (persisted for all roles so the
+  // account is immediately usable without re-filling the same details).
+  const profileFields = {
+    name: String(name || '').trim(),
+    phone,
+    email: normalizedEmail,
+    passwordHash,
+    role,
+    address,
+    geoLocation,
+    avatarUrl: req.body.avatarUrl || '',
+    bio: String(req.body.bio || '').trim(),
+    location: String(
+      req.body.location ||
+      req.body.city ||
+      req.body.district ||
+      (typeof address === 'string' ? address : '') ||
+      ''
+    ).trim(),
+    emailVerified: true, // only ever true here — proven by the confirmed signup OTP
+  };
+
+  // Household-specific: emergency contact, household size, language preference,
+  // special instructions captured at onboarding.
+  if (role === 'Household') {
+    profileFields.emergencyContact = req.body.emergencyContact || undefined;
+    profileFields.householdSize = Number.isFinite(Number(req.body.householdSize))
+      ? Number(req.body.householdSize)
+      : undefined;
+    profileFields.prefLang = String(req.body.prefLang || req.body.language || 'English').trim();
+    profileFields.specialInstructions = String(req.body.specialInstructions || '').trim();
+    profileFields.notificationPrefs = req.body.notificationPrefs || undefined;
+  }
+
   let user;
   try {
-    user = await User.create({
-      name: String(name || '').trim(), phone, email: normalizedEmail, passwordHash, role, address, geoLocation,
-      avatarUrl: req.body.avatarUrl || '',
-      emailVerified: true, // only ever true here — proven by the confirmed signup OTP
-    });
+    user = await User.create(profileFields);
   } catch (e) {
     // Unique-index race: two simultaneous signups with the same email.
     if (e && e.code === 11000) {
@@ -139,9 +304,23 @@ async function signup(req, res) {
     const fed = await Federation.create({
       name: federation?.name || `${name}'s Federation`,
       registrationId: federation?.registrationId || `FED-${Date.now()}`,
-      region: federation?.region || '',
+      region: federation?.region || federation?.district || '',
+      state: federation?.state || req.body.state || 'Delhi',
+      district: federation?.district || '',
+      address: federation?.address || '',
+      presidentName: federation?.presidentName || name,
+      secretaryName: federation?.secretaryName || '',
+      contactEmail: federation?.contactEmail || normalizedEmail,
+      contactPhone: federation?.contactPhone || phone || '',
       adminId: user._id,
-      commissionRate: federation?.commissionRate || 2,
+      commissionRate: Number(federation?.commissionRate) || 2,
+      welfareFundAllocation: Number(federation?.welfareFundAllocation) || 10,
+      tdsRate: Number(federation?.tdsRate) || 1,
+      categoryCommissions: Array.isArray(federation?.categoryCommissions)
+        ? federation.categoryCommissions
+          .filter((c) => c && c.category)
+          .map((c) => ({ category: c.category, rate: Number(c.rate) || 0 }))
+        : [],
     });
     // link existing cooperatives in the same region (case-insensitive)
     await Cooperative.updateMany(
@@ -164,23 +343,35 @@ async function signup(req, res) {
     const sector = req.body.sector || cooperative?.sector || 'Gig & Domestic Labor Services';
     const memberCount = Number(req.body.memberCount) || 25;
     const payoutBank = req.body.payoutBank || {};
-    const documents = Array.isArray(req.body.documents) ? req.body.documents : [];
+    const documents = Array.isArray(req.body.documents)
+      ? req.body.documents
+      : (Array.isArray(cooperative?.documents) ? cooperative.documents : []);
+    const secretaryName = String(req.body.secretaryName || cooperative?.secretaryName || '').trim();
+    const foundedYear = String(req.body.foundedYear || cooperative?.foundedYear || '').trim();
+    const commissionRate = Number(req.body.commissionRate || cooperative?.commissionRate) || 8;
+    const welfareFundAllocation = Number(req.body.welfareFundAllocation ?? cooperative?.welfareFundAllocation) || 10;
+    const operateDistrict = String(req.body.district || cooperative?.district || '').trim();
+    const operateState = String(req.body.state || cooperative?.state || 'Delhi').trim();
+    const societyAddress = String(req.body.societyAddress || addressStr || '').trim();
 
     await Cooperative.create({
       name: coopName,
       registrationId: regId,
       region,
-      district,
-      state,
-      address: addressStr,
+      district: operateDistrict,
+      state: operateState,
+      address: societyAddress,
       contactEmail: normalizedEmail,
       contactPhone: phone || '',
       presidentName,
+      secretaryName,
+      foundedYear,
       sector,
       memberCount,
       payoutBank,
       adminId: user._id,
-      commissionRate: cooperative?.commissionRate || 8,
+      commissionRate,
+      welfareFundAllocation,
       status: 'pending',
       documents,
     });
@@ -656,7 +847,7 @@ async function deleteFamily(req, res) {
 }
 
 module.exports = {
-  signup, login, googleAuth, me, updateMe,
+  signup, login, googleAuth, googleProfile, me, updateMe,
   sendOtp, resetPassword, changePassword, verifyEmail,
   forgotPasswordInitiate,
   listAddresses, addAddress, updateAddress, deleteAddress,
