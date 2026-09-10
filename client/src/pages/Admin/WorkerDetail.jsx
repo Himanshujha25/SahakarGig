@@ -9,6 +9,7 @@ import {
   Maximize2, Search, SlidersHorizontal, PauseCircle, PlayCircle
 } from "lucide-react";
 import api from "../../lib/api";
+import { SERVER_URL } from "../../lib/config";
 
 export default function WorkerDetail() {
   const [searchParams] = useSearchParams();
@@ -117,7 +118,7 @@ export default function WorkerDetail() {
   const formattedAvatar = rawResolvedAvatar
     ? (rawResolvedAvatar.startsWith("http") || rawResolvedAvatar.startsWith("data:")
         ? rawResolvedAvatar
-        : `http://localhost:5000${rawResolvedAvatar}`)
+        : `${SERVER_URL}${rawResolvedAvatar}`)
     : "";
 
   const avatarUrl = !imageError && formattedAvatar ? formattedAvatar : null;

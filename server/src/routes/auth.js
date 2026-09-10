@@ -10,12 +10,14 @@ const authLimiter = rateLimit({
   max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { message: 'Too many attempts, please try again after 15 minutes' },
 });
 
 router.post('/signup', authLimiter, asyncHandler(c.signup));
 router.post('/login', authLimiter, asyncHandler(c.login));
 router.post('/google', authLimiter, asyncHandler(c.googleAuth));
+router.post('/google/profile', authLimiter, asyncHandler(c.googleProfile));
 router.get('/me', auth, asyncHandler(c.me));
 router.patch('/me', auth, asyncHandler(c.updateMe));
 
@@ -25,18 +27,20 @@ const otpLimiter = rateLimit({
   max: 8,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { message: 'Too many OTP requests. Please try again after 15 minutes.' },
 });
 router.post('/send-otp', authLimiter, require('../middleware/auth').optionalAuth, asyncHandler(c.sendOtp));
 // send-otp validates req.user itself for authenticated purposes (change_password etc.)
 
-// Forgot-password initiation â€” cross-checks registration BEFORE issuing an OTP.
+// Forgot-password initiation — cross-checks registration BEFORE issuing an OTP.
 // Stricter limiter: this is the endpoint that can probe account existence.
 const forgotLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { message: 'Too many password-reset attempts. Please try again after 15 minutes.' },
 });
 router.post('/forgot-password', forgotLimiter, asyncHandler(c.forgotPasswordInitiate));

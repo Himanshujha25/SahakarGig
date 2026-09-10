@@ -11,6 +11,8 @@ const coopSchema = new mongoose.Schema(
     contactEmail: { type: String },
     contactPhone: { type: String },
     presidentName: { type: String, default: '' },
+    secretaryName: { type: String, default: '' },
+    foundedYear: { type: String, default: '' },
     sector: { type: String, default: 'Gig & Domestic Labor Services' },
     memberCount: { type: Number, default: 25 },
     payoutBank: {

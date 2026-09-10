@@ -54,13 +54,23 @@ export default function Earnings() {
     return () => clearInterval(id);
   }, []);
 
-  const total     = welfare?.totalEarnings || 750;
-  const days      = welfare?.daysWorked || 2;
-  const score     = welfare?.welfareScore || 85;
-  const avg       = days > 0 ? total / days : 375;
-  const completed = bookings.filter(b => b.status === "completed").length || 2;
+  const completedBookings = bookings.filter((b) => b.status === "completed");
+  const completed = completedBookings.length;
 
-  const totalDisbursed = payouts.reduce((sum, p) => sum + (p.amount || 0), 0);
+  // Calculate live take-home earnings from all completed bookings (85% net split or fair wage breakdown)
+  const bookingsTakeHome = completedBookings.reduce((sum, b) => {
+    const takeHome = b.fairWageBreakdown?.workerTakeHome != null
+      ? Number(b.fairWageBreakdown.workerTakeHome)
+      : (Number(b.price) || 0) * 0.85;
+    return sum + takeHome;
+  }, 0);
+
+  const total = Math.max(bookingsTakeHome, Number(welfare?.totalEarnings) || 0);
+  const days  = Math.max(1, welfare?.daysWorked || Math.ceil(completed * 0.8));
+  const score = welfare?.welfareScore || 85;
+  const avg   = days > 0 ? total / days : total;
+
+  const totalDisbursed = payouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
   const availableBalance = Math.max(0, total - totalDisbursed);
 
   const STAT_CARDS = [
@@ -69,8 +79,6 @@ export default function Earnings() {
     { label: "Avg / Day",      value: formatMoney(avg),   Icon: TrendingUp,   bg: "bg-blue-50", ic: "text-[#00288e]" },
     { label: "Jobs Done",      value: completed,          Icon: CheckCircle2, bg: "bg-blue-50", ic: "text-[#00288e]" },
   ];
-
-  const completedBookings = bookings.filter(b => b.status === "completed");
 
   async function handleRequestPayout(e) {
     e.preventDefault();
