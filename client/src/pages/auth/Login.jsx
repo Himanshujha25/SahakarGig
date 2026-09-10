@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../../context/AuthContext";
 import Icon from "../../components/Icon";
@@ -18,6 +19,7 @@ const HERO_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuBqd8zsjxsBCPLstNY3rkhVc0f0-xjt0cXpHTsYV3jdaOlLQMvM2o-eaojR97WW3B3yXkJjNM6lXaTVCKOmu5ZOEoQ-zdNyfpOaesnbzqw95q_el-1LbiU7Pow12erD6-NNlOWM89u0WfWjAVlR8AwZCxhT4yCsY5zFk2If2sscr4CQRLQWFQ4ZkIPn7EEXn94mfnJ32Fu3RuNCdpIZqT_f5jeuG-6VPImhDey89SdyWQ5iHh6Iyw";
 
 export default function Login() {
+  const { t } = useTranslation();
   const { login, googleLogin } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -61,10 +63,6 @@ export default function Login() {
   }
 
   const googleLoginFlow = useGoogleLogin({
-    // Authorization-code flow (proper OAuth 2.0): the client receives a one-time
-    // `code` which the server exchanges with the client secret (never exposed
-    // to the browser). The implicit flow would hand the browser an access token
-    // directly, which is less secure.
     flow: 'auth-code',
     ux_mode: 'popup',
     onSuccess: async (tokenResponse) => {
@@ -104,33 +102,33 @@ export default function Login() {
 
   return (
     <AuthShell
-      title="Empowering Communities, Elevating Work."
-      subtitle="Join the premier cooperative network designed for institutional precision and community trust."
+      title={t('empoweringCommunities', "Empowering Communities, Elevating Work.")}
+      subtitle={t('loginSub', "Join the premier cooperative network designed for institutional precision and community trust.")}
       back="/"
-      backLabel="Back to Home"
+      backLabel={t('backToHome', "Back to Home")}
       heroImage={HERO_IMAGE}
     >
       <div className="mb-5">
         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-[0.12em] mb-2.5">
           <Icon name="verified" className="text-[12px] text-primary" />
-          Secure Sign In
+          {t('secureSignIn', 'Secure Sign In')}
         </div>
-        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight leading-tight">Welcome back</h2>
-        <p className="font-body-md text-xs sm:text-sm text-on-surface-variant mt-1.5">Sign in to your dashboard.</p>
+        <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight leading-tight">{t('welcomeBack', 'Welcome back')}</h2>
+        <p className="font-body-md text-xs sm:text-sm text-on-surface-variant mt-1.5">{t('signInSubtitle', 'Sign in to your dashboard.')}</p>
       </div>
 
       {/* Demo pills — desktop/tablet only */}
       <div className="hidden sm:block mb-5">
-        <span className="block text-[10px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">Demo Accounts</span>
+        <span className="block text-[10px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">{t('demoAccounts', 'Demo Accounts')}</span>
         <div className="flex flex-wrap items-center gap-1.5">
           {[
-            ["coop.test@gmail.com", "Coop Admin"],
-            ["household.test@gmail.com", "Household"],
-            ["plumber.test@gmail.com", "Gig Worker"],
-            ["federation.test@gmail.com", "Federation"],
+            ["coop.test@gmail.com", t('coopAdmin', "Coop Admin")],
+            ["household.test@gmail.com", t('household', "Household")],
+            ["plumber.test@gmail.com", t('provider', "Gig Worker")],
+            ["federation.test@gmail.com", t('fedAdmin', "Federation")],
           ].map(([email, label]) => (
             <button
-              key={label}
+              key={email}
               type="button"
               onClick={() => fillDemo(email)}
               className="px-2.5 py-1 rounded-full border border-outline-variant bg-surface-container-low text-[11px] font-semibold hover:bg-primary hover:text-on-primary hover:border-primary hover:-translate-y-0.5 transition-all duration-200 cursor-pointer shadow-xs"
@@ -152,7 +150,7 @@ export default function Login() {
         {/* Email */}
         <div>
           <label htmlFor="identifier" className="block text-[12px] font-bold text-on-surface mb-1.5">
-            Email or Phone Number
+            {t('emailOrPhone', 'Email or Phone Number')}
           </label>
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -164,7 +162,7 @@ export default function Login() {
               required
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="Enter your credentials"
+              placeholder={t('enterCredentials', 'Enter your credentials')}
               className="block w-full pl-10 pr-3.5 py-3 border border-outline-variant rounded-xl bg-surface-container-low text-on-surface text-[13.5px] focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-outline-variant outline-none shadow-xs"
             />
           </div>
@@ -173,7 +171,7 @@ export default function Login() {
         {/* Password */}
         <div>
           <label htmlFor="password" className="block text-[12px] font-bold text-on-surface mb-1.5">
-            Password
+            {t('password', 'Password')}
           </label>
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -207,10 +205,10 @@ export default function Login() {
               onChange={(e) => setRememberMe(e.target.checked)}
               className="h-3.5 w-3.5 text-primary border-outline-variant rounded accent-primary cursor-pointer"
             />
-            <span className="text-[12.5px] text-on-surface-variant">Remember me</span>
+            <span className="text-[12.5px] text-on-surface-variant">{t('rememberMe', 'Remember me')}</span>
           </label>
           <Link to="/forgot-password" className="text-[12.5px] font-semibold text-primary hover:opacity-80 transition-opacity">
-            Forgot password?
+            {t('forgotPassword', 'Forgot password?')}
           </Link>
         </div>
 
@@ -221,7 +219,7 @@ export default function Login() {
           className="w-full flex justify-center items-center gap-2 py-3 rounded-xl text-[13.5px] font-bold bg-primary text-on-primary shadow-[0_4px_14px_rgba(30,107,101,0.3)] hover:opacity-90 hover:shadow-[0_8px_24px_rgba(30,107,101,0.45)] active:scale-[0.98] transition-all duration-200 disabled:opacity-70 cursor-pointer"
         >
           {loading && <span className="h-4 w-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />}
-          {loading ? "Signing in..." : "Sign In"}
+          {loading ? t('signingIn', 'Signing in...') : t('signIn', 'Sign In')}
           {!loading && <Icon name="arrow_forward" className="text-[16px]" />}
         </button>
       </form>
@@ -232,7 +230,7 @@ export default function Login() {
           <div className="w-full border-t border-outline-variant" />
         </div>
         <div className="relative flex justify-center">
-          <span className="px-3 bg-surface-container-lowest text-[11.5px] text-on-surface-variant">Or continue with</span>
+          <span className="px-3 bg-surface-container-lowest text-[11.5px] text-on-surface-variant">{t('orContinueWith', 'Or continue with')}</span>
         </div>
       </div>
 
@@ -258,20 +256,20 @@ export default function Login() {
       </div>
 
       <div className="mt-5 text-center">
-        <p className="text-xs text-on-surface-variant">Not part of a cooperative yet?</p>
+        <p className="text-xs text-on-surface-variant">{t('notPartCoopYet', 'Not part of a cooperative yet?')}</p>
         <div className="mt-2 flex items-center justify-center gap-2.5">
           <Link
             to="/signup"
             className="inline-flex items-center px-3.5 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-[12px] font-bold text-primary hover:bg-primary hover:text-on-primary transition-all duration-200 cursor-pointer"
           >
-            Register Society
+            {t('registerSociety', 'Register Society')}
           </Link>
           <span className="w-1 h-1 rounded-full bg-outline shrink-0" />
           <Link
             to="/federation-signup"
             className="inline-flex items-center px-3.5 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-[12px] font-bold text-primary hover:bg-primary hover:text-on-primary transition-all duration-200 cursor-pointer"
           >
-            Register Federation
+            {t('registerFederation', 'Register Federation')}
           </Link>
         </div>
       </div>

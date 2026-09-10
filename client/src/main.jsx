@@ -8,7 +8,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import App from './App';
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '100000000000-sahakargigplaceholder.apps.googleusercontent.com';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

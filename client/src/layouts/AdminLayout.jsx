@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "../components/NotificationBell";
+import LangToggle from "../components/LangToggle";
 import AdminSidebar from "../components/AdminSidebar";
 import api from "../lib/api";
 import socket from "../lib/socket";
@@ -128,6 +129,7 @@ export default function AdminLayout() {
 
         {/* Right: Header Actions */}
         <div className="flex items-center gap-1.5">
+          <LangToggle />
           <NotificationBell />
           <button onClick={signOut} className="w-10 h-10 flex items-center justify-center rounded-xl text-error hover:bg-error-container/30 transition-colors cursor-pointer" aria-label="Sign out">
             <LogOut size={18} strokeWidth={2} />

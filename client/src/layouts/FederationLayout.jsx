@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
+import LangToggle from '../components/LangToggle';
 import socket from '../lib/socket';
 import {
   LayoutDashboard, Building2, ShieldCheck, AlertTriangle,
@@ -111,6 +112,11 @@ export default function FederationLayout() {
         </div>
       </div>
 
+      {/* Language Switcher */}
+      <div className="px-4 py-3 border-b border-outline-variant/30">
+        <LangToggle fullWidth align="left" />
+      </div>
+
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto no-scrollbar">
         <p className="px-3 mb-2 text-[10px] font-bold tracking-widest text-on-surface-variant/50 uppercase">Governance &amp; Ops</p>
         {NAV.map(({ to, Icon, label, end }) => (
@@ -217,6 +223,7 @@ export default function FederationLayout() {
 
         {/* Right: Header Actions */}
         <div className="flex items-center gap-1.5">
+          <LangToggle />
           <NotificationBell />
           <button onClick={signOut} className="w-10 h-10 flex items-center justify-center rounded-xl text-error hover:bg-error-container/30 transition-colors cursor-pointer" aria-label="Sign out">
             <LogOut size={18} strokeWidth={2} />

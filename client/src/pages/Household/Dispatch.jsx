@@ -4,6 +4,7 @@ import api from "../../lib/api";
 import socket from "../../lib/socket";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import { AIIcon, AIBadge } from "../../components/AIIcon";
+import AIEstimateModal from "../../components/AIEstimateModal";
 import {
   Radar, MapPin, Phone, Star, ShieldCheck, BadgeCheck, Lock,
   IndianRupee, ArrowRight, Zap, Handshake, CheckCircle2, Users, IdCard,
@@ -440,6 +441,7 @@ export default function Dispatch() {
   const [coords, setCoords] = useState({ lat: 28.6139, lng: 77.2090 });
 
   const [dynamicWorkerCount, setDynamicWorkerCount] = useState(8);
+  const [estimateModalOpen, setEstimateModalOpen] = useState(false);
 
   // Fetch real active verified worker count from MongoDB API
   useEffect(() => {
@@ -765,11 +767,14 @@ export default function Dispatch() {
                   <span className="block text-[14px] sm:text-[13px] font-semibold text-on-surface-variant">
                     Service Category &amp; Skills Needed
                   </span>
-                  {category && (
-                    <span className="text-[12px] font-bold text-primary flex items-center gap-1">
-                      <Layers size={13} /> {category}
-                    </span>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setEstimateModalOpen(true)}
+                    className="text-[12px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer bg-primary-container/40 px-2.5 py-1 rounded-lg border border-primary/20"
+                  >
+                    <AIIcon size={13} />
+                    <span>Get AI Price Estimate</span>
+                  </button>
                 </div>
                 <CategoryDropdown
                   value={category}
@@ -779,6 +784,15 @@ export default function Dispatch() {
                   }}
                 />
               </div>
+
+              <AIEstimateModal
+                isOpen={estimateModalOpen}
+                onClose={() => setEstimateModalOpen(false)}
+                defaultService={category || "Electrician"}
+                onApplyEstimate={(est) => {
+                  if (est.minPrice) setPriceStr(est.minPrice.toString());
+                }}
+              />
 
               {/* Multi-Service Task Selection & Add Service Button */}
               {category && (

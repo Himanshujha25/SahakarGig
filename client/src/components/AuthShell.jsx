@@ -1,37 +1,41 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Icon from "./Icon";
+import LangToggle from "./LangToggle";
 
 // Default high-resolution cooperative imagery
 const DEFAULT_HERO_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuBqd8zsjxsBCPLstNY3rkhVc0f0-xjt0cXpHTsYV3jdaOlLQMvM2o-eaojR97WW3B3yXkJjNM6lXaTVCKOmu5ZOEoQ-zdNyfpOaesnbzqw95q_el-1LbiU7Pow12erD6-NNlOWM89u0WfWjAVlR8AwZCxhT4yCsY5zFk2If2sscr4CQRLQWFQ4ZkIPn7EEXn94mfnJ32Fu3RuNCdpIZqT_f5jeuG-6VPImhDey89SdyWQ5iHh6Iyw";
-
-const PANE_FEATURES = [
-  {
-    icon: "verified",
-    title: "100% KYC & Police Verification",
-    desc: "Identity-verified cooperative workforce",
-  },
-  {
-    icon: "security",
-    title: "Escrow Protection & Welfare Fund",
-    desc: "Automated social security on every booking",
-  },
-  {
-    icon: "bolt",
-    title: "Live GPS Tracking & Instant Dispatch",
-    desc: "Real-time dispatch with transparent pricing",
-  },
-];
 
 export default function AuthShell({
   children,
   title,
   subtitle,
   back,
-  backLabel = "Back to Home",
+  backLabel,
   heroImage = DEFAULT_HERO_IMAGE,
   badgeText = "Verified Platform",
 }) {
+  const { t } = useTranslation();
+
+  const paneFeatures = [
+    {
+      icon: "verified",
+      title: t('kycVerifyTitle', "100% KYC & Police Verification"),
+      desc: t('kycVerifyDesc', "Identity-verified cooperative workforce"),
+    },
+    {
+      icon: "security",
+      title: t('escrowWelfareTitle', "Escrow Protection & Welfare Fund"),
+      desc: t('escrowWelfareDesc', "Automated social security on every booking"),
+    },
+    {
+      icon: "bolt",
+      title: t('gpsDispatchTitle', "Live GPS Tracking & Instant Dispatch"),
+      desc: t('gpsDispatchDesc', "Real-time dispatch with transparent pricing"),
+    },
+  ];
+
   return (
     <div className="min-h-screen lg:h-screen lg:overflow-hidden flex flex-col lg:flex-row bg-surface-container-lowest font-body-md selection:bg-primary-container selection:text-on-primary-container antialiased">
       {/* Left Hero Image Pane with SaaS blur effect */}
@@ -63,16 +67,16 @@ export default function AuthShell({
         {/* Middle Hero Content & Features */}
         <div className="relative z-10 my-auto py-4 xl:py-6 max-w-lg">
           <h1 className="font-heading text-2xl sm:text-3xl xl:text-[38px] font-extrabold tracking-tight leading-[1.15] text-white mb-3 drop-shadow-sm">
-            {title}
+            {title || t('empoweringCommunities', "Empowering Communities, Elevating Work.")}
           </h1>
 
           <p className="text-white/85 text-xs sm:text-sm xl:text-[15px] leading-relaxed mb-5 max-w-md font-normal">
-            {subtitle}
+            {subtitle || t('joinCoopSubtitle', "Connect, work, and build wealth in a verified, community-governed ecosystem.")}
           </p>
 
           {/* Feature Benefit Cards */}
           <div className="space-y-2.5 max-w-md">
-            {PANE_FEATURES.map((item) => (
+            {paneFeatures.map((item) => (
               <div
                 key={item.title}
                 className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.07] backdrop-blur-md border border-white/15 hover:bg-white/[0.12] hover:border-white/25 transition-all duration-200 shadow-xs cursor-default group"
@@ -95,17 +99,17 @@ export default function AuthShell({
 
         {/* Bottom Footer */}
         <div className="relative z-10 pt-4 border-t border-white/15 flex items-center justify-between text-xs text-white/75">
-          <span className="font-medium">© SahakarGig · All rights reserved</span>
+          <span className="font-medium">© {new Date().getFullYear()} SahakarGig</span>
           <span className="text-[11px] font-medium text-white/60">
-            Cooperative-first platform
+            {t('coopFirstPlatform', "Cooperative-first platform")}
           </span>
         </div>
       </div>
 
       {/* Right Form Pane */}
       <div className="w-full lg:w-1/2 min-h-screen lg:h-full flex flex-col p-4 sm:p-6 lg:px-8 lg:py-4 xl:px-10 xl:py-6 bg-surface-container-lowest overflow-y-auto lg:overflow-y-auto">
-        {/* Top Navigation Bar - Synchronized exact same position across all pages */}
-        <div className="w-full max-w-[480px] mx-auto flex items-center justify-between min-h-[32px] mb-2 pb-1.5 border-b border-outline-variant/40 shrink-0">
+        {/* Top Navigation Bar */}
+        <div className="w-full max-w-[480px] mx-auto flex items-center justify-between min-h-[36px] mb-2 pb-1.5 border-b border-outline-variant/40 shrink-0">
           {back ? (
             <Link
               to={back}
@@ -117,20 +121,23 @@ export default function AuthShell({
                   className="text-[14px]"
                 />
               </span>
-              <span className="text-[12px] font-semibold text-on-surface-variant group-hover:text-primary transition-colors hidden sm:inline">
-                {backLabel}
+              <span className="text-[12px] font-semibold text-on-surface-variant group-hover:text-primary transition-colors inline sm:inline">
+                {backLabel || t('backToHome', "Back to Home")}
               </span>
             </Link>
           ) : (
             <div />
           )}
 
-          {/* Mobile Header Brand */}
-          <div className="lg:hidden flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shadow-xs shrink-0">
-              <Icon name="handshake" className="text-[12px] text-on-primary-fixed" />
+          {/* Right side Language Toggle inside Auth Shell */}
+          <div className="flex items-center gap-2">
+            <div className="lg:hidden flex items-center gap-1.5 mr-2">
+              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shadow-xs shrink-0">
+                <Icon name="handshake" className="text-[12px] text-on-primary-fixed" />
+              </div>
+              <span className="font-heading font-bold text-on-surface text-xs">SahakarGig</span>
             </div>
-            <span className="font-heading font-bold text-on-surface text-xs">SahakarGig</span>
+            <LangToggle />
           </div>
         </div>
 
@@ -145,22 +152,22 @@ export default function AuthShell({
           <div className="flex flex-col items-center gap-3">
             <div className="flex items-center gap-3">
               <a href="#" className="text-[11.5px] font-medium text-on-surface-variant hover:text-primary transition-colors duration-200">
-                Privacy Policy
+                {t('privacyPolicyLink', 'Privacy Policy')}
               </a>
               <span className="w-1 h-1 rounded-full bg-outline" />
               <a href="#" className="text-[11.5px] font-medium text-on-surface-variant hover:text-primary transition-colors duration-200">
-                Terms of Service
+                {t('termsOfServiceLink', 'Terms of Service')}
               </a>
               <span className="w-1 h-1 rounded-full bg-outline" />
               <a href="#" className="text-[11.5px] font-medium text-on-surface-variant hover:text-primary transition-colors duration-200">
-                Support Center
+                {t('supportCenterLink', 'Support Center')}
               </a>
             </div>
             <div className="flex items-center gap-2 text-[11px] text-on-surface-variant/70">
               <span className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shadow-[0_2px_8px_rgba(30,107,101,0.3)]">
                 <Icon name="handshake" className="text-[11px] text-on-primary-fixed" />
               </span>
-              <span>© {new Date().getFullYear()} SahakarGig · Cooperative-first platform</span>
+              <span>© {new Date().getFullYear()} SahakarGig · {t('coopFirstPlatform', "Cooperative-first platform")}</span>
             </div>
           </div>
         </div>
@@ -168,4 +175,3 @@ export default function AuthShell({
     </div>
   );
 }
-

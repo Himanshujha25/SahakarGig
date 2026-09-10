@@ -525,7 +525,18 @@ async function addChat(req, res) {
     .populate('householdId', 'name phone')
     .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } });
   if (!b) return res.status(404).json({ message: 'Not found' });
-  const entry = { sender: req.user.userId, message, at: new Date() };
+
+  const userId = req.user.userId;
+  const role = req.user.role;
+  const isHousehold = b.householdId?._id?.toString() === userId;
+  const isProvider = b.providerId?.userId?._id?.toString() === userId;
+  const isAdmin = role === 'Cooperative Admin' || role === 'Federation Admin';
+
+  if (!isHousehold && !isProvider && !isAdmin) {
+    return res.status(403).json({ message: 'Forbidden: You do not have access to this booking chat' });
+  }
+
+  const entry = { sender: userId, message, at: new Date() };
   b.chat.push(entry);
   await b.save();
   const chatPayload = { bookingId: b._id, message: entry };

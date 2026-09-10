@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/api";
-import { AlertTriangle, CheckCircle2, Undo2, Handshake } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Undo2, Handshake, Scale } from "lucide-react";
+import AIDisputeAuditModal from "../../components/AIDisputeAuditModal";
 
 export default function Disputes() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null);
+  const [auditBookingId, setAuditBookingId] = useState(null);
 
   async function load() {
     const { data } = await api.get("/admin/disputes");
@@ -151,26 +153,42 @@ export default function Disputes() {
               </div>
 
               {/* Actions */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
                 <button
-                  className="h-11 flex items-center justify-center gap-2 rounded-xl border-2 border-primary text-primary text-[13px] font-bold hover:bg-primary-container transition-all duration-200 disabled:opacity-60"
-                  disabled={busy === d._id}
-                  onClick={() => resolve(d._id, "refund")}
+                  type="button"
+                  onClick={() => setAuditBookingId(d._id)}
+                  className="w-full h-9 flex items-center justify-center gap-1.5 rounded-xl bg-primary-container/40 text-on-primary-container border border-primary/20 text-xs font-bold hover:bg-primary-container cursor-pointer"
                 >
-                  <Undo2 size={15} strokeWidth={2.5} /> Refund
+                  <Scale size={14} /> Run AI Dispute Audit
                 </button>
-                <button
-                  className="h-11 flex items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary-container text-on-primary-container text-[13px] font-bold hover:border-primary hover:bg-primary hover:text-on-primary hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
-                  disabled={busy === d._id}
-                  onClick={() => resolve(d._id, "provider")}
-                >
-                  <Handshake size={15} strokeWidth={2.5} /> For Provider
-                </button>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    className="h-11 flex items-center justify-center gap-2 rounded-xl border-2 border-primary text-primary text-[13px] font-bold hover:bg-primary-container transition-all duration-200 disabled:opacity-60 cursor-pointer"
+                    disabled={busy === d._id}
+                    onClick={() => resolve(d._id, "refund")}
+                  >
+                    <Undo2 size={15} strokeWidth={2.5} /> Refund
+                  </button>
+                  <button
+                    className="h-11 flex items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary-container text-on-primary-container text-[13px] font-bold hover:border-primary hover:bg-primary hover:text-on-primary hover:shadow-[0_4px_14px_rgba(0,40,142,0.18)] active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer"
+                    disabled={busy === d._id}
+                    onClick={() => resolve(d._id, "provider")}
+                  >
+                    <Handshake size={15} strokeWidth={2.5} /> For Provider
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <AIDisputeAuditModal
+        isOpen={!!auditBookingId}
+        onClose={() => setAuditBookingId(null)}
+        bookingId={auditBookingId}
+      />
     </div>
   );
 }

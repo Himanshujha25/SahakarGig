@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
+import LangToggle from '../components/LangToggle';
 import CoopMarqueeTicker from '../components/CoopMarqueeTicker';
 import api from '../lib/api';
 import socket from '../lib/socket';
@@ -86,12 +87,9 @@ export default function ProviderLayout() {
     if (!socket.connected) socket.connect();
 
     function onNewBroadcast(job) {
-      // 1. Trigger High-Power Siren + Voice Synthesis + Haptic Vibration + Background PWA Push
       if (!isMuted) {
         triggerJobAlert(job);
       }
-
-      // 2. Set active job modal & reset timer
       setActiveAlertJob(job);
       setTimeRemaining(60);
     }
@@ -208,8 +206,13 @@ export default function ProviderLayout() {
           </div>
         </div>
 
+        {/* Language Switcher */}
+        <div className="px-4 py-3 border-b border-outline-variant/30">
+          <LangToggle fullWidth align="left" />
+        </div>
+
         {/* Section label */}
-        <div className="px-5 pt-5 pb-2">
+        <div className="px-5 pt-4 pb-2">
           <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-[0.12em]">Navigation</p>
         </div>
 
@@ -299,7 +302,8 @@ export default function ProviderLayout() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <LangToggle />
           <NotificationBell />
         </div>
       </header>

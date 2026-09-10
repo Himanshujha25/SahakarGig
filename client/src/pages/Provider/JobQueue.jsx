@@ -8,6 +8,7 @@ import {
   Calendar, Layers, Filter, Eye, ChevronRight, ChevronDown, User, Star,
   Navigation, AlertTriangle, ExternalLink, Volume2, ShieldAlert
 } from "lucide-react";
+import AIWorkerCoachWidget from "../../components/AIWorkerCoachWidget";
 
 // Web Audio synthesizer chime for incoming Ola/Uber style job alert
 function playIncomingGigChime() {
@@ -331,6 +332,9 @@ export default function JobQueue() {
           <p className="text-[10px] sm:text-[11px] font-bold text-purple-600 dark:text-purple-400 truncate">Friday Direct Payout</p>
         </div>
       </div>
+
+      {/* ── AI WORKER EARNINGS & SKILL COACH WIDGET ── */}
+      <AIWorkerCoachWidget />
 
       {/* ── MOBILE CUSTOM FILTER DROPDOWN ── */}
       <div className="sm:hidden relative space-y-1">

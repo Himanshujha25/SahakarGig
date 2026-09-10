@@ -47,6 +47,7 @@ import CooperativeNotices from './pages/Admin/Notices';
 import CooperativeCompliance from './pages/Admin/Compliance';
 import WelfareManagement from './pages/Admin/WelfareManagement';
 import BulkRFPRequests from './pages/Admin/BulkRFPRequests';
+import AdminCertifications from './pages/Admin/AdminCertifications';
 
 import FederationLayout from './layouts/FederationLayout';
 import FederationDashboard from './pages/Federation/Dashboard';
@@ -140,6 +141,8 @@ export default function App() {
             <Route path="payouts" element={<CooperativeFinancials />} />
             <Route path="commission" element={<Commission />} />
             <Route path="rfp" element={<BulkRFPRequests />} />
+            <Route path="certifications" element={<AdminCertifications />} />
+            <Route path="training" element={<AdminCertifications />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
         </Route>

@@ -51,6 +51,7 @@ app.use('/api/ai', require('./src/routes/ai'));
 app.use('/api/welfare', require('./src/routes/welfare'));
 app.use('/api/notifications', require('./src/routes/notifications'));
 app.use('/api/upload', require('./src/routes/upload'));
+app.use('/api/certifications', require('./src/routes/certifications'));
 
 app.get('/api/stats', async (_req, res) => {
   try {

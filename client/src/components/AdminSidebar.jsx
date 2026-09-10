@@ -8,11 +8,13 @@ import {
   Megaphone, FileCheck2, Building2, HeartHandshake
 } from "lucide-react";
 import NotificationBell from "./NotificationBell";
+import LangToggle from "./LangToggle";
 
 const NAV = [
   { label: "Dashboard",              Icon: LayoutDashboard, to: "/admin",               end: true },
   { label: "Bulk Crew RFPs",         Icon: Building2,       to: "/admin/rfp",           end: false },
   { label: "Members & Workforce",    Icon: Users,           to: "/admin/providers",     end: false },
+  { label: "Skill Certifications",    Icon: FileCheck2,      to: "/admin/certifications",end: false },
   { label: "Verifications",          Icon: ShieldCheck,     to: "/admin/verifications", end: false },
   { label: "Earnings & Payouts",     Icon: IndianRupee,     to: "/admin/financials",    end: false },
   { label: "Notice Board",           Icon: Megaphone,       to: "/admin/notices",       end: false },
@@ -84,6 +86,11 @@ export default function AdminSidebar() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Language Switcher */}
+      <div className="px-4 py-3 border-b border-outline-variant/30">
+        <LangToggle fullWidth align="left" />
       </div>
 
       {/* Nav label */}

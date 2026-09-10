@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { SERVER_URL } from '../lib/config';
 import {
@@ -11,6 +12,7 @@ import {
 
 import AIVoiceSearchModal from '../components/AIVoiceSearchModal';
 import HeroVideoBackground from '../components/HeroVideoBackground';
+import LangToggle from '../components/LangToggle';
 
 const HERO_IMG =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBQ-dpYJMEXWGjKVWEtlFNYAPrFrGMUncXsN08msvogjefS62LwnCQ1bUeItkSrlQSZYpq5JrB8qKHNifnjbW0rHcNkbQY9x_gnoxQqWcWi-cqXBPtYQcopyEOxc1pQc4HyPUfW753FHhzpHa1Q7iqyfvjr5CMRSKmil9ODYutUqHafvNbhWSptBy9GXzM09Au9PHyKYYpeMrAayssGeRytpEpRtDvUHzfHKsko5gpP7qzGC8T3jA';
@@ -86,6 +88,7 @@ const DEFAULT_INDIAN_HUBS = [
 ];
 
 export default function Landing() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const searchBarRef = useRef(null);
@@ -310,14 +313,14 @@ export default function Landing() {
           {/* Nav Links */}
           <nav className="hidden md:flex items-center gap-1.5">
             {[
-              ['#services', 'Services'],
-              ['#how', 'How it Works'],
-              ['#about', 'Why Us'],
-              ['/architecture', 'System Architecture'],
+              ['#services', t('servicesNav', 'Services')],
+              ['#how', t('howNav', 'How it Works')],
+              ['#about', t('whyNav', 'Why Us')],
+              ['/architecture', t('archNav', 'System Architecture')],
             ].map(([href, label]) => (
               href.startsWith('/') ? (
                 <Link
-                  key={label}
+                  key={href}
                   to={href}
                   className="px-4 py-2 rounded-lg text-[13.5px] font-semibold text-on-surface-variant hover:text-primary hover:bg-primary-container/70 transition-all duration-200"
                 >
@@ -325,7 +328,7 @@ export default function Landing() {
                 </Link>
               ) : (
                 <a
-                  key={label}
+                  key={href}
                   href={href}
                   className="px-4 py-2 rounded-lg text-[13.5px] font-semibold text-on-surface-variant hover:text-primary hover:bg-primary-container/70 transition-all duration-200"
                 >
@@ -335,19 +338,20 @@ export default function Landing() {
             ))}
           </nav>
 
-          {/* Auth Buttons — desktop */}
+          {/* Auth Buttons & Language Selector — desktop */}
           <div className="hidden md:flex items-center gap-2.5 shrink-0">
+            <LangToggle />
             <Link
               to="/login"
               className="inline-flex items-center px-3.5 py-2 rounded-lg text-[13.5px] font-semibold text-on-surface-variant hover:text-primary hover:bg-primary-container/70 transition-all duration-200"
             >
-              Sign In
+              {t('signIn', 'Sign In')}
             </Link>
             <Link
               to="/signup"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13.5px] font-semibold bg-primary text-on-primary shadow-[0_2px_10px_rgba(30,107,101,0.25)] hover:opacity-90 hover:shadow-[0_6px_18px_rgba(30,107,101,0.4)] active:scale-[0.98] transition-all duration-200"
             >
-              Get Started <IconArrowRight size={14} stroke={2} />
+              {t('getStarted', 'Get Started')} <IconArrowRight size={14} stroke={2} />
             </Link>
           </div>
 
@@ -369,14 +373,14 @@ export default function Landing() {
         >
           <nav className="flex flex-col px-5 py-4 gap-1">
             {[
-              ['#services', 'Services'],
-              ['#how', 'How it Works'],
-              ['#about', 'Why Us'],
-              ['/architecture', 'System Architecture'],
+              ['#services', t('servicesNav', 'Services')],
+              ['#how', t('howNav', 'How it Works')],
+              ['#about', t('whyNav', 'Why Us')],
+              ['/architecture', t('archNav', 'System Architecture')],
             ].map(([href, label]) => (
               href.startsWith('/') ? (
                 <Link
-                  key={label}
+                  key={href}
                   to={href}
                   onClick={() => setMenuOpen(false)}
                   className="px-3 py-3 rounded-xl text-[14.5px] font-semibold text-on-surface-variant hover:text-primary hover:bg-primary-container/60 transition-all duration-200"
@@ -385,7 +389,7 @@ export default function Landing() {
                 </Link>
               ) : (
                 <a
-                  key={label}
+                  key={href}
                   href={href}
                   onClick={() => setMenuOpen(false)}
                   className="px-3 py-3 rounded-xl text-[14.5px] font-semibold text-on-surface-variant hover:text-primary hover:bg-primary-container/60 transition-all duration-200"
@@ -394,24 +398,29 @@ export default function Landing() {
                 </a>
               )
             ))}
-            <div className="mt-2 pt-3 border-t border-outline-variant/60 flex flex-col gap-2">
+            <div className="mt-2 pt-3 border-t border-outline-variant/60 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-semibold text-outline uppercase tracking-wider">{t('language', 'Language')}</span>
+                <LangToggle />
+              </div>
               <Link
                 to="/login"
                 onClick={() => setMenuOpen(false)}
                 className="w-full flex items-center justify-center px-4 py-3 rounded-xl text-[14px] font-bold text-on-surface-variant hover:text-primary hover:bg-primary-container/60 transition-all duration-200"
               >
-                Sign In
+                {t('signIn', 'Sign In')}
               </Link>
               <Link
                 to="/signup"
                 onClick={() => setMenuOpen(false)}
                 className="w-full flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl text-[14px] font-bold bg-primary text-on-primary shadow-[0_2px_10px_rgba(30,107,101,0.25)] active:scale-[0.98] transition-all duration-200"
               >
-                Get Started <IconArrowRight size={15} stroke={2} />
+                {t('getStarted', 'Get Started')} <IconArrowRight size={15} stroke={2} />
               </Link>
             </div>
           </nav>
         </div>
+
       </header>
 
       <main className="flex-grow">
@@ -426,10 +435,7 @@ export default function Landing() {
 
           {/* Official Government Institutional Badge */}
           <div className="inline-flex flex-wrap justify-center text-center items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 dark:bg-surface/80 backdrop-blur-md border border-slate-200 dark:border-outline-variant text-slate-900 dark:text-on-surface text-[12px] font-bold tracking-tight shadow-sm hover:border-primary/40 transition-all duration-300 mb-6 cursor-default">
-          
-            <span className="font-extrabold text-primary">Ministry of Cooperation</span>
-            <span className="w-1 h-1 rounded-full bg-outline-variant" />
-            <span className="text-slate-600 dark:text-on-surface-variant">Government of India Initiative</span>
+            <span className="font-extrabold text-primary">{t('heroBadge', 'Ministry of Cooperation • Government of India Initiative')}</span>
           </div>
 
           {/* Headline */}
@@ -437,17 +443,12 @@ export default function Landing() {
             className="text-[36px] sm:text-[52px] md:text-[66px] font-extrabold tracking-[-0.03em] leading-[1.1] sm:leading-[1.05] text-on-surface max-w-3xl mb-5"
             style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}
           >
-            Find Trusted{' '}
-            <span className="text-primary relative inline-block">
-              Cooperative
-            </span>{' '}
-            Services
+            {t('heroTitle', 'Find Trusted Cooperative Services')}
           </h1>
 
           {/* Subtitle */}
           <p className="text-[17px] sm:text-[19px] leading-[1.65] text-on-surface-variant max-w-xl mb-10 font-normal">
-            Connect directly with verified local professionals backed by your community cooperative.
-            Reliable, safe, and empowering for everyone.
+            {t('heroSub', 'Connect directly with verified local professionals backed by your community cooperative. Reliable, safe, and empowering for everyone.')}
           </p>
 
           {/* ── POLISHED SAAS SEARCH BAR WITH LIVE AUTOCOMPLETE & GPS ── */}
@@ -466,7 +467,7 @@ export default function Landing() {
                     onFocus={() => { setShowServiceDropdown(true); setShowLocationDropdown(false); }}
                     onChange={(e) => { setServiceQuery(e.target.value); setShowServiceDropdown(true); }}
                     className="w-full bg-transparent border-none outline-none text-[14px] font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                    placeholder="What service do you need? (e.g. Electrician, Cook)"
+                    placeholder={t('searchPlaceholder', 'What service do you need? (e.g. Electrician, Cook)')}
                   />
                   {serviceQuery && (
                     <button
@@ -483,7 +484,7 @@ export default function Landing() {
                 {showServiceDropdown && (
                   <div className="absolute top-full left-0 mt-3 w-full sm:w-[340px] bg-white/95 dark:bg-[#121626]/95 backdrop-blur-2xl rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.6)] overflow-hidden z-[100] text-left animate-in fade-in zoom-in-95 duration-150 max-h-[340px] overflow-y-auto">
                     <div className="px-4 py-2.5 bg-slate-50/80 dark:bg-white/[0.03] border-b border-slate-100 dark:border-white/5 flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      <span>Popular Cooperative Services</span>
+                      <span>{t('categories', 'Popular Cooperative Services')}</span>
                       <button
                         type="button"
                         onClick={() => setShowServiceDropdown(false)}
@@ -532,7 +533,7 @@ export default function Landing() {
                       searchIndianLocations(e.target.value);
                     }}
                     className="w-full bg-transparent border-none outline-none text-[14px] font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                    placeholder="City, Locality or Pincode in India"
+                    placeholder={t('locationPlaceholder', 'City, Locality or Pincode in India')}
                   />
                   {locationQuery && (
                     <button
@@ -626,7 +627,7 @@ export default function Landing() {
                   className="h-10 px-3.5 rounded-xl sm:rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer active:scale-95 shrink-0"
                 >
                   <IconMicrophone size={16} className="text-primary" />
-                  <span className="hidden sm:inline">Voice</span>
+                  <span className="hidden sm:inline">{t('voiceBtn', 'Voice')}</span>
                 </button>
 
                 <button
@@ -634,7 +635,7 @@ export default function Landing() {
                   className="h-10 px-5 rounded-xl sm:rounded-full bg-primary hover:bg-primary/90 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:shadow transition active:scale-95 cursor-pointer shrink-0"
                 >
                   <IconSearch size={15} stroke={2} />
-                  <span>Search</span>
+                  <span>{t('searchBtn', 'Search')}</span>
                 </button>
               </div>
             </form>
@@ -645,9 +646,9 @@ export default function Landing() {
           {/* Trust Pills */}
           <div className="flex flex-wrap justify-center gap-3">
             {[
-              { Icon: IconCircleCheck, label: 'Verified by Cooperative' },
-              { Icon: IconShieldCheck, label: 'Secure Escrow Payments' },
-              { Icon: IconBolt,        label: 'Instant Emergency Booking' },
+              { Icon: IconCircleCheck, label: t('verifiedByCoop', 'Verified by Cooperative') },
+              { Icon: IconShieldCheck, label: t('secureEscrow', 'Secure Escrow Payments') },
+              { Icon: IconBolt,        label: t('instantEmergency', 'Instant Emergency Booking') },
             ].map(({ Icon, label }) => (
               <span
                 key={label}
@@ -659,19 +660,20 @@ export default function Landing() {
             ))}
           </div>
         </div>
+
         </section>
 
         {/* ── CATEGORY BENTO SECTION ── */}
         <section id="services" className="max-w-[1280px] mx-auto px-6 sm:px-8 py-14">
           <div className="flex items-end justify-between gap-4 mb-8">
             <div>
-              <p className="text-[12px] font-bold text-primary uppercase tracking-[0.12em] mb-1.5">What We Offer</p>
+              <p className="text-[12px] font-bold text-primary uppercase tracking-[0.12em] mb-1.5">{t('whatWeOffer', 'What We Offer')}</p>
               <h2 className="text-[28px] sm:text-[36px] font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
-                Browse by Category
+                {t('browseByCategory', 'Browse by Category')}
               </h2>
             </div>
             <Link to="/signup" className="hidden md:flex items-center gap-1.5 text-[14px] font-bold text-primary hover:opacity-80 transition-colors group whitespace-nowrap shrink-0">
-              View all services <IconChevronRight size={15} stroke={2} className="group-hover:translate-x-1 transition-transform duration-200" />
+              {t('viewAllServices', 'View all services')} <IconChevronRight size={15} stroke={2} className="group-hover:translate-x-1 transition-transform duration-200" />
             </Link>
           </div>
 
@@ -687,17 +689,22 @@ export default function Landing() {
               <div className="absolute inset-0 bg-gradient-to-t from-[#0d1c2e]/85 via-[#0d1c2e]/25 to-transparent" />
               <div className="absolute bottom-0 left-0 p-5 sm:p-8">
                 <div className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[10.5px] sm:text-[11.5px] font-semibold mb-2 sm:mb-2.5 border border-white/20">
-                  <IconSparkles size={12} stroke={1.75} /> Most Popular
+                  <IconSparkles size={12} stroke={1.75} /> {t('mostPopular', 'Most Popular')}
                 </div>
                 <h3 className="text-[20px] sm:text-[26px] font-bold text-white mb-0.5 sm:mb-1" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
-                  Home Maintenance
+                  {t('homeMaintenance', 'Home Maintenance')}
                 </h3>
-                <p className="text-[12.5px] sm:text-[14px] text-white/80">Electricians, Plumbers, Carpenters &amp; Technicians</p>
+                <p className="text-[12.5px] sm:text-[14px] text-white/80">{t('homeMaintenanceSub', 'Electricians, Plumbers, Carpenters & Technicians')}</p>
               </div>
             </div>
 
             {/* 4 Small category cards */}
-            {SMALL_CATS.map(({ Icon, label, sub }) => (
+            {[
+              { Icon: IconSchool,       label: t('educationTutoring', 'Education & Tutoring'), sub: t('educationSub', 'Home tutors, Coaching') },
+              { Icon: IconSparkles,      label: t('cleaningServices', 'Cleaning Services'),    sub: t('cleaningSub', 'Deep clean, Laundry') },
+              { Icon: IconHeartbeat,     label: t('healthcareNursing', 'Healthcare & Nursing'), sub: t('healthcareSub', 'Elder care, Attendants') },
+              { Icon: IconLayoutGrid,    label: t('allCategories', 'All Categories'),       sub: t('allCatSub', '100+ Services') },
+            ].map(({ Icon, label, sub }) => (
               <div
                 key={label}
                 className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/50 bg-surface-container-low cursor-pointer flex flex-col items-center justify-center gap-2 sm:gap-3 p-4 sm:p-6 min-h-[150px] sm:min-h-[180px] shadow-sm hover:shadow-[0_12px_36px_rgba(0,0,0,0.2)] hover:-translate-y-1.5 hover:border-primary/40 transition-all duration-300"
@@ -725,7 +732,12 @@ export default function Landing() {
             <div className="absolute bottom-0 left-0 w-80 h-80 bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-5 sm:gap-8">
-              {STATS.map(({ key, label, Icon }, index) => (
+              {[
+                { key: 'providers',    label: t('verifiedWorkers', 'Verified Workers'),     Icon: IconUsers },
+                { key: 'bookings',     label: t('servicesDelivered', 'Services Delivered'),   Icon: IconCalendarCheck },
+                { key: 'cooperatives', label: t('registeredSocieties', 'Registered Societies'), Icon: IconHeartHandshake },
+                { key: 'avgRating',    label: t('communityRating', 'Community Rating'),     Icon: IconStar },
+              ].map(({ key, label, Icon }, index) => (
                 <div
                   key={label}
                   className={`flex flex-col items-center text-center group ${index >= 2 ? 'mt-2 sm:mt-0' : ''} ${index % 2 === 0 ? '' : 'sm:pl-6'}`}
@@ -755,14 +767,19 @@ export default function Landing() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -z-10 w-[560px] h-[280px] bg-primary/10 blur-[110px] pointer-events-none rounded-full" />
           <div className="max-w-[1280px] mx-auto px-6 sm:px-8">
             <div className="text-center mb-14">
-              <p className="text-[12px] font-bold text-primary uppercase tracking-[0.12em] mb-2">Simple Process</p>
+              <p className="text-[12px] font-bold text-primary uppercase tracking-[0.12em] mb-2">{t('simpleProcess', 'Simple Process')}</p>
               <h2 className="text-[34px] sm:text-[38px] font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
-                How SahakarGig Works
+                {t('howItWorksTitle', 'How SahakarGig Works')}
               </h2>
-              <p className="text-[16px] text-on-surface-variant mt-3 max-w-lg mx-auto">From search to service completion in four effortless steps.</p>
+              <p className="text-[16px] text-on-surface-variant mt-3 max-w-lg mx-auto">{t('howItWorksSub', 'From search to service completion in four effortless steps.')}</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {HOW.map(({ n, title, desc }, i) => (
+              {[
+                { n: '01', title: t('step1Title', 'Search a Service'),  desc: t('step1Desc', 'Browse by category or search for exactly what you need in your locality.') },
+                { n: '02', title: t('step2Title', 'Book Instantly'),    desc: t('step2Desc', 'Pick a verified provider, choose a time slot, and confirm your booking.') },
+                { n: '03', title: t('step3Title', 'Track Live'),        desc: t('step3Desc', 'Follow your provider in real-time via Socket.io-powered live status updates.') },
+                { n: '04', title: t('step4Title', 'Pay & Review'),      desc: t('step4Desc', 'Pay securely after the job is done and leave a review for the community.') },
+              ].map(({ n, title, desc }, i) => (
                 <div
                   key={n}
                   className="group relative bg-surface rounded-2xl sm:rounded-3xl border border-outline-variant/50 p-7 hover:shadow-[0_12px_36px_rgba(0,0,0,0.2)] hover:-translate-y-1.5 hover:border-primary/50 transition-all duration-300"
@@ -787,16 +804,32 @@ export default function Landing() {
         {/* ── FEATURES / WHY US ── */}
         <section id="about" className="max-w-[1280px] mx-auto px-6 sm:px-8 py-20">
           <div className="text-center mb-14">
-            <p className="text-[12px] font-bold text-primary uppercase tracking-[0.12em] mb-2">Why Choose Us</p>
+            <p className="text-[12px] font-bold text-primary uppercase tracking-[0.12em] mb-2">{t('whyChooseUs', 'Why Choose Us')}</p>
             <h2 className="text-[34px] sm:text-[38px] font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
-              Built on Trust &amp; Community
+              {t('builtOnTrustTitle', 'Built on Trust & Community')}
             </h2>
             <p className="text-[16px] text-on-surface-variant mt-3 max-w-xl mx-auto">
-              A cooperative-owned platform where every stakeholder wins.
+              {t('builtOnTrustSub', 'A cooperative-owned platform where every stakeholder wins.')}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {FEATURES.map(({ Icon, title, desc }) => (
+            {[
+              {
+                Icon: IconSparkles,
+                title: t('feat1Title', 'AI Broadcast & First-Lock Engine'),
+                desc: t('feat1Desc', 'AI-powered geospatial engine broadcasts requests to nearby verified providers and locks first-acceptance atomically in milliseconds.'),
+              },
+              {
+                Icon: IconCircleCheck,
+                title: t('feat2Title', 'Cooperative Verified'),
+                desc: t('feat2Desc', 'Every provider is background-checked and endorsed by a registered cooperative society before they can take bookings.'),
+              },
+              {
+                Icon: IconShieldCheck,
+                title: t('feat3Title', 'Secure & Fair Payments'),
+                desc: t('feat3Desc', 'Razorpay-powered escrow holds funds safely. Providers earn more; households pay less — zero hidden fees.'),
+              },
+            ].map(({ Icon, title, desc }) => (
               <div
                 key={title}
                 className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/50 bg-surface-container-low p-6 sm:p-8 hover:shadow-[0_16px_48px_rgba(0,0,0,0.25)] hover:-translate-y-2 hover:border-primary/40 transition-all duration-300"
@@ -834,11 +867,11 @@ export default function Landing() {
                 </span>
               </Link>
               <p className="text-[13.5px] text-on-surface-variant leading-relaxed max-w-sm">
-                India's premier cooperative-owned gig marketplace connecting verified local service providers with households.
+                {t('footerTagline', "India's premier cooperative-owned gig marketplace connecting verified local service providers with households.")}
               </p>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-primary/10 border border-primary/25 text-[11.5px] font-semibold text-primary">
                 <IconShieldCheck size={13} stroke={1.75} />
-                <span>Ministry of Cooperation Aligned</span>
+                <span>{t('ministryAligned', 'Ministry of Cooperation Aligned')}</span>
               </div>
               <div className="flex items-center gap-2 pt-1">
                 {SOCIALS.map(({ Icon, label }) => (
@@ -857,13 +890,13 @@ export default function Landing() {
             {/* Links Columns — 2-col mobile, 3-col desktop */}
             <div className="md:col-span-8 lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-x-6 sm:gap-x-10 lg:gap-x-16 gap-y-8 sm:gap-y-0">
               <div>
-                <h4 className="text-[12px] font-bold text-on-surface uppercase tracking-[0.1em] mb-4">Platform</h4>
+                <h4 className="text-[12px] font-bold text-on-surface uppercase tracking-[0.1em] mb-4">{t('platformHeader', 'PLATFORM')}</h4>
                 <ul className="space-y-3">
                   {[
-                    ['#services', 'Find Services'],
-                    ['/login', 'Book a Provider'],
-                    ['/signup', 'Become a Provider'],
-                    ['/signup', 'Emergency Booking']
+                    ['#services', t('findServicesLink', 'Find Services')],
+                    ['/login', t('bookProviderLink', 'Book a Provider')],
+                    ['/signup', t('becomeProviderLink', 'Become a Provider')],
+                    ['/signup', t('emergencyBookingLink', 'Emergency Booking')]
                   ].map(([href, label]) => (
                     <li key={label}>
                       <Link to={href} className="text-[13.5px] text-on-surface-variant hover:text-primary transition-colors duration-200">
@@ -875,13 +908,13 @@ export default function Landing() {
               </div>
 
               <div>
-                <h4 className="text-[12px] font-bold text-on-surface uppercase tracking-[0.1em] mb-4">Organization</h4>
+                <h4 className="text-[12px] font-bold text-on-surface uppercase tracking-[0.1em] mb-4">{t('organizationHeader', 'ORGANIZATION')}</h4>
                 <ul className="space-y-3">
                   {[
-                    ['#about', 'About Us'],
-                    ['#how', 'How it Works'],
-                    ['/architecture', 'Architecture'],
-                    ['/federation-signup', 'Federations']
+                    ['#about', t('aboutUsLink', 'About Us')],
+                    ['#how', t('howNav', 'How it Works')],
+                    ['/architecture', t('architectureLink', 'Architecture')],
+                    ['/federation-signup', t('federationsLink', 'Federations')]
                   ].map(([href, label]) => (
                     <li key={label}>
                       <Link to={href} className="text-[13.5px] text-on-surface-variant hover:text-primary transition-colors duration-200">
@@ -893,9 +926,14 @@ export default function Landing() {
               </div>
 
               <div className="col-span-2 sm:col-span-1 mt-0">
-                <h4 className="text-[12px] font-bold text-on-surface uppercase tracking-[0.1em] mb-4">Legal &amp; Trust</h4>
+                <h4 className="text-[12px] font-bold text-on-surface uppercase tracking-[0.1em] mb-4">{t('legalHeader', 'LEGAL & TRUST')}</h4>
                 <ul className="space-y-3">
-                  {['Privacy Policy', 'Terms of Service', 'Dispute Escrow', 'Support Center'].map((label) => (
+                  {[
+                    t('privacyPolicyLink', 'Privacy Policy'),
+                    t('termsOfServiceLink', 'Terms of Service'),
+                    t('disputeEscrowLink', 'Dispute Escrow'),
+                    t('supportCenterLink', 'Support Center')
+                  ].map((label) => (
                     <li key={label}>
                       <a href="#" className="text-[13.5px] text-on-surface-variant hover:text-primary transition-colors duration-200">
                         {label}
@@ -911,7 +949,7 @@ export default function Landing() {
           <div className="h-px w-full bg-gradient-to-r from-transparent via-outline-variant to-transparent mb-6" />
           <div className="flex flex-col sm:flex-row justify-between items-center gap-3.5">
             <p className="text-[12.5px] text-on-surface-variant/70">
-              © {new Date().getFullYear()} SahakarGig. Built for India's Cooperative Ecosystem.
+              © {new Date().getFullYear()} SahakarGig. {t('copyrightText', "Built for India's Cooperative Ecosystem.")}
             </p>
             <div className="flex items-center gap-4 text-[12.5px] text-on-surface-variant">
               <span className="hover:text-primary cursor-pointer transition-colors">National Cooperative Database (NCD)</span>
@@ -923,4 +961,4 @@ export default function Landing() {
       </footer>
     </div>
   );
-}
+}

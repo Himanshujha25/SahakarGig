@@ -1,25 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
+import LangToggle from '../components/LangToggle';
 import socket from '../lib/socket';
 import { Home, CalendarDays, User, LogOut, Handshake, Search, Radar, Settings, Heart, Wallet, Building2, X, MapPin } from 'lucide-react';
 
 const NAV = [
-  { label: 'Home',          Icon: Home,         to: '/household',          end: true  },
-  { label: 'Dispatch',      Icon: Radar,        to: '/household/dispatch', end: false },
-  { label: 'Find',          Icon: Search,       to: '/household/find',     end: false },
-  { label: 'Bulk Crew',     Icon: Building2,    to: '/household/bulk',     end: false },
-  { label: 'Bookings',      Icon: CalendarDays, to: '/household/bookings', end: false },
-  { label: 'Saved',         Icon: Heart,        to: '/household/saved',    end: false },
-  { label: 'Wallet',        Icon: Wallet,       to: '/household/wallet',   end: false },
-  { label: 'Settings',      Icon: Settings,     to: '/household/profile',  end: false },
+  { key: 'home',      label: 'Home',          Icon: Home,         to: '/household',          end: true  },
+  { key: 'dispatch',  label: 'Dispatch',      Icon: Radar,        to: '/household/dispatch', end: false },
+  { key: 'find',      label: 'Find',          Icon: Search,       to: '/household/find',     end: false },
+  { key: 'bulkCrew',  label: 'Bulk Crew',     Icon: Building2,    to: '/household/bulk',     end: false },
+  { key: 'bookings',  label: 'Bookings',      Icon: CalendarDays, to: '/household/bookings', end: false },
+  { key: 'saved',     label: 'Saved',         Icon: Heart,        to: '/household/saved',    end: false },
+  { key: 'wallet',    label: 'Wallet',        Icon: Wallet,       to: '/household/wallet',   end: false },
+  { key: 'settings',  label: 'Settings',      Icon: Settings,     to: '/household/profile',  end: false },
 ];
 
 const activeStyle   = 'bg-primary text-on-primary shadow-[0_4px_14px_rgba(30,107,101,0.3)]';
 const inactiveStyle = 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface';
 
 export default function HouseholdLayout() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -94,12 +97,17 @@ export default function HouseholdLayout() {
           </div>
         </div>
 
-        <div className="px-5 pt-5 pb-2">
-          <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-[0.12em]">Navigation</p>
+        {/* Language Switcher in Sidebar */}
+        <div className="px-4 py-3 border-b border-outline-variant/30">
+          <LangToggle fullWidth align="left" />
+        </div>
+
+        <div className="px-5 pt-4 pb-2">
+          <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-[0.12em]">{t('navigation', 'Navigation')}</p>
         </div>
 
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto no-scrollbar">
-          {NAV.slice(0, 7).map(({ label, Icon, to, end }) => (
+          {NAV.slice(0, 7).map(({ key, label, Icon, to, end }) => (
             <NavLink key={label} to={to} end={end}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 ${isActive ? activeStyle : inactiveStyle}`
@@ -108,7 +116,7 @@ export default function HouseholdLayout() {
               {({ isActive }) => (
                 <>
                   <Icon size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
-                  <span>{label}</span>
+                  <span>{t(key, label)}</span>
                   {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-on-primary" />}
                 </>
               )}
@@ -125,7 +133,7 @@ export default function HouseholdLayout() {
             {({ isActive }) => (
               <>
                 <Settings size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
-                <span>Settings</span>
+                <span>{t('settings', 'Settings')}</span>
                 {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-on-primary" />}
               </>
             )}
@@ -133,7 +141,7 @@ export default function HouseholdLayout() {
           <button onClick={signOut}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold text-error hover:bg-error-container/30 transition-all duration-200">
             <LogOut size={17} strokeWidth={2} className="shrink-0" />
-            <span>Sign Out</span>
+            <span>{t('logout', 'Sign Out')}</span>
           </button>
         </div>
 
@@ -174,6 +182,7 @@ export default function HouseholdLayout() {
         </Link>
 
         <div className="flex items-center gap-1.5">
+          <LangToggle />
           <NotificationBell />
           <button onClick={signOut} className="w-10 h-10 flex items-center justify-center rounded-xl text-error hover:bg-error-container/30 transition-colors cursor-pointer" aria-label="Sign out">
             <LogOut size={18} strokeWidth={2} />
