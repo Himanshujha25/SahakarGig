@@ -21,5 +21,12 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    headers: {
+      // Allow the Google OAuth popup to talk back to this page (fixes the
+      // "Cross-Origin-Opener-Policy policy would block the window.closed call"
+      // warning seen in Chrome's console during Google sign-in).
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+    },
   },
 });

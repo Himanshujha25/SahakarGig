@@ -6,12 +6,14 @@ import {
   CheckCircle2, Percent, Save, Phone, Mail, Award, Check, Download, ExternalLink, QrCode
 } from "lucide-react";
 
+import { SERVER_URL } from "../../lib/config";
+
 function getWorkerAvatar(w) {
   if (!w) return null;
   const raw = w.avatar || w.avatarUrl || w.userId?.avatarUrl || w.userId?.profileImage;
   if (!raw) return null;
   if (raw.startsWith('http') || raw.startsWith('data:')) return raw;
-  return `http://localhost:5000${raw}`;
+  return `${SERVER_URL}${raw}`;
 }
 
 export default function CooperativeDetail() {

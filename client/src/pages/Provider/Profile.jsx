@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/api";
+import { SERVER_URL } from "../../lib/config";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import AppearanceSettings from "../../components/AppearanceSettings";
 import { EmailStatusCard, ChangePasswordSection } from "../../components/AccountSecurity";
@@ -109,7 +110,11 @@ export default function ProviderProfile() {
           hourlyRate: p.hourlyRate ?? 350,
           bio: p.bio || "",
         });
-        if (p.avatar) setAvatarUrl(p.avatar.startsWith('http') ? p.avatar : `http://localhost:5000${p.avatar}`);
+        if (p.avatar) {
+          const clean = p.avatar.startsWith("http") ? p.avatar : `${SERVER_URL}${p.avatar}`;
+          setAvatarUrl(clean);
+          localStorage.setItem("sg_provider_avatar", clean);
+        }
         setSlots(DAYS.map((day) => {
           const existing = (p.availabilitySlots || []).find((s) => s.day === day);
           return existing
@@ -120,19 +125,35 @@ export default function ProviderProfile() {
     })();
   }, [user]);
 
-  function handlePhotoUpload(e) {
+  async function handlePhotoUpload(e) {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result;
-        setAvatarUrl(result);
-        localStorage.setItem("sg_provider_avatar", result);
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const b64 = reader.result;
+      setAvatarUrl(b64);
+      localStorage.setItem("sg_provider_avatar", b64);
+      window.dispatchEvent(new Event("storage"));
+
+      try {
+        const { data } = await api.post("/upload", { file: b64, folder: "sahakargig/avatars" });
+        if (data?.url) {
+          setAvatarUrl(data.url);
+          localStorage.setItem("sg_provider_avatar", data.url);
+          window.dispatchEvent(new Event("storage"));
+          if (provider?._id) {
+            await api.patch(`/providers/${provider._id}`, { avatar: data.url });
+          }
+          await api.patch("/auth/me", { avatarUrl: data.url });
+        }
+      } catch (err) {
+        console.warn("Avatar cloud upload error, saved locally:", err);
+      }
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    };
+    reader.readAsDataURL(file);
   }
 
   async function handleSaveProfile(e) {

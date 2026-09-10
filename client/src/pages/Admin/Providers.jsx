@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../lib/api";
+import { SERVER_URL } from "../../lib/config";
 import socket from "../../lib/socket";
 import {
   Search, Users, MessageSquare, Ban, CheckCircle2,
@@ -373,7 +374,7 @@ export default function Providers() {
                 const avatar = rawAvatar
                   ? (rawAvatar.startsWith("http") || rawAvatar.startsWith("data:")
                       ? rawAvatar
-                      : `http://localhost:5000${rawAvatar}`)
+                      : `${SERVER_URL}${rawAvatar}`)
                   : null;
 
                 const initials = name

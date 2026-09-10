@@ -1,16 +1,23 @@
-require('dotenv').config();
+const path = require('path');
+
+// Always load the server's own .env, even if the process was started from a
+// different working directory or a stale terminal environment is still active.
+require('dotenv').config({
+  path: path.resolve(__dirname, '.env'),
+  override: true,
+});
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'sahakargig_dev_secret';
 process.env.MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sahakargig';
 
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
-const path = require('path');
 const { Server } = require('socket.io');
 const { initSocket } = require('./src/socket');
 const connectDB = require('./src/config/db');
 const dns = require("dns");
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(cors({
   origin: true,
