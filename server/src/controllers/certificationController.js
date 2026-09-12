@@ -140,4 +140,49 @@ async function submitQuiz(req, res) {
   });
 }
 
-module.exports = { getCourses, createCourse, submitQuiz };
+/**
+ * Directly issue / upload a skill certificate to a specific employee (Cooperative Admin)
+ */
+async function issueDirectCertificate(req, res) {
+  const { providerId, title, badgeName, category, scorePercent } = req.body;
+
+  if (!providerId || !title || !badgeName) {
+    return res.status(400).json({ error: 'Provider ID, title, and badge name are required' });
+  }
+
+  const provider = await Provider.findById(providerId).populate('userId');
+  if (!provider) {
+    return res.status(404).json({ error: 'Employee / Provider record not found' });
+  }
+
+  let certifiedBy = 'Cooperative Society';
+  if (req.user?.role === 'Cooperative Admin' || req.user?.role === 'Admin') {
+    const coop = await Cooperative.findOne({ adminId: req.user.userId }).lean();
+    if (coop) certifiedBy = coop.name;
+  }
+
+  const certificateNo = `PACS-CERT-${(category || 'SKILL').toUpperCase().slice(0, 4)}-${Date.now().toString().slice(-6)}`;
+
+  const certObj = {
+    title,
+    badgeName,
+    certifiedBy,
+    certificateNo,
+    scorePercent: Number(scorePercent) || 100,
+    completedAt: new Date(),
+  };
+
+  provider.completedCertifications = provider.completedCertifications || [];
+  provider.completedCertifications.push(certObj);
+
+  provider.trustScore = Math.min(100, (provider.trustScore || 50) + 15);
+  await provider.save();
+
+  res.status(201).json({
+    message: `Dynamic certificate "${badgeName}" issued successfully to ${provider.userId?.name || 'Employee'}!`,
+    certificate: certObj,
+    employeeName: provider.userId?.name,
+  });
+}
+
+module.exports = { getCourses, createCourse, submitQuiz, issueDirectCertificate };

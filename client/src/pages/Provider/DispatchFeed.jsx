@@ -8,7 +8,7 @@ import {
   ShieldCheck, FileCheck2, Building, UserCheck, ExternalLink, RefreshCw
 } from "lucide-react";
 
-import { playSiren, stopSiren, triggerJobAlert } from "../../lib/alarmSound";
+import { playSiren, stopSiren, stopAlarmSound, triggerJobAlert } from "../../lib/alarmSound";
 
 // ── Push Notification Dispatch ──────────────────────────────────────
 async function pushNotify(title, body) {
@@ -128,9 +128,13 @@ export default function DispatchFeed() {
         setTimeout(() => setIsSirenPlaying(false), 15000);
       }
 
-      // 2. Vibrate mobile device pattern for 15s
-      if (navigator.vibrate) {
-        navigator.vibrate([400, 200, 400, 200, 800, 200, 400, 200, 400]);
+      // 2. Vibrate mobile device pattern safely for 15s
+      try {
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          navigator.vibrate([400, 200, 400, 200, 800, 200, 400, 200, 400]);
+        }
+      } catch (err) {
+        // Ignore user gesture / autoplay policy restrictions
       }
 
       // 3. Browser Push Notification

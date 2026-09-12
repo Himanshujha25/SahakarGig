@@ -6,9 +6,12 @@ const asyncHandler = require('../middleware/error');
 
 router.post('/', auth, rbac('Household'), asyncHandler(c.createBooking));
 router.post('/bulk-rfp', auth, rbac('Household'), asyncHandler(c.createBulkRFP));
+router.patch('/:id/accept-quotation', auth, rbac('Household'), asyncHandler(c.acceptQuotation));
+router.post('/:id/household-payment-proof', auth, rbac('Household'), asyncHandler(c.uploadHouseholdPaymentProof));
 // AI Geospatial Broadcast & First-Acceptance Dispatch
 router.post('/broadcast', auth, rbac('Household'), asyncHandler(c.createBroadcastBooking));
 router.post('/:id/keepalive', auth, asyncHandler(c.keepaliveBroadcast));
+router.patch('/:id/boost', auth, rbac('Household'), asyncHandler(c.boostBookingPrice));
 router.get('/broadcast/available', auth, rbac('Provider'), asyncHandler(c.availableBroadcastBookings));
 router.patch('/:id/broadcast-accept', auth, rbac('Provider'), asyncHandler(c.acceptBroadcastRequest));
 router.get('/', auth, asyncHandler(c.listAllBookings));

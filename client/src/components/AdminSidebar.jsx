@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import api from "../lib/api";
+import socket from "../lib/socket";
 import {
   LayoutDashboard, ShieldCheck, AlertTriangle, BarChart2,
   Trophy, Settings, LogOut, Handshake, Users, IndianRupee, Receipt,
@@ -30,6 +31,8 @@ export default function AdminSidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [coopName, setCoopName] = useState("");
+  const [pendingCount, setPendingCount] = useState(0);
+  const [disputesCount, setDisputesCount] = useState(0);
 
   const [liveAvatar, setLiveAvatar] = useState(() => {
     return (
@@ -61,9 +64,21 @@ export default function AdminSidebar() {
   }, [user]);
 
   useEffect(() => {
-    api.get("/admin/dashboard").then(({ data }) => {
-      if (data?.cooperativeName) setCoopName(data.cooperativeName);
-    }).catch(() => {});
+    function loadStats() {
+      api.get("/admin/dashboard").then(({ data }) => {
+        if (data?.cooperativeName) setCoopName(data.cooperativeName);
+        if (data?.pendingVerifications != null) setPendingCount(data.pendingVerifications);
+        if (data?.activeDisputes != null) setDisputesCount(data.activeDisputes);
+      }).catch(() => {});
+    }
+    loadStats();
+
+    socket.on('notification', loadStats);
+    socket.on('verification_update', loadStats);
+    return () => {
+      socket.off('notification', loadStats);
+      socket.off('verification_update', loadStats);
+    };
   }, []);
 
   const initials = user?.name ? user.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "CA";
@@ -74,9 +89,7 @@ export default function AdminSidebar() {
       {/* Brand */}
       <div className="px-5 pt-6 pb-5 border-b border-outline-variant/40">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-[0_2px_8px_rgba(0,40,142,0.25)]">
-            <Handshake size={17} className="text-white" strokeWidth={2.5} />
-          </div>
+          <img src="/icon-512.png" alt="SahakarGig Logo" className="w-9 h-9 rounded-xl object-contain shrink-0 shadow-[0_2px_8px_rgba(0,40,142,0.25)]" />
           <div className="min-w-0">
             <p className="text-[15px] font-bold text-primary tracking-tight leading-none truncate" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
               SahakarGig
@@ -94,8 +107,13 @@ export default function AdminSidebar() {
       </div>
 
       {/* Nav label */}
-      <div className="px-5 pt-4 pb-1.5">
+      <div className="px-5 pt-4 pb-1.5 flex items-center justify-between">
         <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-[0.12em]">Navigation</p>
+        {pendingCount > 0 && (
+          <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400">
+            {pendingCount}+ Audit Pending
+          </span>
+        )}
       </div>
 
       {/* Nav items */}
@@ -115,7 +133,17 @@ export default function AdminSidebar() {
               <>
                 <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
                 <span>{label}</span>
-                {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00288e]" />}
+                {label === "Verifications" && pendingCount > 0 ? (
+                  <span className="ml-auto px-2 py-0.5 rounded-full text-[10.5px] font-black bg-amber-500 text-white shadow-xs animate-pulse">
+                    {pendingCount}+
+                  </span>
+                ) : label === "Disputes" && disputesCount > 0 ? (
+                  <span className="ml-auto px-2 py-0.5 rounded-full text-[10.5px] font-black bg-rose-500 text-white shadow-xs">
+                    {disputesCount}+
+                  </span>
+                ) : isActive ? (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00288e]" />
+                ) : null}
               </>
             )}
           </NavLink>

@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import socket from "../../lib/socket";
+import { SERVER_URL } from "../../lib/config";
 import {
   Briefcase, CheckCircle2, Clock, Zap, Check, X, ArrowRight,
   Megaphone, Bell, Phone, MapPin, IndianRupee, ShieldCheck,
@@ -9,6 +10,8 @@ import {
   Navigation, AlertTriangle, ExternalLink, Volume2, ShieldAlert
 } from "lucide-react";
 import AIWorkerCoachWidget from "../../components/AIWorkerCoachWidget";
+import { SkeletonCard, EmptyState, ErrorState } from "../../components/UIStateComponents";
+import { toast } from "../../lib/toast";
 
 // Web Audio synthesizer chime for incoming Ola/Uber style job alert
 function playIncomingGigChime() {
@@ -41,10 +44,17 @@ export default function JobQueue() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [busy, setBusy] = useState(null);
   const [activeTab, setActiveTab] = useState("active"); // 'active' | 'requests' | 'completed' | 'history'
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [coopMessages, setCoopMessages] = useState([]);
+
+  // Worker Allocation State
+  const [myProviderId, setMyProviderId] = useState("");
+  const [rejectModal, setRejectModal] = useState(null); // { bookingId, role }
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [respondingAllocation, setRespondingAllocation] = useState(false);
 
   // Ola/Uber Style Incoming Dispatch Modal & 45s Countdown
   const [incomingGig, setIncomingGig] = useState(null);
@@ -59,10 +69,16 @@ export default function JobQueue() {
   }, []);
 
   async function load() {
+    setLoading(true);
+    setError(null);
     try {
-      const { data } = await api.get("/bookings/provider/mine");
-      const list = data || [];
+      const [bRes, pRes] = await Promise.all([
+        api.get("/bookings/provider/mine").catch((err) => { throw err; }),
+        api.get("/providers/me").catch(() => ({ data: null })),
+      ]);
+      const list = bRes.data || [];
       setBookings(list);
+      if (pRes.data?._id) setMyProviderId(pRes.data._id.toString());
 
       // Check if there is an unhandled pending request
       const firstRequested = list.find((b) => b.status === "requested");
@@ -73,8 +89,25 @@ export default function JobQueue() {
       const msgs = JSON.parse(localStorage.getItem("sg_coop_messages") || "[]")
         .filter((m) => !m.id?.startsWith("msg_seed_"));
       setCoopMessages(msgs);
-    } catch {} finally {
+    } catch (err) {
+      setError("Failed to sync your provider queue. Please check network connection and try again.");
+    } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleAllocationResponse(bookingId, action, reason = "") {
+    setRespondingAllocation(true);
+    try {
+      await api.patch(`/providers/allocation/${bookingId}/respond`, { action, reason });
+      toast.success(action === "accept" ? "Allocation ACCEPTED! Your Cooperative Admin has been notified." : "Allocation REJECTED. Cooperative Admin notified to reallocate.");
+      setRejectModal(null);
+      setRejectionReason("");
+      load();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to respond to allocation.");
+    } finally {
+      setRespondingAllocation(false);
     }
   }
 
@@ -180,8 +213,24 @@ export default function JobQueue() {
   }
 
   // Categorized Collections
-  const pendingRequests = useMemo(() => bookings.filter((b) => b.status === "requested"), [bookings]);
-  const activeJobs = useMemo(() => bookings.filter((b) => b.status === "accepted" || b.status === "in-progress"), [bookings]);
+  const pendingRequests = useMemo(() => bookings.filter((b) => {
+    if (b.status === "requested") return true;
+    const myAlloc = b.bulkDetails?.allocations?.find((a) => {
+      const pId = a.providerId?._id?.toString() || a.providerId?.toString();
+      return pId && (pId === myProviderId || b.providerId?._id?.toString() === pId || b.providerId?.toString() === pId);
+    });
+    return myAlloc && myAlloc.status === "pending";
+  }), [bookings, myProviderId]);
+
+  const activeJobs = useMemo(() => bookings.filter((b) => {
+    if (b.status === "accepted" || b.status === "in-progress") return true;
+    const myAlloc = b.bulkDetails?.allocations?.find((a) => {
+      const pId = a.providerId?._id?.toString() || a.providerId?.toString();
+      return pId && (pId === myProviderId || b.providerId?._id?.toString() === pId || b.providerId?.toString() === pId);
+    });
+    return myAlloc && (myAlloc.status === "accepted" || myAlloc.status === "pending");
+  }), [bookings, myProviderId]);
+
   const completedJobs = useMemo(() => bookings.filter((b) => b.status === "completed"), [bookings]);
   const pastHistory = useMemo(() => bookings.filter((b) => b.status === "completed" || b.status === "cancelled" || b.status === "disputed"), [bookings]);
 
@@ -441,11 +490,9 @@ export default function JobQueue() {
 
       {/* ── CONTENT AREA ── */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[0, 1].map((i) => (
-            <div key={i} className="animate-pulse h-44 bg-surface-container rounded-2xl border border-outline-variant" />
-          ))}
-        </div>
+        <SkeletonCard count={4} />
+      ) : error ? (
+        <ErrorState title="Provider Queue Unavailable" message={error} onRetry={load} />
       ) : activeTab === "history" ? (
         /* Full Service Ledger & Archive */
         <div className="rounded-2xl border border-outline-variant bg-surface overflow-hidden shadow-2xs">
@@ -457,9 +504,11 @@ export default function JobQueue() {
           {/* 1. Mobile Cards View (Hidden on sm and up) */}
           <div className="sm:hidden divide-y divide-outline-variant/60">
             {pastHistory.length === 0 ? (
-              <div className="p-6 text-center text-xs text-on-surface-variant font-medium">
-                No past records found.
-              </div>
+              <EmptyState
+                icon={Layers}
+                title="No Past Records Found"
+                description="Your complete service history archive will appear here once jobs are completed."
+              />
             ) : (
               pastHistory.map((b) => {
                 const sb = statusBadge(b.status);
@@ -499,71 +548,85 @@ export default function JobQueue() {
 
           {/* 2. Desktop Table View (Hidden on mobile) */}
           <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low border-b border-outline-variant/60 text-on-surface-variant font-bold uppercase tracking-wider text-[11px]">
-                  <th className="px-5 py-3.5">Customer Household</th>
-                  <th className="px-5 py-3.5">Service Trade</th>
-                  <th className="px-5 py-3.5">Scheduled Date &amp; Time</th>
-                  <th className="px-5 py-3.5">Gross Pay</th>
-                  <th className="px-5 py-3.5">Net (85%)</th>
-                  <th className="px-5 py-3.5">Status</th>
-                  <th className="px-5 py-3.5 text-right">Details</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/60">
-                {pastHistory.map((b) => {
-                  const sb = statusBadge(b.status);
-                  const netPay = Math.round((b.price || 0) * 0.85);
-                  return (
-                    <tr key={b._id} className="hover:bg-surface-container-low transition-colors">
-                      <td className="px-5 py-3.5">
-                        <p className="font-bold text-on-surface">{b.householdId?.name || "Customer Household"}</p>
-                        <p className="text-[11px] text-on-surface-variant">{b.householdId?.phone || "Verified Address"}</p>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold text-[10.5px] border border-primary/20">
-                          {b.service || "Home Service"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-on-surface-variant font-medium">
-                        {b.scheduledTime ? new Date(b.scheduledTime).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "Flexible timing"}
-                      </td>
-                      <td className="px-5 py-3.5 font-bold text-on-surface">
-                        ₹{b.price || 0}
-                      </td>
-                      <td className="px-5 py-3.5 font-bold text-emerald-600 dark:text-emerald-400">
-                        ₹{netPay}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border font-bold text-[10.5px] ${sb.bg}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${sb.dot}`} />
-                          {sb.label}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <button
-                          onClick={() => navigate(`/provider/job/${b._id}`)}
-                          className="px-3 py-1.5 rounded-xl border border-outline-variant bg-surface hover:bg-surface-container text-on-surface text-xs font-bold cursor-pointer"
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            {pastHistory.length === 0 ? (
+              <EmptyState
+                icon={Layers}
+                title="No Past Records Found"
+                description="Your complete service history archive will appear here once jobs are completed."
+              />
+            ) : (
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-surface-container-low border-b border-outline-variant/60 text-on-surface-variant font-bold uppercase tracking-wider text-[11px]">
+                    <th className="px-5 py-3.5">Customer Household</th>
+                    <th className="px-5 py-3.5">Service Trade</th>
+                    <th className="px-5 py-3.5">Scheduled Date &amp; Time</th>
+                    <th className="px-5 py-3.5">Gross Pay</th>
+                    <th className="px-5 py-3.5">Net (85%)</th>
+                    <th className="px-5 py-3.5">Status</th>
+                    <th className="px-5 py-3.5 text-right">Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/60">
+                  {pastHistory.map((b) => {
+                    const sb = statusBadge(b.status);
+                    const netPay = Math.round((b.price || 0) * 0.85);
+                    return (
+                      <tr key={b._id} className="hover:bg-surface-container-low transition-colors">
+                        <td className="px-5 py-3.5">
+                          <p className="font-bold text-on-surface">{b.householdId?.name || "Customer Household"}</p>
+                          <p className="text-[11px] text-on-surface-variant">{b.householdId?.phone || "Verified Address"}</p>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold text-[10.5px] border border-primary/20">
+                            {b.service || "Home Service"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 text-on-surface-variant font-medium">
+                          {b.scheduledTime ? new Date(b.scheduledTime).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "Flexible timing"}
+                        </td>
+                        <td className="px-5 py-3.5 font-bold text-on-surface">
+                          ₹{b.price || 0}
+                        </td>
+                        <td className="px-5 py-3.5 font-bold text-emerald-600 dark:text-emerald-400">
+                          ₹{netPay}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border font-bold text-[10.5px] ${sb.bg}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${sb.dot}`} />
+                            {sb.label}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <button
+                            onClick={() => navigate(`/provider/job/${b._id}`)}
+                            className="px-3 py-1.5 rounded-xl border border-outline-variant bg-surface hover:bg-surface-container text-on-surface text-xs font-bold cursor-pointer"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       ) : displayedBookings.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-outline-variant bg-surface p-12 text-center space-y-3 shadow-2xs">
-          <Briefcase size={40} className="mx-auto text-on-surface-variant/40" />
-          <p className="text-base font-bold text-on-surface">No active work items</p>
-          <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
-            {activeTab === "requests" ? "No new pending requests at this time." : "You're all caught up! When a customer books a gig, an instant dispatch alert will pop up."}
-          </p>
-        </div>
+        <EmptyState
+          icon={activeTab === "requests" ? Zap : Briefcase}
+          title={activeTab === "requests" ? "No Pending Job Requests" : activeTab === "completed" ? "No Completed Jobs Yet" : "No Active Work Items"}
+          description={
+            activeTab === "requests"
+              ? "All job requests have been responded to. Stay tuned for new instant dispatches!"
+              : activeTab === "completed"
+              ? "Finished jobs and proof photos will appear here."
+              : "You don't have any jobs currently in progress or accepted."
+          }
+          actionLabel="View Dispatch Feed"
+          onAction={() => navigate("/provider/dispatch")}
+        />
       ) : (
         /* High-Impact Interactive Cards for Active, Requests & Completed Work */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
@@ -600,8 +663,26 @@ export default function JobQueue() {
                   {/* Card Header */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 border border-primary/20">
-                        {(b.householdId?.name || "H").charAt(0).toUpperCase()}
+                      <div className="relative w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 border border-primary/20 overflow-hidden">
+                        {(() => {
+                          const av = b.householdId?.avatarUrl || b.householdId?.avatar || b.householdId?.profileImage || b.householdId?.image;
+                          const src = av && !av.startsWith("http") && !av.startsWith("data:") ? `${SERVER_URL}${av}` : av;
+                          return (
+                            <>
+                              {src ? (
+                                <img
+                                  src={src}
+                                  alt={b.householdId?.name || "Customer"}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                                />
+                              ) : null}
+                              <span className={src ? "absolute inset-0 flex items-center justify-center -z-10" : ""}>
+                                {(b.householdId?.name || "H").charAt(0).toUpperCase()}
+                              </span>
+                            </>
+                          );
+                        })()}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
@@ -650,6 +731,78 @@ export default function JobQueue() {
                       </span>
                     </div>
                   </div>
+
+                  {/* ── COOPERATIVE BULK ALLOCATION BLOCK ── */}
+                  {(() => {
+                    const allocs = b.bulkDetails?.allocations || [];
+                    const myAlloc = allocs.find((a) => {
+                      const pId = a.providerId?._id?.toString() || a.providerId?.toString();
+                      return pId && (pId === myProviderId || b.providerId?._id?.toString() === pId || b.providerId?.toString() === pId);
+                    }) || (allocs.length > 0 ? allocs[0] : null);
+
+                    if (!myAlloc && !b.bulkDetails?.isBulk) return null;
+
+                    return (
+                      <div className="p-3.5 rounded-xl bg-gradient-to-r from-primary-container/40 to-surface border border-primary/30 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 font-bold text-xs text-primary">
+                            <ShieldCheck size={16} />
+                            <span>Bulk Allocation: {myAlloc?.role || b.service}</span>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded text-[10.5px] font-bold ${
+                            myAlloc?.status === "accepted"
+                              ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                              : myAlloc?.status === "rejected"
+                              ? "bg-rose-100 text-rose-800 border border-rose-300"
+                              : "bg-amber-100 text-amber-800 border border-amber-300 animate-pulse"
+                          }`}>
+                            {myAlloc?.status === "accepted" ? "✓ Accepted" : myAlloc?.status === "rejected" ? "❌ Rejected" : "● Action Required"}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-on-surface-variant font-medium">
+                          Cooperative: <strong className="text-on-surface">{b.cooperativeId?.name || "Primary Cooperative Union"}</strong> · Duration: <strong className="text-on-surface">{b.bulkDetails?.durationDays || 1} Days</strong>
+                        </p>
+
+                        {/* Worker Accept or Reject Action Buttons */}
+                        {myAlloc?.status !== "accepted" && myAlloc?.status !== "rejected" && (
+                          <div className="flex items-center gap-2 pt-1">
+                            <button
+                              type="button"
+                              disabled={respondingAllocation}
+                              onClick={() => handleAllocationResponse(b._id, "accept")}
+                              className="flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1 transition cursor-pointer shadow-xs"
+                            >
+                              <Check size={14} /> Accept Allocation
+                            </button>
+                            <button
+                              type="button"
+                              disabled={respondingAllocation}
+                              onClick={() => setRejectModal({ bookingId: b._id, role: myAlloc?.role || "Assignment" })}
+                              className="px-3 h-9 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-xs flex items-center justify-center gap-1 transition cursor-pointer"
+                            >
+                              <X size={14} /> Reject
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Payout SS Proof Link */}
+                        {myAlloc?.payoutStatus === "paid" && myAlloc?.payoutProofUrl && (
+                          <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-900 flex items-center justify-between">
+                            <span>💰 Payout Disbursed with SS Proof (Ref: {myAlloc.payoutTxnRef || "Verified"})</span>
+                            <a
+                              href={myAlloc.payoutProofUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10.5px] hover:bg-emerald-700 font-bold"
+                            >
+                              View SS Proof
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Customer Review on Completed Orders */}
                   {b.status === "completed" && (
@@ -748,6 +901,52 @@ export default function JobQueue() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── WORKER ALLOCATION REJECTION MODAL ── */}
+      {rejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAllocationResponse(rejectModal.bookingId, "reject", rejectionReason);
+            }}
+            className="w-full max-w-md rounded-2xl bg-surface p-6 space-y-4 shadow-2xl border border-outline-variant"
+          >
+            <h3 className="text-base font-bold text-on-surface">Reject Allocation for {rejectModal.role}</h3>
+            <p className="text-xs text-on-surface-variant">
+              Are you sure you want to reject this bulk allocation? Your Cooperative Secretary will be notified immediately to reallocate.
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold text-on-surface mb-1">Reason for Rejection (Optional):</label>
+              <textarea
+                rows={3}
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="e.g. Schedule conflict, out of station, already on another gig site..."
+                className="w-full p-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs outline-none focus:border-primary"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectModal(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={respondingAllocation}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition cursor-pointer disabled:opacity-50"
+              >
+                {respondingAllocation ? "Notifying Coop..." : "Confirm Rejection"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import socket from "../../lib/socket";
+import { toast } from "../../lib/toast";
+import { SERVER_URL } from "../../lib/config";
 import {
   ArrowLeft, Phone, MapPin, Navigation, AlertCircle,
   Send, Zap, User, Key, Check, ExternalLink, MessageSquare,
@@ -18,6 +20,7 @@ export default function JobDetail() {
   const [busy, setBusy] = useState(false);
   const [chat, setChat] = useState("");
   const [messages, setMessages] = useState([]);
+  const chatEndRef = useRef(null);
   const [otpCode, setOtpCode] = useState("");
   const [otpError, setOtpError] = useState(null);
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -74,6 +77,10 @@ export default function JobDetail() {
       socket.off("booking:chat");
     };
   }, [load, id]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
 
   const isActive = booking && ["accepted", "in-progress"].includes(booking.status);
   useEffect(() => {
@@ -170,7 +177,7 @@ export default function JobDetail() {
       });
       setShowStartModal(false);
       await load();
-      alert("Work started successfully! A 4-digit verification OTP has been generated on the customer's device.");
+      toast.success("Work started successfully! A 4-digit verification OTP has been generated on the customer's device.");
     } catch (err) {
       setStartWorkError(err?.response?.data?.message || "Failed to start work. Please try again.");
     } finally {
@@ -205,7 +212,7 @@ export default function JobDetail() {
       setShowOtpModal(false);
       setOtpCode("");
       await load();
-      alert("Job verified & marked complete! Payout released to your wallet.");
+      toast.success("Job verified & marked complete! Payout released to your wallet.");
     } catch (err) {
       setOtpError(err?.response?.data?.message || "Invalid completion OTP code. Please verify with customer.");
     } finally {
@@ -227,7 +234,7 @@ export default function JobDetail() {
   async function handleConfirmDiscard(e) {
     e.preventDefault();
     if (!discardReason.trim()) {
-      alert("Please provide a reason for discarding this order.");
+      toast.warning("Please provide a reason for discarding this order.");
       return;
     }
 
@@ -240,9 +247,9 @@ export default function JobDetail() {
       });
       setShowDiscardModal(false);
       await load();
-      alert("Order discarded successfully with justification logged.");
+      toast.success("Order discarded successfully with justification logged.");
     } catch (err) {
-      alert(err?.response?.data?.message || "Failed to discard order.");
+      toast.error(err?.response?.data?.message || "Failed to discard order.");
     } finally {
       setBusy(false);
     }
@@ -389,8 +396,26 @@ export default function JobDetail() {
             {/* Customer & Earnings Header */}
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-[#00288e] flex items-center justify-center font-black text-lg shrink-0">
-                  {(b.householdId?.name || "C").charAt(0).toUpperCase()}
+                <div className="relative w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-[#00288e] flex items-center justify-center font-black text-lg shrink-0 overflow-hidden">
+                  {(() => {
+                    const av = b.householdId?.avatarUrl || b.householdId?.avatar || b.householdId?.profileImage || b.householdId?.image;
+                    const src = av && !av.startsWith("http") && !av.startsWith("data:") ? `${SERVER_URL}${av}` : av;
+                    return (
+                      <>
+                        {src ? (
+                          <img
+                            src={src}
+                            alt={b.householdId?.name || "Customer"}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.currentTarget.style.display = "none"; }}
+                          />
+                        ) : null}
+                        <span className={src ? "absolute inset-0 flex items-center justify-center -z-10" : ""}>
+                          {(b.householdId?.name || "C").charAt(0).toUpperCase()}
+                        </span>
+                      </>
+                    );
+                  })()}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -419,11 +444,11 @@ export default function JobDetail() {
                 <div className={`py-2 px-1 rounded-xl border ${b.status !== "requested" ? "bg-blue-50 border-blue-200 text-[#00288e]" : "bg-slate-100 border-slate-200 text-slate-500"}`}>
                   1. Accepted ✓
                 </div>
-                <div className={`py-2 px-1 rounded-xl border ${["in-progress", "completed"].includes(b.status) ? "bg-purple-50 border-purple-200 text-purple-700" : "bg-slate-50 border-slate-200 text-slate-400"}`}>
-                  2. In-Service (Before Photo)
+                <div className={`py-2 px-1 rounded-xl border ${b.startWorkProof?.photo ? "bg-purple-50 border-purple-200 text-purple-700 font-bold" : ["in-progress", "completed"].includes(b.status) ? "bg-amber-50 border-amber-300 text-amber-900" : "bg-slate-50 border-slate-200 text-slate-400"}`}>
+                  2. Before Photo {b.startWorkProof?.photo ? "✓" : "📷"}
                 </div>
                 <div className={`py-2 px-1 rounded-xl border ${b.status === "completed" ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-slate-50 border-slate-200 text-slate-400"}`}>
-                  3. OTP Verified ✓
+                  3. Solved &amp; OTP {b.status === "completed" ? "✓" : "🔑"}
                 </div>
               </div>
             </div>
@@ -483,7 +508,7 @@ export default function JobDetail() {
                     <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-2">
                       <div className="flex items-center justify-between text-[10.5px]">
                         <span className="font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
-                          1. Before Work Photo
+                          1. Before Work Photo ✓
                         </span>
                         <span className="text-slate-400">
                           {new Date(b.startWorkProof.startedAt || b.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -496,14 +521,27 @@ export default function JobDetail() {
                         "{b.startWorkProof.description || "Initial condition recorded"}"
                       </p>
                     </div>
-                  ) : null}
+                  ) : (
+                    <div
+                      onClick={() => { setStartWorkError(null); setShowStartModal(true); }}
+                      className="p-3.5 rounded-xl border-2 border-dashed border-purple-300 bg-purple-50 hover:bg-purple-100 transition-all cursor-pointer flex flex-col items-center justify-center text-center space-y-1.5"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-purple-200 text-purple-800 flex items-center justify-center font-bold">
+                        <Camera size={16} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-xs text-purple-900">1. Upload Before-Work Photo</p>
+                        <p className="text-[10.5px] text-purple-700">Tap here to record site condition before repairing</p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* After Work Proof */}
                   {b.completionProof?.photo ? (
                     <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-2">
                       <div className="flex items-center justify-between text-[10.5px]">
                         <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                          2. Solved Problem Photo
+                          2. Solved Problem Photo ✓
                         </span>
                         <span className="text-slate-400">
                           {new Date(b.completionProof.completedAt || b.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -589,8 +627,19 @@ export default function JobDetail() {
                   className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Key size={16} strokeWidth={2.5} />
-                  <span>Upload Solved Photo &amp; Enter Customer OTP</span>
+                  <span>Step 2: Upload Solved Photo &amp; Enter Customer OTP</span>
                 </button>
+
+                {!b.startWorkProof?.photo && (
+                  <button
+                    disabled={busy}
+                    onClick={() => { setStartWorkError(null); setShowStartModal(true); }}
+                    className="w-full py-2.5 rounded-2xl border border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
+                  >
+                    <Camera size={14} className="text-purple-700" />
+                    <span>Step 1: Upload "Before Work" Photo (Required for Audit)</span>
+                  </button>
+                )}
 
                 <button
                   disabled={busy}
@@ -651,7 +700,7 @@ export default function JobDetail() {
             </div>
 
             {/* Message History Feed */}
-            <div className="flex-1 min-h-[220px] max-h-[260px] overflow-y-auto space-y-2 p-3 rounded-2xl bg-slate-50 border border-slate-200">
+            <div className="flex-1 min-h-[350px] overflow-y-auto space-y-2 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-400 py-10 space-y-1">
                   <MessageSquare size={24} className="text-slate-300" />
@@ -677,6 +726,7 @@ export default function JobDetail() {
                   );
                 })
               )}
+              <div ref={chatEndRef} />
             </div>
           </div>
 

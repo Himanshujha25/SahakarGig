@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Upload, X, FileText, Image as ImageIcon, Loader2 } from "lucide-react";
 import api from "../lib/api";
+import { toast } from "../lib/toast";
 
 // Reusable evidence/file uploader that uploads directly to Cloudinary CDN
 // and returns the optimized CDN URL via `onSelect`.
@@ -25,7 +26,9 @@ export default function FileUpload({ label = "Upload file / photo", onSelect, ma
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
     const sizeOk = chosen.every((f) => f.size <= maxSizeMB * 1024 * 1024);
     if (!sizeOk) {
-      setError(`Each file must be under ${maxSizeMB} MB.`);
+      const msg = `Each file must be under ${maxSizeMB} MB.`;
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -34,7 +37,9 @@ export default function FileUpload({ label = "Upload file / photo", onSelect, ma
       const loaded = [];
       for (const f of chosen) {
         if (!allowed.includes(f.type)) {
-          setError("Only JPG, PNG, WEBP, GIF or PDF files are allowed.");
+          const msg = "Only JPG, PNG, WEBP, GIF or PDF files are allowed.";
+          setError(msg);
+          toast.error(msg);
           continue;
         }
 
@@ -55,8 +60,11 @@ export default function FileUpload({ label = "Upload file / photo", onSelect, ma
         onSelect(finalUrl);
       }
       setFiles((prev) => [...prev, ...loaded]);
+      toast.success("File uploaded to Cloudinary CDN successfully!");
     } catch {
-      setError("Could not upload the selected file.");
+      const msg = "Could not upload the selected file.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setUploading(false);
     }

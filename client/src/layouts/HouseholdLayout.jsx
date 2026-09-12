@@ -86,9 +86,7 @@ export default function HouseholdLayout() {
       <aside className="hidden lg:flex flex-col h-screen w-[260px] fixed left-0 top-0 z-40 bg-surface-container-low border-r border-outline-variant/60">
         <div className="px-5 pt-6 pb-5 border-b border-outline-variant/40">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shrink-0 shadow-[0_2px_8px_rgba(30,107,101,0.3)]">
-              <Handshake size={17} className="text-on-primary-fixed" strokeWidth={2.5} />
-            </div>
+            <img src="/icon-512.png" alt="SahakarGig Logo" className="w-9 h-9 rounded-xl object-contain shrink-0 shadow-[0_2px_8px_rgba(30,107,101,0.3)]" />
             <div className="min-w-0">
               <p className="text-[15px] font-bold text-primary tracking-tight leading-none truncate"
                 style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>SahakarGig</p>
@@ -175,18 +173,13 @@ export default function HouseholdLayout() {
 
         {/* Brand */}
         <Link to="/household" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shadow-[0_2px_8px_rgba(30,107,101,0.3)]">
-            <Handshake size={14} className="text-on-primary-fixed" strokeWidth={2.5} />
-          </div>
+          <img src="/icon-512.png" alt="SahakarGig Logo" className="w-7 h-7 rounded-lg object-contain shrink-0 shadow-[0_2px_8px_rgba(30,107,101,0.3)]" />
           <span className="text-[15px] font-bold text-on-surface tracking-tight" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>SahakarGig</span>
         </Link>
 
         <div className="flex items-center gap-1.5">
           <LangToggle />
           <NotificationBell />
-          <button onClick={signOut} className="w-10 h-10 flex items-center justify-center rounded-xl text-error hover:bg-error-container/30 transition-colors cursor-pointer" aria-label="Sign out">
-            <LogOut size={18} strokeWidth={2} />
-          </button>
         </div>
       </header>
 

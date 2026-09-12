@@ -176,9 +176,15 @@ async function rescheduleBooking(req, res) {
 
 async function getBooking(req, res) {
   const b = await Booking.findById(req.params.id)
-    .populate('householdId', 'name phone')
-    .populate({ path: 'providerId', populate: { path: 'userId', select: 'name phone' } })
-    .populate('cooperativeId', 'name')
+    .populate('householdId', 'name phone email address avatarUrl bio')
+    .populate({
+      path: 'providerId',
+      populate: [
+        { path: 'userId', select: 'name phone email avatar rating' },
+        { path: 'cooperativeId', select: 'name registrationId region district address state contactPhone contactEmail logoUrl stampUrl signatureUrl secretaryName' },
+      ],
+    })
+    .populate('cooperativeId', 'name registrationId region district address state contactPhone contactEmail logoUrl stampUrl signatureUrl secretaryName')
     .populate('chat.sender', 'name phone');
   if (!b) return res.status(404).json({ message: 'Not found' });
 
@@ -203,7 +209,14 @@ async function householdBookings(req, res) {
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, parseInt(req.query.limit) || 20);
   const b = await Booking.find({ householdId: req.user.userId })
-    .populate({ path: 'providerId', populate: { path: 'userId', select: 'name' } })
+    .populate({
+      path: 'providerId',
+      populate: [
+        { path: 'userId', select: 'name phone email avatar rating' },
+        { path: 'cooperativeId', select: 'name registrationId region district address state contactPhone contactEmail logoUrl stampUrl signatureUrl secretaryName' },
+      ],
+    })
+    .populate('cooperativeId', 'name registrationId region district address state contactPhone contactEmail logoUrl stampUrl signatureUrl secretaryName')
     .sort('-createdAt')
     .skip((page - 1) * limit)
     .limit(limit);
@@ -215,8 +228,21 @@ async function providerBookings(req, res) {
   if (!provider) return res.status(401).json({ message: 'Provider record not found — please log in again' });
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, parseInt(req.query.limit) || 20);
-  const b = await Booking.find({ providerId: provider._id })
-    .populate('householdId', 'name')
+
+  const mongoose = require('mongoose');
+  const pId = mongoose.Types.ObjectId.isValid(provider._id)
+    ? new mongoose.Types.ObjectId(provider._id)
+    : provider._id;
+
+  const b = await Booking.find({
+    $or: [
+      { providerId: pId },
+      { 'bulkDetails.allocations.providerId': pId },
+      { 'bulkDetails.allocations': { $elemMatch: { providerId: pId } } },
+    ],
+  })
+    .populate('householdId', 'name phone email avatarUrl')
+    .populate('cooperativeId', 'name registrationId contactPhone')
     .sort('-createdAt')
     .skip((page - 1) * limit)
     .limit(limit);
@@ -631,6 +657,55 @@ async function keepaliveBroadcast(req, res) {
   res.json({ ok: true, active, expiresAt: active ? b.expiresAt : null });
 }
 
+// Boost per-hour fare on active broadcast booking
+async function boostBookingPrice(req, res) {
+  const { boostAmount, newPrice } = req.body;
+  const booking = await Booking.findById(req.params.id);
+  if (!booking) return res.status(404).json({ message: 'Booking not found' });
+  if (booking.householdId.toString() !== req.user.userId.toString()) {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+  if (booking.dispatchMode !== 'broadcast' || booking.broadcastStatus !== 'broadcasting' || booking.providerId != null) {
+    return res.status(400).json({ message: 'Booking is no longer active for price updates' });
+  }
+
+  if (newPrice && Number(newPrice) > booking.price) {
+    booking.price = Number(newPrice);
+  } else if (boostAmount && Number(boostAmount) > 0) {
+    booking.price = (booking.price || 250) + Number(boostAmount);
+  } else {
+    booking.price = (booking.price || 250) + 50;
+  }
+
+  booking.expiresAt = new Date(Date.now() + BROADCAST_TTL_MS);
+  await booking.save();
+
+  // Re-broadcast updated price to nearby providers
+  const providers = await Provider.find({
+    verified: true,
+    skills: { $in: [new RegExp(`^${booking.targetCategory.trim()}$`, 'i')] },
+  }).populate('userId', 'name');
+
+  for (const p of providers) {
+    if (p.userId?._id) {
+      emitTo(p.userId._id.toString(), 'booking:broadcast_new', {
+        _id: booking._id,
+        bookingId: booking._id,
+        service: booking.service,
+        targetCategory: booking.targetCategory,
+        locationText: booking.locationText,
+        coordinates: booking.coordinates,
+        price: booking.price,
+        isEmergency: booking.isEmergency,
+        createdAt: booking.createdAt,
+        householdId: { name: 'Household' },
+      });
+    }
+  }
+
+  return res.json({ success: true, price: booking.price, booking });
+}
+
 // Live broadcast feed for a provider — only jobs matching their skills,
 // within range, and still awaiting first-acceptance. A household keeps a job
 // alive with keepalive pings while it watches the radar page; leaving the page
@@ -785,8 +860,7 @@ async function listAllBookings(req, res) {
 }
 
 async function createBulkRFP(req, res) {
-  const { cooperativeId, service, price, workerCount, durationDays, siteLocation, scopeOfWork } = req.body;
-  if (!service) return res.status(400).json({ message: 'Service requirement is required' });
+  const { cooperativeId, service, price, workerCount, roles, durationDays, startDate, siteLocation, scopeOfWork } = req.body;
 
   let targetCoop = null;
   const mongoose = require('mongoose');
@@ -797,7 +871,6 @@ async function createBulkRFP(req, res) {
     targetCoop = await Cooperative.findOne();
   }
 
-  // Find a nominal provider under this cooperative if available, or null
   let defaultProvider = null;
   if (targetCoop?._id) {
     defaultProvider = await Provider.findOne({ cooperativeId: targetCoop._id });
@@ -806,40 +879,62 @@ async function createBulkRFP(req, res) {
     defaultProvider = await Provider.findOne();
   }
 
+  const parsedRoles = Array.isArray(roles) && roles.length > 0
+    ? roles.map((r) => ({ role: String(r.role || 'Labour'), count: Math.max(1, Number(r.count) || 1), dailyRate: Number(r.dailyRate) || 0 }))
+    : [{ role: String(service || 'Labour').replace(/Bulk Crew:\s*\d+x\s*/i, '').split(' ')[0] || 'Labour', count: Math.max(1, Number(workerCount) || 1), dailyRate: 750 }];
+
+  const totalWorkerCount = parsedRoles.reduce((sum, r) => sum + r.count, 0);
+  const days = Math.max(1, Number(durationDays) || 1);
+  const start = startDate ? new Date(startDate) : new Date(Date.now() + 24 * 3600 * 1000);
+
+  const rolesSummary = parsedRoles.map((r) => `${r.count}x ${r.role}`).join(', ');
+  const titleService = `Bulk RFP: ${rolesSummary} (${days} Days)`;
+
   const booking = await Booking.create({
     householdId: req.user.userId || req.user._id,
     providerId: defaultProvider?._id || undefined,
     cooperativeId: targetCoop?._id || undefined,
-    service: service || 'Bulk Cooperative Crew RFP',
-    scheduledTime: new Date(Date.now() + 24 * 3600 * 1000), // Tomorrow
-    price: Number(price) || 24000,
+    service: titleService,
+    scheduledTime: start,
+    price: Number(price) || 0,
     isEmergency: false,
     groupBooking: {
       enabled: true,
-      memberCount: Number(workerCount) || 10,
+      memberCount: totalWorkerCount,
+    },
+    bulkDetails: {
+      isBulk: true,
+      rolesNeeded: parsedRoles,
+      durationDays: days,
+      startDate: start,
+      siteLocation: siteLocation || 'N/A',
+      scopeOfWork: scopeOfWork || 'Institutional Bulk Requirement',
+      quotation: {
+        status: 'pending',
+        totalAmount: Number(price) || 0,
+        notes: '',
+      },
+      allocations: [],
     },
     status: 'requested',
-    notes: `[Institutional Bulk RFP - ${workerCount} Workers for ${durationDays} Days] Site: ${siteLocation || 'N/A'}. Scope: ${scopeOfWork || 'N/A'}`,
+    notes: `[Institutional Bulk RFP - ${totalWorkerCount} Workers (${rolesSummary}) for ${days} Days starting ${start.toLocaleDateString('en-IN')}] Site: ${siteLocation || 'N/A'}. Scope: ${scopeOfWork || 'N/A'}`,
   });
 
-  // Notify Cooperative Admin (Database notification + socket notification)
   if (targetCoop?.adminId) {
     const adminUserId = targetCoop.adminId.toString();
     try {
       await notify(
         adminUserId,
         'booking_request',
-        `New Institutional RFP: ${workerCount}x ${service} (${durationDays} Days) at ${siteLocation || 'Site'}`,
+        `New Bulk RFP Received: ${rolesSummary} for ${days} Days starting ${start.toLocaleDateString('en-IN')}`,
         booking._id
       );
-    } catch (nErr) {
-      console.error('[notify error]', nErr.message);
-    }
+    } catch (nErr) {}
     emitTo(adminUserId, 'rfp:new', {
       booking,
       cooperativeId: targetCoop._id,
-      workerCount,
-      durationDays,
+      workerCount: totalWorkerCount,
+      durationDays: days,
       siteLocation,
       scopeOfWork,
       sender: req.user.name,
@@ -851,8 +946,8 @@ async function createBulkRFP(req, res) {
     emitTo(`coop:${targetCoop._id}`, 'rfp:new', {
       booking,
       cooperativeId: targetCoop._id,
-      workerCount,
-      durationDays,
+      workerCount: totalWorkerCount,
+      durationDays: days,
       siteLocation,
       scopeOfWork,
       sender: req.user.name,
@@ -863,11 +958,135 @@ async function createBulkRFP(req, res) {
   return res.status(201).json(booking);
 }
 
+async function acceptQuotation(req, res) {
+  const { startDate } = req.body;
+  const booking = await Booking.findById(req.params.id)
+    .populate('householdId', 'name phone email')
+    .populate('cooperativeId');
+
+  if (!booking) return res.status(404).json({ message: 'Bulk RFP not found' });
+  if (booking.householdId._id.toString() !== req.user.userId) {
+    return res.status(403).json({ message: 'Forbidden: Only the customer can accept the quotation' });
+  }
+
+  if (startDate) {
+    booking.scheduledTime = new Date(startDate);
+    if (!booking.bulkDetails) booking.bulkDetails = { isBulk: true };
+    booking.bulkDetails.startDate = new Date(startDate);
+  }
+
+  if (booking.bulkDetails) {
+    booking.bulkDetails.quotation.status = 'accepted';
+    booking.bulkDetails.quotation.acceptedAt = new Date();
+  }
+
+  booking.status = 'accepted';
+  booking.chat.push({
+    sender: req.user.userId,
+    message: `✅ Household accepted the Cooperative Quotation for ₹${(booking.price || 0).toLocaleString('en-IN')}. Scheduled Start Date: ${booking.scheduledTime ? new Date(booking.scheduledTime).toLocaleDateString('en-IN') : 'As agreed'}.`,
+    at: new Date(),
+  });
+
+  await booking.save();
+
+  if (booking.cooperativeId?.adminId) {
+    const adminId = booking.cooperativeId.adminId.toString();
+    try {
+      await notify(
+        adminId,
+        'booking_accepted',
+        `Quotation ACCEPTED by Household for RFP #${booking._id.toString().slice(-6)}. Required Start Date: ${booking.scheduledTime ? new Date(booking.scheduledTime).toLocaleDateString('en-IN') : 'Immediate'} for ${booking.bulkDetails?.durationDays || 1} Days! Allocate crew now.`,
+        booking._id
+      );
+    } catch (e) {}
+    emitTo(adminId, 'booking:updated', booking);
+    emitTo(adminId, 'rfp:quotation_accepted', { bookingId: booking._id, booking });
+  }
+
+  emitTo(booking.householdId._id.toString(), 'booking:updated', booking);
+  return res.json({ message: 'Quotation accepted successfully', booking });
+}
+
+async function uploadHouseholdPaymentProof(req, res) {
+  const { ssUrl, amount, txnRef } = req.body;
+  if (!ssUrl) return res.status(400).json({ message: 'Payment screenshot proof URL is required' });
+
+  const booking = await Booking.findById(req.params.id)
+    .populate('householdId', 'name')
+    .populate('cooperativeId');
+
+  if (!booking) return res.status(404).json({ message: 'Booking not found' });
+  if (booking.householdId._id.toString() !== req.user.userId) {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+
+  const Payment = require('../models/Payment');
+  const WalletTransaction = require('../models/WalletTransaction');
+
+  const paidAmount = (amount && Number(amount) > 0) ? Number(amount) : (booking.price || 0);
+
+  if (!booking.bulkDetails) booking.bulkDetails = { isBulk: true };
+  booking.bulkDetails.householdPaymentProof = {
+    ssUrl,
+    amount: paidAmount,
+    txnRef: txnRef || `SS-TXN-${Date.now().toString().slice(-6)}`,
+    uploadedAt: new Date(),
+    verifiedByCoop: false,
+  };
+  booking.paymentStatus = 'paid';
+
+  booking.chat.push({
+    sender: req.user.userId,
+    message: `💳 Household uploaded payment screenshot proof (Amount: ₹${paidAmount.toLocaleString('en-IN')}, Ref: ${txnRef || 'N/A'}). Awaiting Cooperative Admin verification.`,
+    at: new Date(),
+  });
+
+  await booking.save();
+
+  // Create payment record
+  await Payment.create({
+    bookingId: booking._id,
+    amount: paidAmount,
+    method: 'screenshot_proof',
+    status: 'captured',
+    razorpayPaymentId: txnRef || `SS-${Date.now()}`,
+  });
+
+  // Create wallet transaction record
+  await WalletTransaction.create({
+    userId: req.user.userId,
+    type: 'debit',
+    amount: paidAmount,
+    method: 'screenshot_proof',
+    bookingId: booking._id,
+    note: `Bulk RFP Payment to Cooperative (Ref: ${txnRef || 'N/A'})`,
+  });
+
+  if (booking.cooperativeId?.adminId) {
+    const adminId = booking.cooperativeId.adminId.toString();
+    try {
+      await notify(
+        adminId,
+        'payment',
+        `Payment Screenshot Proof uploaded by Household for RFP #${booking._id.toString().slice(-6)}. Amount: ₹${paidAmount}. Please verify.`,
+        booking._id
+      );
+    } catch (e) {}
+    emitTo(adminId, 'booking:updated', booking);
+  }
+
+  emitTo(booking.householdId._id.toString(), 'booking:updated', booking);
+  return res.json({ message: 'Payment screenshot proof uploaded successfully', booking });
+}
+
 module.exports = {
   createBooking,
   createBroadcastBooking,
   createBulkRFP,
+  acceptQuotation,
+  uploadHouseholdPaymentProof,
   keepaliveBroadcast,
+  boostBookingPrice,
   availableBroadcastBookings,
   acceptBroadcastRequest,
   getBooking,

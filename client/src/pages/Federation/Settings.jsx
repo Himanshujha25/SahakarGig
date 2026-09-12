@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/api";
+import { toast } from "../../lib/toast";
+import CustomSelect from "../../components/CustomSelect";
+import ConfirmModal from "../../components/ConfirmModal";
 import {
   User, Lock, Bell, Building2, Save, CheckCircle2, Palette, ShieldCheck,
   Mail, Phone, Shield, Sparkles, AlertCircle, RefreshCw, IndianRupee, Percent,
@@ -167,7 +170,7 @@ export default function FederationSettings() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 3 * 1024 * 1024) {
-      alert("Image size should be less than 3MB.");
+      toast.warning("Image size should be less than 3MB.");
       return;
     }
     const reader = new FileReader();
@@ -255,7 +258,7 @@ export default function FederationSettings() {
   function handleAddBank(e) {
     e.preventDefault();
     if (newBank.accountNumber !== newBank.confirmAccountNumber) {
-      alert("Account numbers do not match!");
+      toast.warning("Account numbers do not match!");
       return;
     }
     const bankItem = {
@@ -299,15 +302,25 @@ export default function FederationSettings() {
     flash();
   }
 
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: "", message: "", type: "danger", onConfirm: () => {} });
+
   function handleDeleteBank(id) {
-    if (!window.confirm("Remove this bank gateway?")) return;
-    const updated = bankAccounts.filter((b) => b.id !== id);
-    if (updated.length > 0 && !updated.some((b) => b.isPrimary)) {
-      updated[0].isPrimary = true;
-    }
-    setBankAccounts(updated);
-    localStorage.setItem("sg_fed_bank_accounts", JSON.stringify(updated));
-    flash();
+    setConfirmState({
+      isOpen: true,
+      title: "Remove Bank Gateway?",
+      message: "Are you sure you want to remove this bank gateway from federation records?",
+      type: "danger",
+      confirmText: "Remove",
+      onConfirm: () => {
+        const updated = bankAccounts.filter((b) => b.id !== id);
+        if (updated.length > 0 && !updated.some((b) => b.isPrimary)) {
+          updated[0].isPrimary = true;
+        }
+        setBankAccounts(updated);
+        localStorage.setItem("sg_fed_bank_accounts", JSON.stringify(updated));
+        flash();
+      },
+    });
   }
 
   const currentTab = TABS.find((t) => t.id === tab) || TABS[0];
@@ -557,15 +570,15 @@ export default function FederationSettings() {
             </Field>
 
             <Field label="Preferred Language">
-              <select
+              <CustomSelect
                 value={profile.language}
                 onChange={(e) => setProfile({ ...profile, language: e.target.value })}
-                className={inputCls}
-              >
-                <option value="English">English</option>
-                <option value="Hindi">हिंदी (Hindi)</option>
-                <option value="Punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
-              </select>
+                options={[
+                  { value: "English", label: "English" },
+                  { value: "Hindi", label: "हिंदी (Hindi)" },
+                  { value: "Punjabi", label: "ਪੰਜਾਬੀ (Punjabi)" },
+                ]}
+              />
             </Field>
           </div>
 
@@ -907,15 +920,15 @@ export default function FederationSettings() {
                 </div>
                 <div className="space-y-1">
                   <label className="font-bold text-on-surface-variant">Account Type</label>
-                  <select
+                  <CustomSelect
                     value={newBank.accountType}
                     onChange={(e) => setNewBank({ ...newBank, accountType: e.target.value })}
-                    className={inputCls}
-                  >
-                    <option value="Escrow Settlement Gateway">Escrow Settlement Gateway</option>
-                    <option value="Welfare Reserve Pool">Welfare Reserve Pool</option>
-                    <option value="Operational Current A/C">Operational Current A/C</option>
-                  </select>
+                    options={[
+                      { value: "Escrow Settlement Gateway", label: "Escrow Settlement Gateway" },
+                      { value: "Welfare Reserve Pool", label: "Welfare Reserve Pool" },
+                      { value: "Operational Current A/C", label: "Operational Current A/C" },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -961,6 +974,11 @@ export default function FederationSettings() {
           onClose={() => setEmailOtpOpen(false)}
         />
       )}
+
+      <ConfirmModal
+        {...confirmState}
+        onClose={() => setConfirmState((p) => ({ ...p, isOpen: false }))}
+      />
     </div>
   );
 }

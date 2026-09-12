@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/api";
+import CustomSelect from "../../components/CustomSelect";
+import ConfirmModal from "../../components/ConfirmModal";
 import {
   Megaphone, Plus, Search, Calendar, Users, Building2, Tag,
   Clock, Trash2, CheckCircle2, AlertCircle, Sparkles, Filter,
@@ -86,15 +88,25 @@ export default function FederationAnnouncements() {
     }
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm("Are you sure you want to delete this announcement?")) return;
-    try {
-      await api.delete(`/federation/announcements/${id}`);
-      showToast("Announcement removed.");
-      load();
-    } catch {
-      showToast("Failed to delete announcement.");
-    }
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: "", message: "", type: "danger", onConfirm: () => {} });
+
+  function handleDelete(id) {
+    setConfirmState({
+      isOpen: true,
+      title: "Delete Announcement?",
+      message: "Are you sure you want to delete this announcement? This action cannot be undone.",
+      type: "danger",
+      confirmText: "Delete",
+      onConfirm: async () => {
+        try {
+          await api.delete(`/federation/announcements/${id}`);
+          showToast("Announcement removed.");
+          load();
+        } catch {
+          showToast("Failed to delete announcement.");
+        }
+      },
+    });
   }
 
   const filtered = announcements.filter((a) => {
@@ -280,30 +292,32 @@ export default function FederationAnnouncements() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="font-bold text-on-surface-variant">Category</label>
-                  <select
+                  <CustomSelect
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full h-9 px-2.5 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary"
-                  >
-                    <option value="official">Official Directive</option>
-                    <option value="scheme">Govt Scheme / Welfare</option>
-                    <option value="bonus">Bonus / Incentive</option>
-                    <option value="safety">Safety &amp; Compliance</option>
-                    <option value="general">General Notice</option>
-                  </select>
+                    size="sm"
+                    options={[
+                      { value: "official", label: "Official Directive" },
+                      { value: "scheme", label: "Govt Scheme / Welfare" },
+                      { value: "bonus", label: "Bonus / Incentive" },
+                      { value: "safety", label: "Safety & Compliance" },
+                      { value: "general", label: "General Notice" },
+                    ]}
+                  />
                 </div>
 
                 <div className="space-y-1">
                   <label className="font-bold text-on-surface-variant">Target Audience</label>
-                  <select
+                  <CustomSelect
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
-                    className="w-full h-9 px-2.5 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface outline-none focus:border-primary"
-                  >
-                    <option value="all">All Cooperatives &amp; Workers</option>
-                    <option value="specific_coop">Specific Cooperatives</option>
-                    <option value="skills">Target Specific Skills</option>
-                  </select>
+                    size="sm"
+                    options={[
+                      { value: "all", label: "All Cooperatives & Workers" },
+                      { value: "specific_coop", label: "Specific Cooperatives" },
+                      { value: "skills", label: "Target Specific Skills" },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -402,6 +416,11 @@ export default function FederationAnnouncements() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        {...confirmState}
+        onClose={() => setConfirmState((p) => ({ ...p, isOpen: false }))}
+      />
     </div>
   );
 }

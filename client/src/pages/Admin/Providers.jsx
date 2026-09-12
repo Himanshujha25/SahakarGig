@@ -8,11 +8,13 @@ import {
   Trash2, UserPlus, Megaphone, X, Send, ShieldAlert,
   Phone, Mail, ShieldCheck, ExternalLink, UserCheck
 } from "lucide-react";
+import { SkeletonTable, EmptyState, ErrorState } from "../../components/UIStateComponents";
 
 export default function Providers() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [query, setQuery] = useState("");
 
   // Blocked providers state tracking
@@ -42,27 +44,37 @@ export default function Providers() {
     setTimeout(() => setToastMsg(""), 3500);
   }
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get("/admin/providers");
-        const localInvited = JSON.parse(localStorage.getItem("sg_invited_providers") || "[]");
-        const combined = [...localInvited, ...(data || [])];
-        const unique = [];
-        const seen = new Set();
-        for (const item of combined) {
-          const key = item._id || item.userId?.email || item.email;
-          if (!seen.has(key)) {
-            seen.add(key);
-            unique.push(item);
-          }
+  const fetchProviders = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await api.get("/admin/providers");
+      const localInvited = JSON.parse(localStorage.getItem("sg_invited_providers") || "[]");
+      const combined = [...localInvited, ...(data || [])];
+      const unique = [];
+      const seen = new Set();
+      for (const item of combined) {
+        const key = item._id || item.userId?.email || item.email;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(item);
         }
-        setItems(unique);
-      } catch {
-        const localInvited = JSON.parse(localStorage.getItem("sg_invited_providers") || "[]");
-        if (localInvited.length > 0) setItems(localInvited);
-      } finally { setLoading(false); }
-    })();
+      }
+      setItems(unique);
+    } catch (err) {
+      const localInvited = JSON.parse(localStorage.getItem("sg_invited_providers") || "[]");
+      if (localInvited.length > 0) {
+        setItems(localInvited);
+      } else {
+        setError("Failed to load cooperative provider roster. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProviders();
   }, []);
 
   // Filter providers
@@ -331,25 +343,35 @@ export default function Providers() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search member workers by name, skill, email..."
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface placeholder:text-on-surface-variant/60 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all shadow-2xs"
+              className="w-full h-10 pl-10 pr-9 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface placeholder:text-on-surface-variant/60 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all shadow-2xs"
             />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
+                title="Clear search query"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
           <span className="text-xs text-on-surface-variant font-bold shrink-0 hidden sm:inline">Showing {filtered.length} members</span>
         </div>
 
         {/* Loading / Empty State */}
         {loading ? (
-          <div className="rounded-2xl border border-outline-variant bg-surface p-6 space-y-3 shadow-2xs">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse h-12 bg-surface-container rounded-xl" />
-            ))}
-          </div>
+          <SkeletonTable rows={5} cols={5} />
+        ) : error ? (
+          <ErrorState title="Provider Roster Unavailable" message={error} onRetry={fetchProviders} />
         ) : filtered.length === 0 ? (
-          <div className="rounded-2xl border border-outline-variant bg-surface p-8 sm:p-12 text-center space-y-2.5 shadow-2xs">
-            <Users size={36} className="mx-auto text-on-surface-variant/40" />
-            <p className="text-sm sm:text-base font-bold text-on-surface">No member workers found</p>
-            <p className="text-xs text-on-surface-variant">Try adjusting your search query or register a new member.</p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="No Member Workers Found"
+            description={query ? `No providers match "${query}". Try searching another name, email or skill.` : "No member providers registered in this cooperative society yet."}
+            actionLabel={query ? "Clear Search Query" : "Register Worker Member"}
+            onAction={query ? () => setQuery("") : () => setAddWorkerModalOpen(true)}
+          />
         ) : (
           <>
             {/* ── MOBILE WORKER CARD VIEW (< 768px) ── */}

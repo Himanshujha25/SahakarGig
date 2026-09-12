@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/api";
+import { toast } from "../../lib/toast";
+import CustomSelect from "../../components/CustomSelect";
+import ConfirmModal from "../../components/ConfirmModal";
 import {
   User, Lock, Bell, Building2, Save, CheckCircle2, Palette, ShieldCheck,
   Mail, Phone, Shield, Sparkles, AlertCircle, RefreshCw, Camera, Upload, Trash2,
@@ -32,6 +35,8 @@ export default function Settings() {
   const [tabDropdownOpen, setTabDropdownOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveErr, setSaveErr] = useState("");
+  const [emailOtpOpen, setEmailOtpOpen] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
 
   const [profile, setProfile] = useState({
     name: user?.name || "",
@@ -47,51 +52,22 @@ export default function Settings() {
   });
 
   const [notifs, setNotifs] = useState({ bookings: true, disputes: true, verifications: true, payments: false, weekly: true });
-  const [coop, setCoop] = useState({ name: "", address: "", regNumber: "", contactEmail: "", contactPhone: "", region: "", district: "", welfareFundAllocation: 10, commissionRate: 8, registrationDoc: null });
-
-  const [emailOtpOpen, setEmailOtpOpen] = useState(false);
-  const [emailBusy, setEmailBusy] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      setProfile((prev) => ({
-        ...prev,
-        name: user.name || prev.name,
-        email: user.email || prev.email,
-        phone: user.phone || prev.phone,
-        avatarUrl: user.avatarUrl || localStorage.getItem("sg_admin_avatar") || prev.avatarUrl,
-        designation: user.designation || prev.designation,
-        location: user.location || prev.location,
-        language: user.language || prev.language,
-        timezone: user.timezone || prev.timezone,
-        contactPreference: user.contactPreference || prev.contactPreference,
-        bio: user.bio || prev.bio,
-      }));
-    }
-  }, [user]);
-
-  function handleFileUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      alert("Image size should be less than 3MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target.result;
-      setProfile((p) => ({ ...p, avatarUrl: base64 }));
-      try {
-        localStorage.setItem("sg_admin_avatar", base64);
-        localStorage.setItem("sg_coop_avatar", base64);
-        localStorage.setItem("sg_avatar", base64);
-        window.dispatchEvent(new Event("storage"));
-        updateProfile({ avatarUrl: base64 });
-      } catch {}
-      flash();
-    };
-    reader.readAsDataURL(file);
-  }
+  const [coop, setCoop] = useState({
+    name: "",
+    address: "",
+    regNumber: "",
+    contactEmail: "",
+    contactPhone: "",
+    region: "",
+    district: "",
+    welfareFundAllocation: 10,
+    commissionRate: 8,
+    registrationDoc: null,
+    logoUrl: "",
+    stampUrl: "",
+    signatureUrl: "",
+    secretaryName: "",
+  });
 
   useEffect(() => {
     api.get("/admin/cooperative").then(({ data }) => {
@@ -103,15 +79,47 @@ export default function Settings() {
           contactPhone: data.contactPhone || "",
           region: data.region || "",
           district: data.district || "",
+          address: data.address || "",
           welfareFundAllocation: data.welfareFundAllocation || 10,
           commissionRate: data.commissionRate || 8,
           registrationDoc: data.registrationDoc,
+          logoUrl: data.logoUrl || "",
+          stampUrl: data.stampUrl || "",
+          signatureUrl: data.signatureUrl || "",
+          secretaryName: data.secretaryName || "",
         });
       }
     }).catch(() => {});
   }, []);
 
-  function flash() { setSaved(true); setSaveErr(""); setTimeout(() => setSaved(false), 2500); }
+  function flash(msg = "Settings updated successfully!") {
+    setSaved(true);
+    setSaveErr("");
+    toast.success(msg);
+    setTimeout(() => setSaved(false), 2500);
+  }
+
+  function handleFileUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("Image size should be less than 3MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target.result;
+      setProfile((p) => ({ ...p, avatarUrl: base64 }));
+      try {
+        localStorage.setItem("sg_admin_avatar", base64);
+        localStorage.setItem("sg_avatar", base64);
+        window.dispatchEvent(new Event("storage"));
+        updateProfile({ avatarUrl: base64 });
+      } catch {}
+      flash("Profile photo updated successfully!");
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function saveCoop(e) {
     e.preventDefault();
@@ -122,28 +130,49 @@ export default function Settings() {
         contactPhone: coop.contactPhone,
         region: coop.region,
         district: coop.district,
+        address: coop.address,
         commissionRate: coop.commissionRate,
         welfareFundAllocation: coop.welfareFundAllocation,
+        logoUrl: coop.logoUrl,
+        stampUrl: coop.stampUrl,
+        signatureUrl: coop.signatureUrl,
+        secretaryName: coop.secretaryName,
       });
-      flash();
+      flash("Cooperative Society details & official stamps saved successfully!");
     } catch {
       setSaveErr("Failed to save cooperative profile.");
+      toast.error("Failed to save cooperative profile.");
     }
   }
 
-  async function handleUploadDoc() {
-    const url = prompt("Enter Registration Document URL or Cloud Storage Link:", coop.registrationDoc?.url || "https://sahakargig.gov.in/docs/coop-registration-certificate.pdf");
-    if (!url) return;
-    try {
-      await api.post("/admin/cooperative/doc", {
-        name: "Cooperative Registration Certificate",
-        url,
-      });
-      setCoop(c => ({ ...c, registrationDoc: { name: "Cooperative Registration Certificate", url, uploadedAt: new Date() } }));
-      flash();
-    } catch {
-      setSaveErr("Failed to update registration certificate.");
-    }
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: "", message: "", type: "info", isPrompt: false, onConfirm: () => {} });
+
+  function handleUploadDoc() {
+    const defaultDocUrl = coop.registrationDoc?.url || "https://sahakargig.gov.in/docs/coop-registration-certificate.pdf";
+    setConfirmState({
+      isOpen: true,
+      title: "Attach Registration Document",
+      message: "Enter the Registration Document URL or Cloud Storage Link:",
+      type: "info",
+      isPrompt: true,
+      defaultValue: defaultDocUrl,
+      promptPlaceholder: "https://...",
+      confirmText: "Attach Document",
+      onConfirm: async (url) => {
+        if (!url) return;
+        try {
+          await api.post("/admin/cooperative/doc", {
+            name: "Cooperative Registration Certificate",
+            url,
+          });
+          setCoop(c => ({ ...c, registrationDoc: { name: "Cooperative Registration Certificate", url, uploadedAt: new Date() } }));
+          flash("Registration certificate attached successfully!");
+        } catch {
+          setSaveErr("Failed to update registration certificate.");
+          toast.error("Failed to update registration certificate.");
+        }
+      },
+    });
   }
 
   async function saveProfile(e) {
@@ -444,20 +473,20 @@ export default function Settings() {
 
               <div className="space-y-1">
                 <label className="font-bold text-on-surface-variant text-[11px]">Preferred Platform Language</label>
-                <select
-                  className={inputCls}
+                <CustomSelect
                   value={profile.language}
                   onChange={(e) => setProfile((p) => ({ ...p, language: e.target.value }))}
-                >
-                  <option value="English">English (Default)</option>
-                  <option value="Hindi">हिंदी (Hindi)</option>
-                  <option value="Bengali">বাংলা (Bengali)</option>
-                  <option value="Marathi">मराठी (Marathi)</option>
-                  <option value="Tamil">தமிழ் (Tamil)</option>
-                  <option value="Telugu">తెలుగు (Telugu)</option>
-                  <option value="Gujarati">ગુજરાતી (Gujarati)</option>
-                  <option value="Punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
-                </select>
+                  options={[
+                    { value: "English", label: "English (Default)" },
+                    { value: "Hindi", label: "हिंदी (Hindi)" },
+                    { value: "Bengali", label: "বাংলা (Bengali)" },
+                    { value: "Marathi", label: "मराठी (Marathi)" },
+                    { value: "Tamil", label: "தமிழ் (Tamil)" },
+                    { value: "Telugu", label: "తెలుగు (Telugu)" },
+                    { value: "Gujarati", label: "ગુજરાતી (Gujarati)" },
+                    { value: "Punjabi", label: "ਪੰਜਾਬੀ (Punjabi)" },
+                  ]}
+                />
               </div>
             </div>
 
@@ -656,6 +685,120 @@ export default function Settings() {
               </div>
             </div>
 
+            <div className="space-y-1">
+              <label className="font-bold text-on-surface-variant text-[11px]">Secretary / Authorized Signatory Name</label>
+              <input
+                className={inputCls}
+                value={coop.secretaryName}
+                onChange={e => setCoop(c => ({ ...c, secretaryName: e.target.value }))}
+                placeholder="e.g. R. K. Sharma"
+              />
+            </div>
+
+            {/* STAMP & SIGNATURE UPLOAD CARD */}
+            <div className="p-4 rounded-2xl border border-outline-variant/60 bg-surface-container-low space-y-3.5">
+              <h3 className="text-xs font-bold text-primary uppercase tracking-wider">Cooperative Official Stamp, Signature &amp; Logo</h3>
+              <p className="text-[11px] text-on-surface-variant">These assets dynamically render on all invoices generated for gig workers belonging to your cooperative society.</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Stamp */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-on-surface text-[11px]">PACS Official Stamp Image</label>
+                  <input
+                    className={inputCls}
+                    value={coop.stampUrl}
+                    onChange={e => setCoop(c => ({ ...c, stampUrl: e.target.value }))}
+                    placeholder="URL or Upload"
+                  />
+                  <label className="block text-center px-3 py-1.5 rounded-xl border border-outline-variant bg-surface text-primary text-[11px] font-bold cursor-pointer hover:bg-surface-container">
+                    Upload Stamp Image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => setCoop(c => ({ ...c, stampUrl: ev.target.result }));
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                  {coop.stampUrl && (
+                    <div className="mt-1 flex justify-center">
+                      <img src={coop.stampUrl} alt="Stamp Preview" className="max-h-12 max-w-full object-contain border rounded-lg p-1 bg-white" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Signature */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-on-surface text-[11px]">Authorized Signature Image</label>
+                  <input
+                    className={inputCls}
+                    value={coop.signatureUrl}
+                    onChange={e => setCoop(c => ({ ...c, signatureUrl: e.target.value }))}
+                    placeholder="URL or Upload"
+                  />
+                  <label className="block text-center px-3 py-1.5 rounded-xl border border-outline-variant bg-surface text-primary text-[11px] font-bold cursor-pointer hover:bg-surface-container">
+                    Upload Signature Image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => setCoop(c => ({ ...c, signatureUrl: ev.target.result }));
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                  {coop.signatureUrl && (
+                    <div className="mt-1 flex justify-center">
+                      <img src={coop.signatureUrl} alt="Signature Preview" className="max-h-12 max-w-full object-contain border rounded-lg p-1 bg-white" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Logo */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-on-surface text-[11px]">Cooperative Logo</label>
+                  <input
+                    className={inputCls}
+                    value={coop.logoUrl}
+                    onChange={e => setCoop(c => ({ ...c, logoUrl: e.target.value }))}
+                    placeholder="URL or Upload"
+                  />
+                  <label className="block text-center px-3 py-1.5 rounded-xl border border-outline-variant bg-surface text-primary text-[11px] font-bold cursor-pointer hover:bg-surface-container">
+                    Upload Logo Image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => setCoop(c => ({ ...c, logoUrl: ev.target.result }));
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                  {coop.logoUrl && (
+                    <div className="mt-1 flex justify-center">
+                      <img src={coop.logoUrl} alt="Logo Preview" className="max-h-12 max-w-full object-contain border rounded-lg p-1 bg-white" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Registration Certificate Card */}
             <div className="p-3.5 rounded-2xl border border-outline-variant/60 bg-surface-container-low flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2.5">
@@ -694,7 +837,7 @@ export default function Settings() {
                 type="submit"
                 className="px-5 py-2 rounded-xl bg-primary text-on-primary font-bold hover:opacity-90 transition cursor-pointer shadow-2xs"
               >
-                Save Cooperative Details
+                Save Cooperative Details &amp; Stamps
               </button>
             </div>
           </form>
@@ -711,6 +854,11 @@ export default function Settings() {
         purpose="change_email"
         ctaLabel="Update Email"
         onVerify={handleEmailOtp}
+      />
+
+      <ConfirmModal
+        {...confirmState}
+        onClose={() => setConfirmState((p) => ({ ...p, isOpen: false }))}
       />
     </div>
   );

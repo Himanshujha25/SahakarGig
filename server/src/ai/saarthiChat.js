@@ -57,11 +57,54 @@ async function saarthiChatEngine(message, history = []) {
     return { reply: llm.reply, actionCategory: null, isEmergency: false, via: `${llm.provider}:${llm.model}` };
   }
 
+  // Smart local rule-based intent engine when cloud LLM is offline/unconfigured
+  const textLower = message.toLowerCase();
+  let actionCategory = null;
+  let isEmergency = false;
+
+  if (textLower.includes('electric') || textLower.includes('light') || textLower.includes('wiring') || textLower.includes('switch') || textLower.includes('bijli') || textLower.includes('fuse')) {
+    actionCategory = 'Electrician';
+  } else if (textLower.includes('plumb') || textLower.includes('pipe') || textLower.includes('tap') || textLower.includes('leak') || textLower.includes('drain') || textLower.includes('water') || textLower.includes('nal')) {
+    actionCategory = 'Plumber';
+  } else if (textLower.includes('ac') || textLower.includes('cool') || textLower.includes('air condition')) {
+    actionCategory = 'AC Repair';
+  } else if (textLower.includes('cook') || textLower.includes('food') || textLower.includes('chef') || textLower.includes('khana') || textLower.includes('rasoi')) {
+    actionCategory = 'Cook';
+  } else if (textLower.includes('clean') || textLower.includes('sweep') || textLower.includes('mop') || textLower.includes('jhadu') || textLower.includes('safai')) {
+    actionCategory = 'Cleaner';
+  } else if (textLower.includes('carpent') || textLower.includes('wood') || textLower.includes('furniture') || textLower.includes('door') || textLower.includes('table')) {
+    actionCategory = 'Carpenter';
+  } else if (textLower.includes('garden') || textLower.includes('plant') || textLower.includes('grass') || textLower.includes('mal')) {
+    actionCategory = 'Gardener';
+  } else if (textLower.includes('tutor') || textLower.includes('teacher') || textLower.includes('study') || textLower.includes('math') || textLower.includes('padhai')) {
+    actionCategory = 'Tutor';
+  } else if (textLower.includes('care') || textLower.includes('elder') || textLower.includes('senior') || textLower.includes('patient') || textLower.includes('nursery')) {
+    actionCategory = 'Caregiver';
+  } else if (textLower.includes('driv') || textLower.includes('car') || textLower.includes('gaadi') || textLower.includes('chauffeur')) {
+    actionCategory = 'Driver';
+  }
+
+  if (textLower.includes('urgent') || textLower.includes('emergenc') || textLower.includes('immediately') || textLower.includes('turant') || textLower.includes('short circuit') || textLower.includes('burst')) {
+    isEmergency = true;
+  }
+
+  let reply = `Namaste! 🙏 Main Saarthi (सारथी) hoon — SahakarGig AI Guide. `;
+
+  if (actionCategory) {
+    reply += `Aapko ${actionCategory} service ki zaroorat hai? Humare paas verified ${actionCategory} cooperative workers available hain. Below click karke direct book kijiye!`;
+  } else if (textLower.includes('price') || textLower.includes('cost') || textLower.includes('rate') || textLower.includes('charge')) {
+    reply += `SahakarGig par transparent pricing hai: Electrician/Plumber ₹350/hr, Cleaning ₹300-400, Cooking ₹350/meal. Razorpay Escrow se aapka paisa 100% safe rehta hai!`;
+  } else if (textLower.includes('pay') || textLower.includes('escrow') || textLower.includes('razorpay') || textLower.includes('paisa')) {
+    reply += `Payments 100% safe hain! Razorpay Escrow system ke through aap job complete aur verify karne ke baad hi worker ko payout release karte hain.`;
+  } else {
+    reply += `Main aapko verified Electricians, Plumbers, Cooks, Tutors aur Escrow payments mein assist kar sakta hoon. Aap kaunsi service dhoondh rahe hain?`;
+  }
+
   return {
-    reply: `Namaste! 🙏 Main Saarthi (सारथी) hoon — SahakarGig AI Guide. Main aapko verified Electricians, Plumbers, Cooks, Tutors aur Escrow payments mein assist kar sakta hoon!`,
-    actionCategory: null,
-    isEmergency: false,
-    via: 'local-fallback',
+    reply,
+    actionCategory,
+    isEmergency,
+    via: 'local-engine',
   };
 }
 

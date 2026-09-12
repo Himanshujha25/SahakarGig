@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../lib/api";
+import ConfirmModal from "../../components/ConfirmModal";
 import {
   Building2, Plus, Search, Link2, Share2, Download,
   CheckCircle2, XCircle, AlertTriangle, ShieldCheck,
   ChevronRight, Copy, Check, QrCode, ExternalLink, RefreshCw, X
 } from "lucide-react";
+import { SkeletonCard, EmptyState, ErrorState } from "../../components/UIStateComponents";
 
 export default function FederationCooperatives() {
   const navigate = useNavigate();
   const [coops, setCoops] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
@@ -35,11 +38,12 @@ export default function FederationCooperatives() {
 
   const load = async () => {
     setLoading(true);
+    setError(null);
     try {
       const { data } = await api.get("/federation/cooperatives");
       setCoops(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Failed to load cooperatives:", err);
+      setError("Failed to load cooperative societies directory. Please check network connection.");
     } finally {
       setLoading(false);
     }
@@ -129,22 +133,56 @@ export default function FederationCooperatives() {
     }
   }
 
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: "", message: "", type: "warning", isPrompt: false, onConfirm: () => {} });
+
   // Toggle Status (Active / Suspended)
-  async function toggleStatus(coop, e) {
+  function toggleStatus(coop, e) {
     e.stopPropagation();
     const newStatus = coop.status === "suspended" ? "active" : "suspended";
-    const promptReason = newStatus === "suspended" ? window.prompt("Reason for suspending cooperative:") : "Re-activated";
-    if (newStatus === "suspended" && !promptReason) return;
-
-    try {
-      await api.patch(`/federation/cooperatives/${coop._id}/status`, {
-        status: newStatus,
-        statusReason: promptReason || "",
+    
+    if (newStatus === "suspended") {
+      setConfirmState({
+        isOpen: true,
+        title: `Suspend ${coop.name}?`,
+        message: "Please enter the administrative reason for suspending this cooperative:",
+        type: "danger",
+        isPrompt: true,
+        promptPlaceholder: "Reason for suspension...",
+        confirmText: "Suspend Cooperative",
+        onConfirm: async (reason) => {
+          if (!reason) return;
+          try {
+            await api.patch(`/federation/cooperatives/${coop._id}/status`, {
+              status: "suspended",
+              statusReason: reason,
+            });
+            showToast("Cooperative marked as suspended.");
+            load();
+          } catch (err) {
+            showToast("Failed to update status.");
+          }
+        },
       });
-      showToast(`Cooperative marked as ${newStatus}.`);
-      load();
-    } catch (err) {
-      showToast("Failed to update status.");
+    } else {
+      setConfirmState({
+        isOpen: true,
+        title: `Re-activate ${coop.name}?`,
+        message: "Re-activate this cooperative and restore full platform access?",
+        type: "info",
+        confirmText: "Re-activate",
+        onConfirm: async () => {
+          try {
+            await api.patch(`/federation/cooperatives/${coop._id}/status`, {
+              status: "active",
+              statusReason: "Re-activated by Federation Admin",
+            });
+            showToast("Cooperative marked as active.");
+            load();
+          } catch (err) {
+            showToast("Failed to update status.");
+          }
+        },
+      });
     }
   }
 
@@ -256,22 +294,35 @@ export default function FederationCooperatives() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search cooperative by name, reg ID..."
-            className="w-full h-9 pl-8 pr-3 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-medium text-on-surface outline-none focus:border-primary shadow-2xs"
+            className="w-full h-9 pl-8 pr-8 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-medium text-on-surface outline-none focus:border-primary shadow-2xs"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
+              title="Clear search query"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
       </div>
 
       {/* ── MOBILE SOCIETY CARDS VIEW (< 768px) ── */}
       <div className="md:hidden space-y-2.5">
         {loading ? (
-          <div className="p-8 text-center text-xs text-on-surface-variant">
-            <RefreshCw size={22} className="animate-spin mx-auto text-primary mb-2" />
-            Loading societies...
-          </div>
+          <SkeletonCard count={3} />
+        ) : error ? (
+          <ErrorState title="Directory Unavailable" message={error} onRetry={load} />
         ) : filtered.length === 0 ? (
-          <div className="p-8 rounded-2xl border border-dashed border-outline-variant text-center text-xs text-on-surface-variant bg-surface">
-            No cooperatives found. Click &quot;Register New&quot; to onboard.
-          </div>
+          <EmptyState
+            icon={Building2}
+            title="No Cooperatives Found"
+            description="No primary cooperative societies found matching your search. Onboard a new society to expand federation node coverage."
+            actionLabel="Register New Society"
+            onAction={() => setRegisterOpen(true)}
+          />
         ) : (
           filtered.map((c) => {
             const isSuspended = c.status === "suspended";
@@ -359,16 +410,26 @@ export default function FederationCooperatives() {
             <tbody className="divide-y divide-outline-variant/60">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-sm text-on-surface-variant">
-                    <RefreshCw size={24} className="animate-spin mx-auto text-primary mb-2" />
-                    Loading cooperative societies…
+                  <td colSpan={7} className="p-4">
+                    <SkeletonTable rows={4} cols={5} />
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={7} className="p-4">
+                    <ErrorState title="Directory Unavailable" message={error} onRetry={load} />
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-12 text-center text-sm text-on-surface-variant">
-                    <Building2 size={36} className="mx-auto text-primary/40 mb-2" />
-                    No cooperatives found. Click &quot;Register New Cooperative&quot; to onboard.
+                  <td colSpan={7} className="p-4">
+                    <EmptyState
+                      icon={Building2}
+                      title="No Cooperatives Registered"
+                      description="No cooperative societies match your current query. Click Register New to onboard a primary society node."
+                      actionLabel="Register Society"
+                      onAction={() => setRegisterOpen(true)}
+                    />
                   </td>
                 </tr>
               ) : (
@@ -697,6 +758,11 @@ export default function FederationCooperatives() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        {...confirmState}
+        onClose={() => setConfirmState((p) => ({ ...p, isOpen: false }))}
+      />
     </div>
   );
 }

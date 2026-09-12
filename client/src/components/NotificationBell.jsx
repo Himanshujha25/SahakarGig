@@ -86,12 +86,29 @@ export default function NotificationBell() {
 
   const unread = items.filter(n => !n.read).length;
 
-  // Dropdown appears just below the bell, horizontally centered on it,
-  // clamped so it never overflows the viewport.
+  // Dropdown appears anchored to the bell,
+  // clamped & flipped vertically/horizontally so it never overflows the viewport.
   const POP_W = 340;
+  const POP_H_MAX = Math.min(window.innerHeight * 0.7, 480);
   const center = anchor.left + (anchor.width || 36) / 2;
   const dropLeft = Math.max(8, Math.min(center - POP_W / 2, window.innerWidth - POP_W - 8));
-  const dropTop = (anchor.bottom || 0) + 8;
+
+  const spaceBelow = window.innerHeight - anchor.bottom;
+  const spaceAbove = anchor.top;
+
+  // If opening below would overflow the screen or space is tight, open above
+  const opensAbove = spaceBelow < 360 && spaceAbove > spaceBelow;
+
+  let dropTop;
+  let maxHeight;
+
+  if (opensAbove) {
+    maxHeight = Math.min(spaceAbove - 16, POP_H_MAX);
+    dropTop = Math.max(8, anchor.top - 8 - maxHeight);
+  } else {
+    maxHeight = Math.min(spaceBelow - 16, POP_H_MAX);
+    dropTop = (anchor.bottom || 0) + 8;
+  }
 
   return (
     <>
@@ -119,14 +136,18 @@ export default function NotificationBell() {
             style={{
               left: dropLeft,
               top: dropTop,
-              maxHeight: 'min(70vh, 520px)',
-              transformOrigin: `${Math.max(0, Math.min(((anchor.left + (anchor.width||36)/2) - dropLeft) / POP_W, 1)) * 100}% top`
+              maxHeight: `${maxHeight}px`,
+              transformOrigin: `${Math.max(0, Math.min(((anchor.left + (anchor.width||36)/2) - dropLeft) / POP_W, 1)) * 100}% ${opensAbove ? 'bottom' : 'top'}`
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Center arrow pointing to the bell */}
             <div
-              className="absolute top-[-7px] w-3.5 h-3.5 rotate-45 bg-surface border-l border-t border-outline-variant/70"
+              className={`absolute w-3.5 h-3.5 rotate-45 bg-surface ${
+                opensAbove
+                  ? "bottom-[-7px] border-r border-b border-outline-variant/70"
+                  : "top-[-7px] border-l border-t border-outline-variant/70"
+              }`}
               style={{ left: `${Math.max(12, Math.min(((anchor.left + (anchor.width||36)/2) - dropLeft) - 7, POP_W - 24))}px` }}
             />
             {/* Header */}

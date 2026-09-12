@@ -176,10 +176,21 @@ export default function AIVoiceSearchModal({ isOpen, onClose, initialQuery = "" 
     if (isOpen && !transcript) {
       startListening();
     }
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    function handleKeyDown(e) {
+      if (e.key === "Escape" && isOpen) onClose?.();
+    }
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
       stopListening();
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   function startListening() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;

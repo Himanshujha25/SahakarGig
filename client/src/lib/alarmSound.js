@@ -67,11 +67,15 @@ export function stopSiren() {
   } catch {}
 
   try {
-    if ("vibrate" in navigator) {
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
       navigator.vibrate(0);
     }
-  } catch {}
+  } catch (err) {
+    // Ignore user gesture intervention warnings
+  }
 }
+
+export const stopAlarmSound = stopSiren;
 
 // ── 2. Play Synthesized High-Pitch Emergency Siren ──────────────────
 export async function playSiren(durationSec = 20) {
@@ -132,12 +136,14 @@ export async function playSiren(durationSec = 20) {
     console.error("Failed to play Web Audio siren:", err);
   }
 
-  // Trigger Haptic Vibration Pattern on mobile devices
+  // Trigger Haptic Vibration Pattern on mobile devices if permitted
   try {
-    if ("vibrate" in navigator) {
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
       navigator.vibrate([500, 200, 500, 200, 800, 200, 800]);
     }
-  } catch {}
+  } catch (err) {
+    // Ignore autoplay/user gesture intervention
+  }
 }
 
 // ── 3. Voice Speech Announcement ────────────────────────────────────

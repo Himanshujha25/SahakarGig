@@ -55,9 +55,7 @@ export default function AuthShell({
         {/* Top Header */}
         <div className="relative z-10 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform duration-200">
-              <Icon name="handshake" className="text-[22px] text-white" />
-            </div>
+            <img src="/icon-512.png" alt="SahakarGig Logo" className="w-10 h-10 rounded-xl object-contain shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-200" />
             <span className="font-heading text-xl xl:text-2xl font-bold tracking-tight text-white">
               SahakarGig
             </span>
@@ -132,9 +130,7 @@ export default function AuthShell({
           {/* Right side Language Toggle inside Auth Shell */}
           <div className="flex items-center gap-2">
             <div className="lg:hidden flex items-center gap-1.5 mr-2">
-              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shadow-xs shrink-0">
-                <Icon name="handshake" className="text-[12px] text-on-primary-fixed" />
-              </div>
+              <img src="/icon-512.png" alt="SahakarGig Logo" className="w-6 h-6 rounded-md object-contain shrink-0" />
               <span className="font-heading font-bold text-on-surface text-xs">SahakarGig</span>
             </div>
             <LangToggle />
@@ -151,22 +147,32 @@ export default function AuthShell({
           <div className="h-px w-full bg-gradient-to-r from-transparent via-outline-variant to-transparent mb-4" />
           <div className="flex flex-col items-center gap-3">
             <div className="flex items-center gap-3">
-              <a href="#" className="text-[11.5px] font-medium text-on-surface-variant hover:text-primary transition-colors duration-200">
+              <button 
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'privacy' } }))} 
+                className="text-[11.5px] font-medium text-on-surface-variant hover:text-primary transition-colors duration-200"
+              >
                 {t('privacyPolicyLink', 'Privacy Policy')}
-              </a>
+              </button>
               <span className="w-1 h-1 rounded-full bg-outline" />
-              <a href="#" className="text-[11.5px] font-medium text-on-surface-variant hover:text-primary transition-colors duration-200">
+              <button 
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'terms' } }))} 
+                className="text-[11.5px] font-medium text-on-surface-variant hover:text-primary transition-colors duration-200"
+              >
                 {t('termsOfServiceLink', 'Terms of Service')}
-              </a>
+              </button>
               <span className="w-1 h-1 rounded-full bg-outline" />
-              <a href="#" className="text-[11.5px] font-medium text-on-surface-variant hover:text-primary transition-colors duration-200">
+              <button 
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'support' } }))} 
+                className="text-[11.5px] font-medium text-on-surface-variant hover:text-primary transition-colors duration-200"
+              >
                 {t('supportCenterLink', 'Support Center')}
-              </a>
+              </button>
             </div>
             <div className="flex items-center gap-2 text-[11px] text-on-surface-variant/70">
-              <span className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shadow-[0_2px_8px_rgba(30,107,101,0.3)]">
-                <Icon name="handshake" className="text-[11px] text-on-primary-fixed" />
-              </span>
+              <img src="/icon-512.png" alt="SahakarGig Logo" className="w-6 h-6 rounded-md object-contain shrink-0" />
               <span>© {new Date().getFullYear()} SahakarGig · {t('coopFirstPlatform', "Cooperative-first platform")}</span>
             </div>
           </div>

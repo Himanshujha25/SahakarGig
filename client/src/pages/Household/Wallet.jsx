@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import api from "../../lib/api";
+import ConfirmModal from "../../components/ConfirmModal";
 import {
   IconWallet, IconCurrencyRupee, IconPlus, IconArrowDownLeft, IconArrowUpRight,
   IconTrendingUp, IconCalendar, IconReceipt, IconSparkles, IconShieldCheck,
@@ -33,6 +34,19 @@ export default function WalletPage() {
   const [amount, setAmount] = useState(200);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
+
+  const [txFilter, setTxFilter] = useState("all");
+  const [txPage, setTxPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+
+  const filteredTxs = (data.transactions || []).filter((tx) => {
+    if (txFilter === "credit") return tx.type === "credit";
+    if (txFilter === "debit") return tx.type === "debit";
+    return true;
+  });
+
+  const totalTxPages = Math.max(1, Math.ceil(filteredTxs.length / ITEMS_PER_PAGE));
+  const currentPageTxs = filteredTxs.slice((txPage - 1) * ITEMS_PER_PAGE, txPage * ITEMS_PER_PAGE);
 
   const load = useCallback(async () => {
     try {
@@ -100,18 +114,27 @@ export default function WalletPage() {
     }
   }
 
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: "", message: "", type: "warning", onConfirm: () => {} });
+
   async function cancelSub() {
     if (subBusy || !sub?.active) return;
-    if (!window.confirm("Stop auto-renewal? Your current cycle stays active until it expires.")) return;
-    setSubBusy(true);
-    try {
-      const { data } = await api.post("/subscriptions/cancel");
-      setSub(data);
-    } catch {
-      setError("Could not cancel the subscription right now.");
-    } finally {
-      setSubBusy(false);
-    }
+    setConfirmState({
+      isOpen: true,
+      title: "Cancel Subscription Auto-Renewal?",
+      message: "Your current cycle will remain active until its expiration date, but it will not auto-renew.",
+      type: "warning",
+      onConfirm: async () => {
+        setSubBusy(true);
+        try {
+          const { data } = await api.post("/subscriptions/cancel");
+          setSub(data);
+        } catch {
+          setError("Could not cancel the subscription right now.");
+        } finally {
+          setSubBusy(false);
+        }
+      },
+    });
   }
 
   async function addMoney(useCustom) {
@@ -177,44 +200,44 @@ export default function WalletPage() {
             style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
             Wallet & Spending
           </h1>
-          <p className="hidden sm:block text-sm text-on-surface-variant/80 mt-0.5">
+          <p className="hidden sm:block text-sm text-on-surface-variant font-medium mt-1">
             Top up your cooperative wallet, pay bookings instantly, and see where your money goes.
           </p>
         </div>
-        <Link to="/household/bookings" className="orvia-pill-selected hidden sm:inline-flex items-center gap-2">
-          <IconReceipt size={14} /> My Bookings
+        <Link to="/household/bookings" className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-on-primary font-bold text-xs shadow-xs hover:bg-primary-container hover:text-on-primary-container transition-all">
+          <IconReceipt size={15} /> My Bookings
         </Link>
       </div>
 
       {/* Tabs */}
-      <div className="inline-flex items-center gap-1 p-1 rounded-full bg-surface-container-low border border-outline-variant">
+      <div className="inline-flex items-center gap-1.5 p-1.5 rounded-2xl bg-surface-container-low border border-outline-variant/60">
         <button onClick={() => setTab("wallet")}
-          className={`h-9 px-5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-            tab === "wallet" ? "orvia-btn-primary" : "text-on-surface-variant hover:text-on-surface"}`}>
-          <IconWallet size={13} className="inline mr-1.5" />Wallet
+          className={`h-9 px-5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            tab === "wallet" ? "bg-primary text-on-primary shadow-xs" : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"}`}>
+          <IconWallet size={14} className="inline mr-1.5" />Wallet
         </button>
         <button onClick={() => setTab("insights")}
-          className={`h-9 px-5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-            tab === "insights" ? "orvia-btn-primary" : "text-on-surface-variant hover:text-on-surface"}`}>
-          <IconTrendingUp size={13} className="inline mr-1.5" />Insights
+          className={`h-9 px-5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            tab === "insights" ? "bg-primary text-on-primary shadow-xs" : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"}`}>
+          <IconTrendingUp size={14} className="inline mr-1.5" />Insights
         </button>
         <button onClick={() => setTab("plans")}
           className={`h-9 px-5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-            tab === "plans" ? "orvia-btn-primary" : "text-on-surface-variant hover:text-on-surface"}`}>
-          <IconCrown size={13} className="inline mr-1.5" />Plans
+            tab === "plans" ? "bg-primary text-on-primary shadow-xs" : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"}`}>
+          <IconCrown size={14} className="inline mr-1.5" />Plans
         </button>
       </div>
 
       {loading ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="animate-pulse h-40 rounded-[28px] border border-outline-variant bg-surface-container-low lg:col-span-1" />
-          <div className="animate-pulse h-40 rounded-[28px] border border-outline-variant bg-surface-container-low lg:col-span-2" />
+          <div className="animate-pulse h-40 rounded-2xl border border-outline-variant bg-surface-container-low lg:col-span-1" />
+          <div className="animate-pulse h-40 rounded-2xl border border-outline-variant bg-surface-container-low lg:col-span-2" />
         </div>
       ) : tab === "wallet" ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
 
           {/* Balance card */}
-          <div className="orvia-card p-5 sm:p-6 flex flex-col gap-3.5 sm:gap-5">
+          <div className="rounded-2xl border border-outline-variant/70 bg-surface p-5 sm:p-6 flex flex-col gap-4 shadow-xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary-container/60 text-primary flex items-center justify-center shrink-0">
@@ -302,8 +325,8 @@ export default function WalletPage() {
 
 
           {/* Transactions */}
-          <div className="lg:col-span-2 orvia-card p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/60">
+          <div className="lg:col-span-2 rounded-2xl border border-outline-variant/70 bg-surface p-5 sm:p-6 space-y-3 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-outline-variant/60">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-primary-container/50 text-primary flex items-center justify-center shrink-0">
                   <IconBriefcase size={17} stroke={2} />
@@ -313,18 +336,42 @@ export default function WalletPage() {
                   <p className="text-xs text-on-surface-variant/70 font-medium">Top-ups & booking payments</p>
                 </div>
               </div>
+
+              {/* Filter Chips */}
+              <div className="flex items-center gap-1 bg-surface-container-low p-1 rounded-xl border border-outline-variant/60">
+                {[
+                  { id: "all", label: "All" },
+                  { id: "credit", label: "Top-ups (+)" },
+                  { id: "debit", label: "Payments (-)" },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => { setTxFilter(f.id); setTxPage(1); }}
+                    className={`px-2.5 py-1 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer ${
+                      txFilter === f.id
+                        ? "bg-primary text-on-primary shadow-2xs"
+                        : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {data.transactions.length === 0 ? (
+            {filteredTxs.length === 0 ? (
               <div className="py-10 text-center space-y-2">
                 <IconWallet size={40} className="mx-auto text-on-surface-variant/60" stroke={1.5} />
-                <p className="text-sm font-semibold text-on-surface">No wallet activity yet</p>
-                <p className="text-xs text-on-surface-variant/70">Add money above to get started.</p>
+                <p className="text-sm font-semibold text-on-surface">No transactions found</p>
+                <p className="text-xs text-on-surface-variant/70">
+                  {txFilter !== "all" ? `No ${txFilter === "credit" ? "top-up" : "payment"} records match this filter.` : "Add money above to get started."}
+                </p>
               </div>
             ) : (
               <div className="divide-y divide-outline-variant/60">
-                {data.transactions.map((tx) => (
-                  <div key={tx._id} className="flex items-center gap-3 py-3">
+                {currentPageTxs.map((tx) => (
+                  <div key={tx._id} className="flex items-center gap-3 py-2.5">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                       tx.type === "credit" ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400" : "bg-primary-container/50 text-primary"}`}>
                       {tx.type === "credit" ? <IconArrowDownLeft size={16} /> : <IconArrowUpRight size={16} />}
@@ -342,15 +389,47 @@ export default function WalletPage() {
                 ))}
               </div>
             )}
+
+            {/* Pagination Bar */}
+            {filteredTxs.length > 0 && (
+              <div className="flex items-center justify-between pt-3 border-t border-outline-variant/60 text-xs font-semibold text-on-surface-variant">
+                <span>
+                  Showing <strong className="text-on-surface">{(txPage - 1) * ITEMS_PER_PAGE + 1}</strong>–
+                  <strong className="text-on-surface">{Math.min(txPage * ITEMS_PER_PAGE, filteredTxs.length)}</strong> of{" "}
+                  <strong className="text-on-surface">{filteredTxs.length}</strong>
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={txPage <= 1}
+                    onClick={() => setTxPage((p) => Math.max(1, p - 1))}
+                    className="px-3 py-1.5 rounded-xl border border-outline-variant bg-surface hover:bg-surface-container text-on-surface font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-2 font-bold text-on-surface">
+                    {txPage} / {totalTxPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={txPage >= totalTxPages}
+                    onClick={() => setTxPage((p) => Math.min(totalTxPages, p + 1))}
+                    className="px-3 py-1.5 rounded-xl border border-outline-variant bg-surface hover:bg-surface-container text-on-surface font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : tab === "plans" ? (
         /* ── Plans tab ── */
         <div className="space-y-4">
           {sub?.active && (
-            <div className={`orvia-card p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border ${sub.active.plan === "premium" ? "border-[#c9a227]/50" : "border-primary/30"}`}>
+            <div className={`rounded-2xl border bg-surface p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shadow-xs ${sub.active.plan === "premium" ? "border-[#c9a227]/50" : "border-primary/30"}`}>
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#c9a227] to-[#e5c15c] text-[#3b2c00] flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#c9a227] to-[#e5c15c] text-[#3b2c00] flex items-center justify-center shrink-0 shadow-xs">
                   <IconCrown size={20} />
                 </div>
                 <div>
@@ -366,7 +445,7 @@ export default function WalletPage() {
                 </div>
               </div>
               <button onClick={cancelSub} disabled={subBusy}
-                className="h-9 px-4 rounded-full border border-error/40 text-error text-xs font-bold hover:bg-error-container/40 transition-all cursor-pointer disabled:opacity-60">
+                className="h-9 px-4 rounded-xl border border-error/40 text-error text-xs font-bold hover:bg-error-container/40 transition-all cursor-pointer disabled:opacity-60">
                 Cancel auto-renew
               </button>
             </div>
@@ -380,7 +459,7 @@ export default function WalletPage() {
             {(sub?.plans || []).map((p) => {
               const isActive = sub?.active && p.plan === sub.active.plan;
               return (
-                <div key={p.plan} className={`orvia-card p-6 flex flex-col gap-4 ${isActive ? "border-primary/40 ring-1 ring-primary/20" : ""}`}>
+                <div key={p.plan} className={`rounded-2xl border border-outline-variant/70 bg-surface p-6 flex flex-col gap-4 shadow-xs ${isActive ? "border-primary/40 ring-1 ring-primary/20" : ""}`}>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant/70">{p.plan}</p>
@@ -403,12 +482,12 @@ export default function WalletPage() {
                   <button
                     onClick={() => subscribePlan(p.plan)}
                     disabled={subBusy || isActive}
-                    className={`mt-auto h-10 rounded-full text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-60 ${
+                    className={`mt-auto h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-60 ${
                       isActive
                         ? "bg-surface-container-low text-on-surface-variant"
                         : p.plan === "premium"
-                          ? "bg-gradient-to-r from-[#b7941d] to-[#e5c15c] text-[#3b2c00] hover:opacity-90"
-                          : "orvia-btn-primary"
+                          ? "bg-gradient-to-r from-[#b7941d] to-[#e5c15c] text-[#3b2c00] hover:opacity-90 font-extrabold"
+                          : "bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container shadow-xs"
                     }`}>
                     {subBusy ? <IconLoader2 size={14} className="animate-spin" /> : <IconSparkles size={13} />}
                     {isActive ? "Active plan" : `Switch to ${p.plan}`}
@@ -425,7 +504,7 @@ export default function WalletPage() {
       ) : (
         <div className="space-y-4">
           {!insights ? (
-            <div className="orvia-card p-10 text-center space-y-2">
+            <div className="rounded-2xl border border-outline-variant/70 bg-surface p-10 text-center space-y-2 shadow-xs">
               <IconReceipt size={40} className="mx-auto text-on-surface-variant/60" stroke={1.5} />
               <p className="text-sm font-semibold text-on-surface">Complete a paid booking to see insights</p>
               <p className="text-xs text-on-surface-variant/70">Once you pay for jobs, trends & breakdowns appear here.</p>
@@ -439,7 +518,7 @@ export default function WalletPage() {
                   { label: "Paid Bookings", value: insights.paidBookings, Icon: IconBriefcase, bg: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400" },
                   { label: "Avg / Booking", value: fmt(insights.avgPerBooking), Icon: IconTrophy, bg: "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300" },
                 ].map(({ label, value, Icon, bg }) => (
-                  <div key={label} className="orvia-card flex flex-col justify-between">
+                  <div key={label} className="rounded-2xl border border-outline-variant/70 bg-surface p-4 sm:p-5 flex flex-col justify-between shadow-xs">
                     <div className="flex items-start justify-between mb-3">
                       <p className="text-xs font-bold text-on-surface-variant/70 uppercase tracking-wider">{label}</p>
                       <div className={`w-9 h-9 rounded-full ${bg} flex items-center justify-center shrink-0`}>
@@ -453,7 +532,7 @@ export default function WalletPage() {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Monthly trend */}
-                <div className="orvia-card p-5 space-y-4">
+                <div className="rounded-2xl border border-outline-variant/70 bg-surface p-5 space-y-4 shadow-xs">
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-full bg-primary-container/50 text-primary flex items-center justify-center">
                       <IconTrendingUp size={17} stroke={2} />
@@ -468,7 +547,7 @@ export default function WalletPage() {
                       <div key={t.key} className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
                         <span className="text-[9px] font-bold text-on-surface-variant/80">{t.amount > 0 ? fmt(t.amount) : ""}</span>
                         <div className="w-full rounded-lg bg-primary-container/50 overflow-hidden flex flex-col justify-end" style={{ height: "100%" }}>
-                          <div className={`w-full rounded-lg transition-all duration-500 ${t.amount > 0 ? "bg-gradient-to-t from-[#0f172a] to-[#1e6b65]" : "bg-outline-variant"}`}
+                          <div className={`w-full rounded-lg transition-all duration-500 ${t.amount > 0 ? "bg-gradient-to-t from-slate-900 to-primary" : "bg-outline-variant"}`}
                             style={{ height: `${Math.max(4, (t.amount / maxTrend) * 100)}%` }} />
                         </div>
                         <span className="text-[10px] font-bold text-on-surface-variant/80">{t.label}</span>
@@ -478,7 +557,7 @@ export default function WalletPage() {
                 </div>
 
                 {/* Category breakdown */}
-                <div className="orvia-card p-5 space-y-4">
+                <div className="rounded-2xl border border-outline-variant/70 bg-surface p-5 space-y-4 shadow-xs">
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                       <IconBriefcase size={17} stroke={2} />
@@ -519,6 +598,11 @@ export default function WalletPage() {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        {...confirmState}
+        onClose={() => setConfirmState((p) => ({ ...p, isOpen: false }))}
+      />
     </div>
   );
 }

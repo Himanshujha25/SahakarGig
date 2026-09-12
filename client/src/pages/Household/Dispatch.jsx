@@ -21,6 +21,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Plumber",
     name: "Plumber",
+    standardRate: 350,
     Icon: IconTool,
     badgeBg: "bg-blue-500/10 text-blue-600 border-blue-200",
     desc: "Taps, pipe leakage, water tanks, motor repair, drainage",
@@ -29,6 +30,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Electrician",
     name: "Electrician",
+    standardRate: 350,
     Icon: IconBolt,
     badgeBg: "bg-amber-500/10 text-amber-600 border-amber-200",
     desc: "Wiring, switchboard, MCB, ceiling fans, inverter, lights",
@@ -37,6 +39,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Carpenter",
     name: "Carpenter",
+    standardRate: 380,
     Icon: IconHammer,
     badgeBg: "bg-orange-500/10 text-orange-600 border-orange-200",
     desc: "Furniture repair, door locks, hinges, modular fittings",
@@ -45,6 +48,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Painter",
     name: "Painter",
+    standardRate: 300,
     Icon: IconPaint,
     badgeBg: "bg-rose-500/10 text-rose-600 border-rose-200",
     desc: "Full wall painting, waterproofing, putty, touchup & polish",
@@ -53,6 +57,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Cleaner",
     name: "Cleaner",
+    standardRate: 350,
     Icon: IconSpray,
     badgeBg: "bg-cyan-500/10 text-cyan-600 border-cyan-200",
     desc: "Deep house cleaning, sofa shampoo, kitchen & bathroom sanitize",
@@ -61,6 +66,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Cook",
     name: "Cook / Chef",
+    standardRate: 350,
     Icon: IconChefHat,
     badgeBg: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
     desc: "Daily meal cooking, party catering, North/South Indian dishes",
@@ -69,6 +75,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Caregiver",
     name: "Caregiver",
+    standardRate: 300,
     Icon: IconHeartbeat,
     badgeBg: "bg-red-500/10 text-red-600 border-red-200",
     desc: "Elderly care, patient bedside assistance, baby sitting",
@@ -77,6 +84,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Driver",
     name: "Driver",
+    standardRate: 300,
     Icon: IconCar,
     badgeBg: "bg-indigo-500/10 text-indigo-600 border-indigo-200",
     desc: "Personal chauffeur, local city drives, outstation road trips",
@@ -85,6 +93,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Gardener",
     name: "Gardener",
+    standardRate: 250,
     Icon: IconPlant2,
     badgeBg: "bg-green-500/10 text-green-600 border-green-200",
     desc: "Lawn mowing, plant pruning, potting, landscaping, fertilizing",
@@ -93,6 +102,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Tutor",
     name: "Tutor",
+    standardRate: 300,
     Icon: IconSchool,
     badgeBg: "bg-purple-500/10 text-purple-600 border-purple-200",
     desc: "School subjects, maths, science, home tuition & languages",
@@ -101,6 +111,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Appliance Repair",
     name: "Appliance Repair",
+    standardRate: 450,
     Icon: IconFridge,
     badgeBg: "bg-teal-500/10 text-teal-600 border-teal-200",
     desc: "AC service, washing machine, refrigerator, microwave repair",
@@ -109,6 +120,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Pest Control",
     name: "Pest Control",
+    standardRate: 490,
     Icon: IconBug,
     badgeBg: "bg-yellow-500/10 text-yellow-600 border-yellow-200",
     desc: "Termite treatment, cockroach, rodent, mosquito protection",
@@ -117,6 +129,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Mason",
     name: "Mason / Civil Work",
+    standardRate: 400,
     Icon: IconWall,
     badgeBg: "bg-stone-500/10 text-stone-600 border-stone-200",
     desc: "Brickwork, tile fixing, plastering, minor civil construction",
@@ -125,6 +138,7 @@ export const SERVICE_CATEGORIES = [
   {
     id: "Tailor",
     name: "Tailor / Laundry",
+    standardRate: 200,
     Icon: IconScissors,
     badgeBg: "bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-200",
     desc: "Stitching, clothes alteration, curtains, custom fitting",
@@ -435,13 +449,32 @@ export default function Dispatch() {
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [locationText, setLocationText] = useState("");
   const [locLoading, setLocLoading] = useState(false);
-  const [priceStr, setPriceStr] = useState("250");
-  const offerPrice = Number(priceStr) > 0 ? Number(priceStr) : 250;
+  const [priceStr, setPriceStr] = useState("350");
+  const [boostAmount, setBoostAmount] = useState(0);
+  const [boosting, setBoosting] = useState(false);
+  const offerPrice = Number(priceStr) > 0 ? Number(priceStr) : 350;
   const [isEmergency, setIsEmergency] = useState(false);
   const [coords, setCoords] = useState({ lat: 28.6139, lng: 77.2090 });
 
   const [dynamicWorkerCount, setDynamicWorkerCount] = useState(8);
   const [estimateModalOpen, setEstimateModalOpen] = useState(false);
+
+  // Live real-time price boost during radar search
+  async function handleBoostPrice(inc) {
+    if (!booking?._id || boosting) return;
+    setBoosting(true);
+    try {
+      const { data } = await api.patch(`/bookings/${booking._id}/boost`, { boostAmount: inc });
+      if (data.price) {
+        setBooking((prev) => (prev ? { ...prev, price: data.price } : prev));
+        setPriceStr(data.price.toString());
+      }
+    } catch (err) {
+      console.error("Failed to boost fare:", err);
+    } finally {
+      setBoosting(false);
+    }
+  }
 
   // Fetch real active verified worker count from MongoDB API
   useEffect(() => {
@@ -467,6 +500,19 @@ export default function Dispatch() {
       setIsEmergency(true);
     }
   }, [searchParams]);
+
+  // Automatically calculate AI dynamic standard rate
+  useEffect(() => {
+    if (!category) return;
+    const matched = SERVICE_CATEGORIES.find(
+      (c) => c.id.toLowerCase() === category.toLowerCase() || c.name.toLowerCase() === category.toLowerCase()
+    );
+    const base = matched?.standardRate || 350;
+    const extraTasks = selectedTasks.length > 1 ? (selectedTasks.length - 1) * 50 : 0;
+    const emergencySurge = isEmergency ? 100 : 0;
+    const calculatedRate = base + extraTasks + emergencySurge + boostAmount;
+    setPriceStr(calculatedRate.toString());
+  }, [category, isEmergency, selectedTasks, boostAmount]);
 
   // High-accuracy GPS: watchPosition samples continuously and resolves the
   // best (lowest-accuracy) settled fix — stops early at ≤30 m, else after 6s.
@@ -963,20 +1009,59 @@ export default function Dispatch() {
                 </p>
               </label>
 
-              <label className="block">
-                <span className="mb-1.5 block text-[14px] sm:text-[13px] font-semibold text-on-surface-variant">Offered Rate (₹/hr)</span>
-                <div className="relative">
-                  <IndianRupee size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-                <input
-                  type="number" min={50} value={priceStr}
-                  onChange={(e) => setPriceStr(e.target.value)}
-                  className="h-14 w-full rounded-xl border border-outline-variant bg-surface-container-lowest pl-10 pr-4 text-[16px] sm:text-[15px] text-on-surface outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary font-semibold"
-                />
+              <div className="rounded-2xl border border-primary/20 bg-surface-container-low p-4 sm:p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13.5px] sm:text-[13px] font-bold text-on-surface flex items-center gap-1.5">
+                    <AIIcon size={15} />
+                    <span>AI Standard Per-Hour Rate</span>
+                  </span>
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-primary-container text-on-primary-container">
+                    Fixed Standard Fare
+                  </span>
                 </div>
-                <p className="hidden sm:block mt-1.5 text-[11.5px] text-on-surface-variant font-medium">
-                  Your real offer — every in-range worker sees <strong className="text-on-surface">₹{offerPrice}/hr</strong>. The first to accept locks this exact rate in escrow.
+
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-[30px] sm:text-[34px] font-extrabold text-primary tracking-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
+                    ₹{offerPrice}
+                  </span>
+                  <span className="text-[14px] font-semibold text-on-surface-variant">/ hr</span>
+                  {isEmergency && (
+                    <span className="text-[11.5px] font-bold text-error bg-error-container/60 px-2.5 py-0.5 rounded-full">
+                      +₹100 Emergency Surge
+                    </span>
+                  )}
+                  {boostAmount > 0 && (
+                    <span className="text-[11.5px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                      +₹{boostAmount} Extra Fare Boost
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-[12px] text-on-surface-variant font-medium">
+                  Standard per-hour rate calculated based on verified skill tier &amp; local cooperative benchmark rates.
                 </p>
-              </label>
+
+                {/* Optional Upfront Boost Buttons */}
+                <div className="pt-2.5 border-t border-outline-variant/40 flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-[12px] font-semibold text-on-surface-variant">Attract workers faster (optional boost):</span>
+                  <div className="flex items-center gap-1.5">
+                    {[0, 50, 100, 150].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setBoostAmount(amt)}
+                        className={`px-3 py-1 rounded-lg text-[12px] font-bold transition-all cursor-pointer ${
+                          boostAmount === amt
+                            ? "bg-primary text-on-primary shadow-2xs"
+                            : "bg-surface border border-outline-variant text-on-surface-variant hover:border-primary/40"
+                        }`}
+                      >
+                        {amt === 0 ? "Standard" : `+₹${amt}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
               {error && (
                 <div className="rounded-xl border border-error/30 bg-error-container px-4 py-3 text-[13px] font-semibold text-on-error-container">{error}</div>
@@ -1227,9 +1312,34 @@ export default function Dispatch() {
               </p>
             )}
           </div>
-          <p className="text-[12.5px] sm:text-[12px] text-on-surface-variant">
-            Offer <strong className="text-on-surface">₹{booking?.price || offerPrice}/hr</strong> · escrow locks only after a worker accepts
-          </p>
+          {/* Live Real-time Price Boost Card */}
+          <div className="my-3 w-full max-w-sm bg-surface border border-primary/20 rounded-2xl p-4 shadow-sm space-y-2.5 text-left">
+            <div className="flex items-center justify-between">
+              <span className="text-[12.5px] font-bold text-on-surface flex items-center gap-1.5">
+                Current Offer: <strong className="text-[17px] font-extrabold text-primary">₹{booking?.price || offerPrice}/hr</strong>
+              </span>
+              {boosting && (
+                <span className="text-[11px] font-bold text-primary animate-pulse">Updating live fare…</span>
+              )}
+            </div>
+            <p className="text-[11.5px] text-on-surface-variant leading-snug">
+              No worker accepted yet? Increase per-hour fare to alert workers with higher priority:
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {[50, 100, 200].map((inc) => (
+                <button
+                  key={inc}
+                  type="button"
+                  disabled={boosting}
+                  onClick={() => handleBoostPrice(inc)}
+                  className="py-2 px-2.5 rounded-xl bg-primary-container text-on-primary-container text-[12px] font-bold border border-primary/20 hover:bg-primary hover:text-on-primary transition-all active:scale-95 shadow-2xs cursor-pointer disabled:opacity-50"
+                >
+                  + ₹{inc} / hr
+                </button>
+              ))}
+            </div>
+          </div>
+
           <p className="text-[12.5px] sm:text-[12px] text-on-surface-variant font-semibold">Waiting for the first worker to accept…</p>
           <p className="hidden sm:block text-[11px] text-on-surface-variant/80">
             This offer auto-cancels ~5 min after you leave this page. Cancel now to stop it instantly.

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { SERVER_URL } from '../lib/config';
+import { toast } from '../lib/toast';
 import {
   IconSearch, IconMapPin, IconCircleCheck, IconShieldCheck, IconBolt,
   IconSchool, IconSparkles, IconHeartbeat, IconLayoutGrid,
@@ -50,10 +51,10 @@ const FEATURES = [
 ];
 
 const SOCIALS = [
-  { Icon: IconBrandX, label: 'X (Twitter)' },
-  { Icon: IconBrandInstagram, label: 'Instagram' },
-  { Icon: IconBrandLinkedin, label: 'LinkedIn' },
-  { Icon: IconBrandWhatsapp, label: 'WhatsApp' },
+  { Icon: IconBrandX, label: 'X (Twitter)', href: 'https://x.com' },
+  { Icon: IconBrandInstagram, label: 'Instagram', href: 'https://instagram.com' },
+  { Icon: IconBrandLinkedin, label: 'LinkedIn', href: 'https://linkedin.com' },
+  { Icon: IconBrandWhatsapp, label: 'WhatsApp', href: 'https://wa.me/9118007242527' },
 ];
 
 const HOW = [
@@ -205,7 +206,7 @@ export default function Landing() {
   // Detect Current Location via Geolocation API
   function detectCurrentLocation() {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
+      toast.warning("Geolocation is not supported by your browser.");
       return;
     }
     setIsLocating(true);
@@ -302,9 +303,7 @@ export default function Landing() {
 
           {/* Logo — left corner aligned */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shadow-[0_4px_12px_rgba(30,107,101,0.3)] group-hover:shadow-[0_6px_18px_rgba(30,107,101,0.45)] group-hover:scale-105 transition-all duration-300">
-              <IconHeartHandshake size={18} stroke={1.5} className="text-on-primary-fixed" />
-            </div>
+            <img src="/icon-512.png" alt="SahakarGig Logo" className="w-9 h-9 rounded-xl object-contain shrink-0 shadow-[0_4px_12px_rgba(30,107,101,0.3)] group-hover:scale-105 transition-all duration-300" />
             <span className="text-[19px] font-bold tracking-tight text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
               Sahakar<span className="text-primary">Gig</span>
             </span>
@@ -818,21 +817,25 @@ export default function Landing() {
                 Icon: IconSparkles,
                 title: t('feat1Title', 'AI Broadcast & First-Lock Engine'),
                 desc: t('feat1Desc', 'AI-powered geospatial engine broadcasts requests to nearby verified providers and locks first-acceptance atomically in milliseconds.'),
+                action: () => window.dispatchEvent(new CustomEvent('open-ai-chatbot'))
               },
               {
                 Icon: IconCircleCheck,
                 title: t('feat2Title', 'Cooperative Verified'),
                 desc: t('feat2Desc', 'Every provider is background-checked and endorsed by a registered cooperative society before they can take bookings.'),
+                action: () => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'terms' } }))
               },
               {
                 Icon: IconShieldCheck,
                 title: t('feat3Title', 'Secure & Fair Payments'),
                 desc: t('feat3Desc', 'Razorpay-powered escrow holds funds safely. Providers earn more; households pay less — zero hidden fees.'),
+                action: () => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'escrow' } }))
               },
-            ].map(({ Icon, title, desc }) => (
+            ].map(({ Icon, title, desc, action }) => (
               <div
                 key={title}
-                className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/50 bg-surface-container-low p-6 sm:p-8 hover:shadow-[0_16px_48px_rgba(0,0,0,0.25)] hover:-translate-y-2 hover:border-primary/40 transition-all duration-300"
+                onClick={action}
+                className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/50 bg-surface-container-low p-6 sm:p-8 hover:shadow-[0_16px_48px_rgba(0,0,0,0.25)] hover:-translate-y-2 hover:border-primary/40 transition-all duration-300 cursor-pointer"
               >
                 <div className="absolute top-0 right-0 w-44 h-44 bg-primary/5 rounded-full blur-3xl -translate-y-10 translate-x-10 group-hover:bg-primary/15 transition-colors duration-400 pointer-events-none" />
                 <div className="relative z-10">
@@ -859,9 +862,7 @@ export default function Landing() {
             {/* Brand Column — aligned with left corner */}
             <div className="md:col-span-4 lg:col-span-4 space-y-3.5">
               <Link to="/" className="flex items-center gap-2.5 group w-fit">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center group-hover:scale-105 group-hover:shadow-[0_4px_12px_rgba(30,107,101,0.35)] transition-all duration-300">
-                  <IconHeartHandshake size={18} stroke={1.5} className="text-on-primary-fixed" />
-                </div>
+                <img src="/icon-512.png" alt="SahakarGig Logo" className="w-9 h-9 rounded-xl object-contain shrink-0 group-hover:scale-105 transition-all duration-300" />
                 <span className="text-[20px] font-bold text-on-surface" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
                   Sahakar<span className="text-primary">Gig</span>
                 </span>
@@ -874,10 +875,12 @@ export default function Landing() {
                 <span>{t('ministryAligned', 'Ministry of Cooperation Aligned')}</span>
               </div>
               <div className="flex items-center gap-2 pt-1">
-                {SOCIALS.map(({ Icon, label }) => (
+                {SOCIALS.map(({ Icon, label, href }) => (
                   <a
                     key={label}
-                    href="#"
+                    href={href || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     aria-label={label}
                     className="w-8 h-8 rounded-lg border border-outline-variant/70 bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-300"
                   >
@@ -929,15 +932,19 @@ export default function Landing() {
                 <h4 className="text-[12px] font-bold text-on-surface uppercase tracking-[0.1em] mb-4">{t('legalHeader', 'LEGAL & TRUST')}</h4>
                 <ul className="space-y-3">
                   {[
-                    t('privacyPolicyLink', 'Privacy Policy'),
-                    t('termsOfServiceLink', 'Terms of Service'),
-                    t('disputeEscrowLink', 'Dispute Escrow'),
-                    t('supportCenterLink', 'Support Center')
-                  ].map((label) => (
+                    [t('privacyPolicyLink', 'Privacy Policy'), 'privacy'],
+                    [t('termsOfServiceLink', 'Terms of Service'), 'terms'],
+                    [t('disputeEscrowLink', 'Dispute Escrow'), 'escrow'],
+                    [t('supportCenterLink', 'Support Center'), 'support']
+                  ].map(([label, tab]) => (
                     <li key={label}>
-                      <a href="#" className="text-[13.5px] text-on-surface-variant hover:text-primary transition-colors duration-200">
+                      <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab } }))}
+                        className="text-[13.5px] text-on-surface-variant hover:text-primary transition-colors duration-200 text-left"
+                      >
                         {label}
-                      </a>
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -952,9 +959,23 @@ export default function Landing() {
               © {new Date().getFullYear()} SahakarGig. {t('copyrightText', "Built for India's Cooperative Ecosystem.")}
             </p>
             <div className="flex items-center gap-4 text-[12.5px] text-on-surface-variant">
-              <span className="hover:text-primary cursor-pointer transition-colors">National Cooperative Database (NCD)</span>
+              <a 
+                href="https://cooperation.gov.in" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:text-primary cursor-pointer transition-colors"
+              >
+                National Cooperative Database (NCD)
+              </a>
               <span>•</span>
-              <span className="hover:text-primary cursor-pointer transition-colors">Ministry of Cooperation</span>
+              <a 
+                href="https://cooperation.gov.in" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:text-primary cursor-pointer transition-colors"
+              >
+                Ministry of Cooperation
+              </a>
             </div>
           </div>
         </div>

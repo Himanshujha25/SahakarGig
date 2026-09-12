@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Download, X, Handshake, Smartphone } from 'lucide-react';
+import { toast } from '../lib/toast';
 
 // Detect iOS — Safari on iOS never fires beforeinstallprompt
 const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -76,7 +77,7 @@ export default function PwaInstallBanner() {
       setDeferredPrompt(null);
     } else {
       // Fallback: guide user to browser / OS install method
-      alert(
+      toast.info(
         isIosDevice
           ? 'Tap the Share button (⬆) in Safari, then "Add to Home Screen".'
           : 'Click the install icon in your browser\'s address bar, or open the browser menu → "Install app".'

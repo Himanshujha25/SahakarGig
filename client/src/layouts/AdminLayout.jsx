@@ -119,9 +119,7 @@ export default function AdminLayout() {
 
         {/* Center: Brand */}
         <Link to="/admin" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shadow-[0_2px_8px_rgba(0,40,142,0.25)]">
-            <Handshake size={14} className="text-on-primary-fixed" strokeWidth={2.5} />
-          </div>
+          <img src="/icon-512.png" alt="SahakarGig Logo" className="w-7 h-7 rounded-lg object-contain shrink-0 shadow-[0_2px_8px_rgba(0,40,142,0.25)]" />
           <span className="text-[15px] font-bold text-on-surface tracking-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
             SahakarGig Admin
           </span>
@@ -131,9 +129,6 @@ export default function AdminLayout() {
         <div className="flex items-center gap-1.5">
           <LangToggle />
           <NotificationBell />
-          <button onClick={signOut} className="w-10 h-10 flex items-center justify-center rounded-xl text-error hover:bg-error-container/30 transition-colors cursor-pointer" aria-label="Sign out">
-            <LogOut size={18} strokeWidth={2} />
-          </button>
         </div>
       </header>
 

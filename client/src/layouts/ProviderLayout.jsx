@@ -5,6 +5,7 @@ import NotificationBell from '../components/NotificationBell';
 import LangToggle from '../components/LangToggle';
 import CoopMarqueeTicker from '../components/CoopMarqueeTicker';
 import api from '../lib/api';
+import { toast } from '../lib/toast';
 import socket from '../lib/socket';
 import { SERVER_URL } from '../lib/config';
 import { triggerJobAlert, stopSiren, unlockAudio } from '../lib/alarmSound';
@@ -150,7 +151,7 @@ export default function ProviderLayout() {
       setActiveAlertJob(null);
       navigate(`/provider/jobs/${bookingId}`);
     } catch (err) {
-      alert(err.response?.data?.message || "Job already claimed by another provider or expired.");
+      toast.error(err.response?.data?.message || "Job already claimed by another provider or expired.");
       setActiveAlertJob(null);
     } finally {
       setAccepting(false);
@@ -193,9 +194,7 @@ export default function ProviderLayout() {
         {/* Brand */}
         <div className="px-5 pt-6 pb-5 border-b border-outline-variant/40">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shrink-0 shadow-[0_2px_8px_rgba(0,40,142,0.25)]">
-              <Handshake size={17} className="text-on-primary-fixed" strokeWidth={2.5} />
-            </div>
+            <img src="/icon-512.png" alt="SahakarGig Logo" className="w-9 h-9 rounded-xl object-contain shrink-0 shadow-[0_2px_8px_rgba(0,40,142,0.25)]" />
             <div className="min-w-0">
               <p className="text-[15px] font-bold text-primary tracking-tight leading-none truncate"
                 style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
@@ -294,9 +293,7 @@ export default function ProviderLayout() {
         </button>
 
         <Link to="/provider" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shadow-[0_2px_8px_rgba(0,40,142,0.25)]">
-            <Handshake size={14} className="text-on-primary-fixed" strokeWidth={2.5} />
-          </div>
+          <img src="/icon-512.png" alt="SahakarGig Logo" className="w-7 h-7 rounded-lg object-contain shrink-0 shadow-[0_2px_8px_rgba(0,40,142,0.25)]" />
           <span className="text-[15px] font-bold text-on-surface tracking-tight" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
             SahakarGig Provider
           </span>

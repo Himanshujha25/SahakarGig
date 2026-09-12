@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/api";
+import { toast } from "../../lib/toast";
 import {
   IndianRupee, TrendingUp, Users, ShieldCheck,
   Download, RefreshCw, CheckCircle2, AlertCircle,
   Sliders, Send, FileText, ArrowUpRight, DollarSign,
   Receipt, Building2, X, Printer, Landmark, HeartHandshake,
-  Shield, Wallet, ArrowDownRight, Check
+  Shield, Wallet, ArrowDownRight, Check, Edit
 } from "lucide-react";
+import { downloadPDFInvoice } from "../../lib/invoicePrinter";
 
 export default function CooperativeFinancials() {
   const [data, setData] = useState(null);
@@ -44,6 +46,64 @@ export default function CooperativeFinancials() {
   const [claimReason, setClaimReason] = useState("");
   const [claimBusy, setClaimBusy] = useState(false);
 
+  // Cooperative Invoice Editing Modal
+  const [editInvoiceModal, setEditInvoiceModal] = useState(false);
+  const [activeInvoice, setActiveInvoice] = useState(null);
+  const [customNotes, setCustomNotes] = useState("");
+  const [sacCode, setSacCode] = useState("998719");
+  const [terms, setTerms] = useState("");
+  const [stampUrl, setStampUrl] = useState("");
+  const [signatureUrl, setSignatureUrl] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [secretaryName, setSecretaryName] = useState("");
+  const [savingInvoice, setSavingInvoice] = useState(false);
+
+  async function openEditInvoiceModal(bookingId) {
+    try {
+      const { data: inv } = await api.get(`/payments/invoice/${bookingId}`);
+      if (!inv) {
+        toast.error("Invoice record not found for this booking.");
+        return;
+      }
+      setActiveInvoice(inv);
+      setCustomNotes(inv.customNotes || "");
+      setSacCode(inv.sacCode || "998719");
+      setTerms(inv.terms || "Payment held in Sahakar Escrow. Released upon OTP verification.");
+      const coopObj = inv.cooperativeId || inv.providerId?.cooperativeId;
+      setStampUrl(coopObj?.stampUrl || "");
+      setSignatureUrl(coopObj?.signatureUrl || "");
+      setLogoUrl(coopObj?.logoUrl || "");
+      setSecretaryName(coopObj?.secretaryName || coopObj?.presidentName || "R. K. Sharma");
+      setEditInvoiceModal(true);
+    } catch (err) {
+      toast.error("Failed to load invoice details.");
+    }
+  }
+
+  async function handleSaveInvoice(e) {
+    e.preventDefault();
+    if (!activeInvoice?._id) return;
+    setSavingInvoice(true);
+    try {
+      const { data: res } = await api.patch(`/payments/invoice/${activeInvoice._id}`, {
+        customNotes,
+        sacCode,
+        terms,
+        stampUrl,
+        signatureUrl,
+        logoUrl,
+        secretaryName,
+      });
+      toast.success(res.message || "Cooperative invoice & society stamp updated successfully!");
+      setEditInvoiceModal(false);
+      load();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to update invoice.");
+    } finally {
+      setSavingInvoice(false);
+    }
+  }
+
   const load = async () => {
     setLoading(true);
     try {
@@ -68,8 +128,7 @@ export default function CooperativeFinancials() {
   }, []);
 
   function showToast(msg) {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(""), 4000);
+    toast.success(msg);
   }
 
   // 1. Initiate Member Payout
@@ -91,7 +150,7 @@ export default function CooperativeFinancials() {
       setPayoutNotes("");
       load();
     } catch (err) {
-      showToast("Failed to process payout.");
+      toast.error("Failed to process payout.");
     } finally {
       setPayoutBusy(false);
     }
@@ -102,7 +161,7 @@ export default function CooperativeFinancials() {
     e.preventDefault();
     if (!withdrawAmount || Number(withdrawAmount) <= 0) return;
     if (Number(withdrawAmount) > (data.netOperatingRevenue || 0)) {
-      alert(`Cannot withdraw more than available net operating balance (₹${data.netOperatingRevenue || 0})`);
+      toast.warning(`Cannot withdraw more than available net operating balance (₹${data.netOperatingRevenue || 0})`);
       return;
     }
     setWithdrawBusy(true);
@@ -119,7 +178,7 @@ export default function CooperativeFinancials() {
       setWithdrawNotes("");
       load();
     } catch (err) {
-      showToast("Failed to process withdrawal.");
+      toast.error("Failed to process withdrawal.");
     } finally {
       setWithdrawBusy(false);
     }
@@ -130,7 +189,7 @@ export default function CooperativeFinancials() {
     e.preventDefault();
     if (!claimMemberName || !claimAmount) return;
     if (Number(claimAmount) > (data.welfareFundBalance || 0)) {
-      alert(`Claim amount exceeds available welfare pool (₹${data.welfareFundBalance || 0})`);
+      toast.warning(`Claim amount exceeds available welfare pool (₹${data.welfareFundBalance || 0})`);
       return;
     }
     setClaimBusy(true);
@@ -354,7 +413,8 @@ export default function CooperativeFinancials() {
                     <th className="px-6 py-3">Coop Share ({data.commissionRate}%)</th>
                     <th className="px-6 py-3">Member Payout</th>
                     <th className="px-6 py-3">Status</th>
-                    <th className="px-6 py-3 text-right">Date</th>
+                    <th className="px-6 py-3">Date</th>
+                    <th className="px-6 py-3 text-right">Tax Invoice</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
@@ -372,8 +432,19 @@ export default function CooperativeFinancials() {
                           {row.status || "Released ✓"}
                         </span>
                       </td>
-                      <td className="px-6 py-3.5 text-right text-slate-400 font-medium">
+                      <td className="px-6 py-3.5 text-slate-400 font-medium">
                         {new Date(row.date).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
+                      </td>
+                      <td className="px-6 py-3.5 text-right">
+                        {row.bookingId && (
+                          <button
+                            type="button"
+                            onClick={() => openEditInvoiceModal(row.bookingId)}
+                            className="px-3 py-1 rounded-xl bg-[#00288e]/10 text-[#00288e] border border-[#00288e]/20 text-[11px] font-bold hover:bg-[#00288e] hover:text-white transition cursor-pointer"
+                          >
+                            ✏️ Edit Invoice
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -860,6 +931,254 @@ export default function CooperativeFinancials() {
                 >
                   {welfareBusy ? "Saving..." : "Save Allocation"}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 5: COOPERATIVE INVOICE EDITOR ── */}
+      {editInvoiceModal && activeInvoice && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setEditInvoiceModal(false)}>
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 space-y-4 border border-slate-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Edit size={18} className="text-[#00288e]" /> Edit PACS Member Invoice
+                </h2>
+                <p className="text-xs text-slate-500 font-mono">Invoice #{activeInvoice.invoiceNumber || `INV-${activeInvoice._id.slice(-6)}`}</p>
+              </div>
+              <button onClick={() => setEditInvoiceModal(false)} className="p-1 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveInvoice} className="space-y-4 text-xs font-semibold max-h-[75vh] overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-slate-700 font-bold">SAC / HSN Code</label>
+                  <input
+                    type="text"
+                    value={sacCode}
+                    onChange={(e) => setSacCode(e.target.value)}
+                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs font-bold text-slate-900 outline-none focus:border-[#00288e]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-slate-700 font-bold">Secretary Name</label>
+                  <input
+                    type="text"
+                    value={secretaryName}
+                    onChange={(e) => setSecretaryName(e.target.value)}
+                    placeholder="e.g. R. K. Sharma"
+                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 outline-none focus:border-[#00288e]"
+                  />
+                </div>
+              </div>
+
+              {/* STAMP & SIGNATURE UPLOAD / URL SECTION */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-extrabold uppercase text-[#00288e] tracking-wider">
+                    Official PACS Stamp &amp; Authorized Signature
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-normal">Auto-applies to all member invoices</span>
+                </div>
+
+                {/* Asset Preview Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Official Stamp */}
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-2 flex flex-col justify-between">
+                    <div>
+                      <span className="block text-slate-700 font-bold text-[11px] mb-1.5">Official Society Stamp</span>
+                      <div className="w-full h-20 rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden p-1 relative">
+                        {stampUrl ? (
+                          <img src={stampUrl} alt="PACS Stamp Preview" className="h-full max-w-full object-contain" />
+                        ) : (
+                          <span className="text-[10.5px] text-slate-400 font-bold">No Stamp Uploaded</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <label className="flex-1 text-center py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-[10.5px] font-bold cursor-pointer transition">
+                        Upload Stamp
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => setStampUrl(ev.target.result);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                      {stampUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setStampUrl("")}
+                          className="px-2 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 text-[10.5px] font-bold cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Secretary Signature */}
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-2 flex flex-col justify-between">
+                    <div>
+                      <span className="block text-slate-700 font-bold text-[11px] mb-1.5">Authorized Signature</span>
+                      <div className="w-full h-20 rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden p-1 relative">
+                        {signatureUrl ? (
+                          <img src={signatureUrl} alt="Signature Preview" className="h-full max-w-full object-contain" />
+                        ) : (
+                          <span className="text-[10.5px] text-slate-400 font-bold">No Signature Uploaded</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <label className="flex-1 text-center py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-[10.5px] font-bold cursor-pointer transition">
+                        Upload Sign
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => setSignatureUrl(ev.target.result);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                      {signatureUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setSignatureUrl("")}
+                          className="px-2 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 text-[10.5px] font-bold cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Cooperative Logo */}
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-2 flex flex-col justify-between">
+                    <div>
+                      <span className="block text-slate-700 font-bold text-[11px] mb-1.5">Cooperative Logo</span>
+                      <div className="w-full h-20 rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden p-1 relative">
+                        {logoUrl ? (
+                          <img src={logoUrl} alt="Coop Logo Preview" className="h-full max-w-full object-contain" />
+                        ) : (
+                          <span className="text-[10.5px] text-slate-400 font-bold">No Logo Uploaded</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <label className="flex-1 text-center py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-[10.5px] font-bold cursor-pointer transition">
+                        Upload Logo
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => setLogoUrl(ev.target.result);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                      {logoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setLogoUrl("")}
+                          className="px-2 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 text-[10.5px] font-bold cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-slate-700 font-bold">Cooperative Custom Note / Tax Exemption Notice</label>
+                <textarea
+                  rows={2}
+                  value={customNotes}
+                  onChange={(e) => setCustomNotes(e.target.value)}
+                  placeholder="e.g. Approved by PACS Managing Committee. Section 80P Tax Exempted."
+                  className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 outline-none focus:border-[#00288e]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-slate-700 font-bold">Invoice Terms &amp; Conditions</label>
+                <textarea
+                  rows={2}
+                  value={terms}
+                  onChange={(e) => setTerms(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 outline-none focus:border-[#00288e]"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const mockBooking = {
+                      _id: activeInvoice.bookingId,
+                      createdAt: activeInvoice.generatedAt,
+                      price: activeInvoice.total,
+                      service: activeInvoice.items?.[0]?.description || "Gig Service",
+                      paymentStatus: "paid",
+                      cooperativeId: {
+                        ...(activeInvoice.cooperativeId || {}),
+                        stampUrl,
+                        signatureUrl,
+                        logoUrl,
+                        secretaryName,
+                      },
+                      providerId: activeInvoice.providerId,
+                      householdId: activeInvoice.householdId,
+                      sacCode,
+                      customNotes,
+                    };
+                    downloadPDFInvoice(mockBooking, activeInvoice.householdId);
+                  }}
+                  className="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 font-bold text-slate-700 text-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Download size={14} /> Download Updated PDF
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditInvoiceModal(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingInvoice}
+                    className="px-5 py-2 rounded-xl bg-[#00288e] text-white font-bold hover:bg-[#001f70] shadow-xs cursor-pointer disabled:opacity-50"
+                  >
+                    {savingInvoice ? "Saving..." : "Save Invoice & Stamp"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

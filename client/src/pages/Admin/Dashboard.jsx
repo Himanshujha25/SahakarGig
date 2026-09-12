@@ -5,6 +5,7 @@ import {
   CalendarDays, Users, ShieldAlert, IndianRupee,
   TrendingUp, CheckCircle2, Trophy, ArrowRight, BarChart3, ChevronDown, Zap
 } from "lucide-react";
+import { SkeletonStats } from "../../components/UIStateComponents";
 
 const TIMEFRAMES = [
   { value: "week",  label: "This Week" },
@@ -151,11 +152,7 @@ export default function Dashboard() {
 
       {/* ── Stat cards (Compact Sleek Horizontal Tiles) ── */}
       {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-          {[0,1,2,3].map((i) => (
-            <div key={i} className="animate-pulse rounded-xl border border-outline-variant bg-surface p-3.5 h-16" />
-          ))}
-        </div>
+        <SkeletonStats count={4} />
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           {cards.map(({ key, label, value, accent }) => {

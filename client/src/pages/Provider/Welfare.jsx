@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/api";
+import { toast } from "../../lib/toast";
 import {
   HeartHandshake, Plus, FileText, Clock,
   IndianRupee, Printer, X, CheckCircle2, ShieldCheck
@@ -92,7 +93,7 @@ export default function Welfare() {
       setActiveTab("claims"); // Automatically switch to claims tab to show their pending application!
       await fetchWelfare(providerId);
     } catch (err) {
-      alert(err.response?.data?.message || "Application rejected. Single active claim policy in effect.");
+      toast.error(err.response?.data?.message || "Application rejected. Single active claim policy in effect.");
     }
   }
 

@@ -5,6 +5,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../../context/AuthContext";
 import Icon from "../../components/Icon";
 import AuthShell from "../../components/AuthShell";
+import { toast } from "../../lib/toast";
 
 const GOOGLE_ICON = (
   <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24">
@@ -247,7 +248,7 @@ export default function Login() {
         </button>
         <button
           type="button"
-          onClick={() => alert("Connecting with e-Pramaan…")}
+          onClick={() => toast.info("Connecting with e-Pramaan SSO portal…")}
           className="inline-flex justify-center items-center gap-2 py-2.5 px-3 border border-outline-variant rounded-xl bg-surface-container-low text-[12.5px] font-semibold text-on-surface hover:bg-surface-container-high hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer shadow-xs"
         >
           <Icon name="assured_workload" className="text-[17px] text-primary" />

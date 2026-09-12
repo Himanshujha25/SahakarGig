@@ -101,9 +101,7 @@ export default function FederationLayout() {
     <aside className="hidden lg:flex flex-col fixed top-0 left-0 h-screen w-[260px] bg-surface-container-low border-r border-outline-variant/60 z-40">
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-outline-variant/40">
-        <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-[0_2px_8px_rgba(0,40,142,0.25)]">
-          <Building2 size={18} className="text-white" strokeWidth={2.2} />
-        </div>
+        <img src="/icon-512.png" alt="SahakarGig Logo" className="w-9 h-9 rounded-xl object-contain shrink-0 shadow-[0_2px_8px_rgba(0,40,142,0.25)]" />
         <div>
           <p className="text-[15px] font-bold text-primary tracking-tight leading-none" style={{ fontFamily: 'Hanken Grotesk, sans-serif' }}>
             SahakarGig
@@ -213,9 +211,7 @@ export default function FederationLayout() {
 
         {/* Center: Brand */}
         <Link to="/federation" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-primary-fixed-dim flex items-center justify-center shadow-[0_2px_8px_rgba(0,40,142,0.25)]">
-            <Building2 size={14} className="text-on-primary-fixed" strokeWidth={2.5} />
-          </div>
+          <img src="/icon-512.png" alt="SahakarGig Logo" className="w-7 h-7 rounded-lg object-contain shrink-0 shadow-[0_2px_8px_rgba(0,40,142,0.25)]" />
           <span className="text-[15px] font-bold text-on-surface tracking-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
             SahakarGig Federation
           </span>
@@ -225,9 +221,6 @@ export default function FederationLayout() {
         <div className="flex items-center gap-1.5">
           <LangToggle />
           <NotificationBell />
-          <button onClick={signOut} className="w-10 h-10 flex items-center justify-center rounded-xl text-error hover:bg-error-container/30 transition-colors cursor-pointer" aria-label="Sign out">
-            <LogOut size={18} strokeWidth={2} />
-          </button>
         </div>
       </header>
 

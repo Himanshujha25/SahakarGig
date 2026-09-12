@@ -55,5 +55,9 @@ router.patch('/resolve/:bookingId', asyncHandler(c.resolveDispute));
 router.get('/rfp', asyncHandler(c.listRFPs));
 router.patch('/rfp/:bookingId/accept', asyncHandler(c.acceptRFP));
 router.patch('/rfp/:bookingId/quotation', asyncHandler(c.updateRFPQuotation));
+router.post('/rfp/:bookingId/allocate', asyncHandler(c.allocateWorkers));
+router.post('/rfp/:bookingId/reallocate', asyncHandler(c.reallocateWorker));
+router.patch('/rfp/:bookingId/verify-payment', asyncHandler(c.verifyHouseholdPayment));
+router.post('/rfp/:bookingId/payout-proof', asyncHandler(c.uploadWorkerPayoutProof));
 
 module.exports = router;

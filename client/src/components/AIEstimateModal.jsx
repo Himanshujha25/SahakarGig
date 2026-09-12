@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import api from "../lib/api";
 import { Sparkles, X, Calculator, ShieldCheck, ArrowRight, LoaderCircle, CheckCircle2 } from "lucide-react";
 
@@ -7,6 +7,19 @@ export default function AIEstimateModal({ isOpen, onClose, defaultService = "Ele
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [estimate, setEstimate] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.style.overflow = "hidden";
+    function handleKeyDown(e) {
+      if (e.key === "Escape") onClose?.();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -25,8 +38,8 @@ export default function AIEstimateModal({ isOpen, onClose, defaultService = "Ele
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
-      <div className="relative w-full max-w-lg rounded-3xl border border-outline-variant bg-surface text-on-surface p-6 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn" onClick={onClose}>
+      <div className="relative w-full max-w-lg rounded-3xl border border-outline-variant bg-surface text-on-surface p-6 shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-outline-variant pb-4 mb-4">
           <div className="flex items-center gap-2.5">

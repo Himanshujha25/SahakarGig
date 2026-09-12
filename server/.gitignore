@@ -1,0 +1,9 @@
+# Server GitIgnore
+node_modules/
+.env
+.env.*
+!.env.example
+logs/
+*.log
+uploads/
+tmp/

@@ -62,8 +62,11 @@ import FederationSignup from './pages/auth/FederationSignup';
 import FederationSettings from './pages/Federation/Settings';
 import Architecture from './pages/Architecture';
 
+import React, { useState, useEffect } from 'react';
 import PwaInstallBanner from './components/PwaInstallBanner';
 import AIChatbot from './components/AIChatbot';
+import NotificationToasts from './components/NotificationToasts';
+import LegalTrustModal from './components/LegalTrustModal';
 
 function Redirect() {
   const { user } = useAuth();
@@ -76,10 +79,27 @@ function Redirect() {
 }
 
 export default function App() {
+  const [legalModal, setLegalModal] = useState({ isOpen: false, tab: 'privacy' });
+
+  useEffect(() => {
+    const handleOpenLegal = (e) => {
+      const tab = e.detail?.tab || 'privacy';
+      setLegalModal({ isOpen: true, tab });
+    };
+    window.addEventListener('open-legal-modal', handleOpenLegal);
+    return () => window.removeEventListener('open-legal-modal', handleOpenLegal);
+  }, []);
+
   return (
     <>
       <PwaInstallBanner />
+      <NotificationToasts />
       <AIChatbot />
+      <LegalTrustModal 
+        isOpen={legalModal.isOpen} 
+        defaultTab={legalModal.tab} 
+        onClose={() => setLegalModal((prev) => ({ ...prev, isOpen: false }))} 
+      />
       <Routes>
         <Route path="/landing" element={<Landing />} />
         <Route path="/login" element={<Login />} />
@@ -115,6 +135,7 @@ export default function App() {
             <Route index element={<JobQueue />} />
             <Route path="dispatch" element={<DispatchFeed />} />
             <Route path="job/:id" element={<JobDetail />} />
+            <Route path="jobs/:id" element={<JobDetail />} />
             <Route path="earnings" element={<ProviderEarnings />} />
             <Route path="payouts" element={<ProviderEarnings />} />
             <Route path="welfare" element={<ProviderWelfare />} />

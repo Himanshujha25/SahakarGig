@@ -181,23 +181,83 @@ async function updateProfile(req, res) {
 const { uploadMedia } = require('../lib/cloudinary');
 
 async function uploadDoc(req, res) {
-  if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-  const cloudRes = await uploadMedia(req.file.path || req.file.buffer, { folder: 'sahakargig/docs' });
-  const fileUrl = cloudRes.url || `/uploads/${req.file.filename}`;
+  const { docType, docNumber, docUrl } = req.body;
+  const docPayload = req.body?.file || req.body?.doc || docUrl;
+  if (!docPayload) return res.status(400).json({ message: 'No document payload provided' });
 
-  const p = await Provider.findOneAndUpdate(
-    { _id: req.params.id, userId: req.user.userId },
-    { $push: { documents: fileUrl } },
-    { new: true }
-  );
-  if (!p) return res.status(404).json({ message: 'Provider not found' });
-  res.json({ ...p.toObject(), uploadedUrl: fileUrl });
+  // Upload file/image/PDF to Cloudinary CDN
+  const cloudRes = await uploadMedia(docPayload, { folder: 'sahakargig/docs' });
+  const finalDocUrl = cloudRes?.url || docPayload;
+
+  const type = docType || 'Aadhaar Card';
+  const num = docNumber || '';
+
+  let query = { userId: req.user.userId };
+  if (req.params.id && req.params.id !== 'upload-document') {
+    query = { $or: [{ _id: req.params.id }, { userId: req.user.userId }] };
+  }
+
+  const p = await Provider.findOne(query);
+  if (!p) return res.status(404).json({ message: 'Provider profile not found' });
+
+  if (!p.documents.includes(finalDocUrl)) {
+    p.documents.push(finalDocUrl);
+  }
+
+  if (!Array.isArray(p.documentDetails)) p.documentDetails = [];
+  const existingIdx = p.documentDetails.findIndex(d => d.docType === type);
+  if (existingIdx >= 0) {
+    p.documentDetails[existingIdx].docUrl = finalDocUrl;
+    p.documentDetails[existingIdx].docNumber = num || p.documentDetails[existingIdx].docNumber || `${type.toUpperCase()}-${Date.now().toString().slice(-6)}`;
+    p.documentDetails[existingIdx].uploadedAt = new Date();
+    p.documentDetails[existingIdx].status = 'pending';
+  } else {
+    p.documentDetails.push({
+      docType: type,
+      docNumber: num || `${type.toUpperCase()}-${Date.now().toString().slice(-6)}`,
+      docUrl: finalDocUrl,
+      uploadedAt: new Date(),
+      status: 'pending',
+    });
+  }
+
+  // Set provider verification status to pending so it appears in Cooperative Audit queue
+  p.verified = false;
+  p.verificationStatus = 'pending';
+  p.reVerificationReason = ''; // clear reason after re-submission
+  p.verificationHistory.push({
+    action: 'Document Re-submitted',
+    date: new Date(),
+    adminName: 'Worker (Self-Service)',
+    notes: `${type} uploaded to Cloudinary CDN for audit.`,
+  });
+
+  await p.save();
+
+  // Notify Cooperative Admin of document submission
+  if (p.cooperativeId) {
+    try {
+      const Cooperative = require('../models/Cooperative');
+      const notify = require('../utils/notify');
+      const coop = await Cooperative.findById(p.cooperativeId);
+      if (coop?.adminId) {
+        await notify(coop.adminId.toString(), 'verification_update', `📄 Member Document Re-submitted: ${p.userId?.name || 'Worker'} uploaded updated ${type}.`, p._id);
+      }
+    } catch (e) {}
+  }
+
+  res.json({ message: `${type} uploaded to Cloudinary CDN & submitted for audit!`, provider: p, uploadedUrl: finalDocUrl });
 }
 
 async function uploadAvatar(req, res) {
-  if (!req.file) return res.status(400).json({ message: 'No image uploaded' });
-  const cloudRes = await uploadMedia(req.file.path || req.file.buffer, { folder: 'sahakargig/avatars' });
-  const avatarUrl = cloudRes.url || `/uploads/${req.file.filename}`;
+  const avatar = req.body?.avatar || req.body?.file;
+  if (!avatar) return res.status(400).json({ message: 'No image payload provided' });
+
+  const cloudRes = await uploadMedia(avatar, { folder: 'sahakargig/avatars' });
+  if (!cloudRes?.url) {
+    return res.status(500).json({ message: 'Cloudinary avatar upload failed' });
+  }
+  const avatarUrl = cloudRes.url;
 
   const p = await Provider.findOneAndUpdate(
     { _id: req.params.id, userId: req.user.userId },
@@ -231,10 +291,14 @@ async function uploadAvatarBase64(req, res) {
 }
 
 async function uploadAvatarFile(req, res) {
-  if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+  const avatar = req.body?.avatar || req.body?.file;
+  if (!avatar) return res.status(400).json({ message: 'No image payload provided' });
 
-  const cloudRes = await uploadMedia(req.file.path || req.file.buffer, { folder: 'sahakargig/avatars' });
-  const avatarUrl = cloudRes.url || `/uploads/${req.file.filename}`;
+  const cloudRes = await uploadMedia(avatar, { folder: 'sahakargig/avatars' });
+  if (!cloudRes?.url) {
+    return res.status(500).json({ message: 'Cloudinary avatar upload failed' });
+  }
+  const avatarUrl = cloudRes.url;
 
   const User = require('../models/User');
   const user = await User.findById(req.user.userId);
@@ -245,7 +309,7 @@ async function uploadAvatarFile(req, res) {
   await user.save();
   await Provider.findOneAndUpdate({ userId: user._id }, { avatar: avatarUrl, avatarUrl }, { returnDocument: 'after' });
 
-  res.json({ success: true, avatarUrl, message: 'Image uploaded and optimized on Cloudinary CDN successfully.' });
+  res.json({ success: true, avatarUrl, message: 'Image optimized and saved to Cloudinary CDN successfully.' });
 }
 
 async function inviteWorker(req, res) {
@@ -391,8 +455,106 @@ async function getMyPayouts(req, res) {
   }
 }
 
+async function respondToAllocation(req, res) {
+  const { bookingId } = req.params;
+  const { action, reason } = req.body;
+  if (!['accept', 'reject'].includes(action)) {
+    return res.status(400).json({ message: "Action must be 'accept' or 'reject'" });
+  }
+
+  const Provider = require('../models/Provider');
+  const Booking = require('../models/Booking');
+  const notify = require('../utils/notify');
+  const { emitTo } = require('../socket');
+
+  const provider = await Provider.findOne({ userId: req.user.userId }).populate('userId', 'name phone');
+  if (!provider) return res.status(404).json({ message: 'Provider record not found' });
+
+  const booking = await Booking.findById(bookingId).populate('cooperativeId');
+  if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+  if (!booking.bulkDetails?.allocations) {
+    return res.status(400).json({ message: 'No allocations found for this booking' });
+  }
+
+  const alloc = booking.bulkDetails.allocations.find(
+    (a) => a.providerId?.toString() === provider._id.toString()
+  );
+
+  if (!alloc) {
+    return res.status(403).json({ message: 'You are not allocated to this bulk order' });
+  }
+
+  const workerName = provider.userId?.name || 'Worker';
+
+  if (action === 'accept') {
+    alloc.status = 'accepted';
+    alloc.respondedAt = new Date();
+    alloc.rejectionReason = undefined;
+
+    booking.chat.push({
+      sender: req.user.userId,
+      message: `✅ Gig Worker ${workerName} ACCEPTED allocation for ${alloc.role} (${booking.bulkDetails.durationDays || 1} Days).`,
+      at: new Date(),
+    });
+
+    await booking.save();
+
+    if (booking.cooperativeId?.adminId) {
+      const adminId = booking.cooperativeId.adminId.toString();
+      try {
+        await notify(
+          adminId,
+          'booking_accepted',
+          `✅ Worker ${workerName} ACCEPTED allocation for ${alloc.role} in RFP #${booking._id.toString().slice(-6)}.`,
+          booking._id
+        );
+      } catch (e) {}
+      emitTo(adminId, 'booking:updated', booking);
+      emitTo(adminId, 'rfp:worker_response', { bookingId: booking._id, workerName, role: alloc.role, status: 'accepted' });
+    }
+
+    return res.json({ message: 'Allocation accepted successfully', booking, allocation: alloc });
+  } else {
+    alloc.status = 'rejected';
+    alloc.respondedAt = new Date();
+    alloc.rejectionReason = reason || 'Worker unavailable';
+
+    booking.chat.push({
+      sender: req.user.userId,
+      message: `❌ Gig Worker ${workerName} REJECTED allocation for ${alloc.role}. Reason: ${reason || 'Worker unavailable'}. Cooperative notified for reallocation.`,
+      at: new Date(),
+    });
+
+    await booking.save();
+
+    if (booking.cooperativeId?.adminId) {
+      const adminId = booking.cooperativeId.adminId.toString();
+      try {
+        await notify(
+          adminId,
+          'booking_cancelled',
+          `⚠️ ALERT: Worker ${workerName} REJECTED allocation for ${alloc.role} in RFP #${booking._id.toString().slice(-6)}. Please reallocate!`,
+          booking._id
+        );
+      } catch (e) {}
+      emitTo(adminId, 'booking:updated', booking);
+      emitTo(adminId, 'rfp:worker_response', {
+        bookingId: booking._id,
+        workerName,
+        role: alloc.role,
+        status: 'rejected',
+        reason: alloc.rejectionReason,
+        allocationId: alloc._id,
+      });
+    }
+
+    return res.json({ message: 'Allocation rejected. Cooperative has been notified to reallocate.', booking, allocation: alloc });
+  }
+}
+
 module.exports = {
   listProviders, listCooperatives, getProvider, getSlots, me, updateProfile,
   uploadAvatarFile, uploadAvatarBase64, uploadAvatar, uploadDoc, inviteWorker,
-  requestPayout, getMyPayouts
+  requestPayout, getMyPayouts, respondToAllocation
 };

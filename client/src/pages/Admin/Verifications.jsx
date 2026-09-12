@@ -97,9 +97,9 @@ export default function Verifications() {
             Inspect e-Shram credentials, Aadhaar IDs, and verify onboarding workers.
           </p>
         </div>
-        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold ${items.length > 0 ? "bg-amber-50 text-amber-900 border border-amber-200" : "bg-slate-100 text-slate-600"}`}>
-          <Clock size={14} strokeWidth={2} />
-          {items.length} pending verification
+        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold ${items.length > 0 ? "bg-amber-50 text-amber-900 border border-amber-300 shadow-xs animate-pulse" : "bg-slate-100 text-slate-600"}`}>
+          <Clock size={14} strokeWidth={2} className={items.length > 0 ? "text-amber-600" : ""} />
+          {items.length > 0 ? `${items.length}+ Pending Verifications` : "0 Pending Verifications"}
         </div>
       </div>
 
@@ -115,13 +115,20 @@ export default function Verifications() {
       <div className="flex items-center gap-2 border-b border-slate-200">
         <button
           onClick={() => setActiveTab("queue")}
-          className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 cursor-pointer ${
+          className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
             activeTab === "queue"
               ? "border-[#00288e] text-[#00288e]"
               : "border-transparent text-slate-400 hover:text-slate-700"
           }`}
         >
-          Verification Queue ({items.length})
+          <span>Verification Queue</span>
+          {items.length > 0 ? (
+            <span className="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-amber-500 text-white shadow-2xs">
+              {items.length}+
+            </span>
+          ) : (
+            <span className="opacity-70">(0)</span>
+          )}
         </button>
         <button
           onClick={() => setActiveTab("history")}
