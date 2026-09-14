@@ -437,12 +437,13 @@ html.dark ::-webkit-scrollbar-track {
   --text-label-sm--font-weight: 600;
 
   /* ---- Radius (Stitch exact: rounded=0.25, lg=0.5, xl=0.75, full=9999) ---- */
-  --radius: 0.25rem;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
-  --radius-2xl: 1rem;
+  --radius: 0.125rem;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.1875rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.3125rem;
+  --radius-2xl: 0.375rem;
+  --radius-3xl: 0.5rem;
   --radius-full: 9999px;
 
   /* ---- Spacing scale (Stitch custom named tokens) ---- */
@@ -1133,6 +1134,50 @@ html.dark .orvia-pill-unselected {
 html.dark .orvia-pill-unselected:hover {
   color: var(--color-on-surface);
   background-color: var(--color-surface-container-high);
+}
+
+/* Keep application surfaces compact and square-edged while preserving pills and circles. */
+.uupm-glass-card,
+.uupm-glass-card-dark,
+.orvia-card,
+.orvia-insight-card {
+  border-radius: 6px;
+}
+
+[class~="rounded-sm"],
+[class~="rounded-md"],
+[class~="rounded-lg"],
+[class~="rounded-xl"],
+[class~="rounded-2xl"],
+[class~="rounded-3xl"],
+[class*="rounded-["] {
+  border-radius: 6px !important;
+}
+
+.landing-search-bar {
+  border-radius: 9999px !important;
+}
+
+.landing-search-submit {
+  border-radius: 9999px !important;
+}
+
+.landing-search-voice {
+  border-radius: 9999px !important;
+}
+
+@media (max-width: 639px) {
+  .landing-search-bar {
+    border-radius: 16px !important;
+  }
+
+  .landing-search-submit {
+    border-radius: 12px !important;
+  }
+
+  .landing-search-voice {
+    border-radius: 12px !important;
+  }
 }
 html.dark .orvia-btn-primary {
   background-color: var(--color-primary);

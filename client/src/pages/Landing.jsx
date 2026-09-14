@@ -454,7 +454,7 @@ export default function Landing() {
           <div ref={searchBarRef} className="relative w-full max-w-[800px] z-50 mb-6">
             <form
               onSubmit={handleSearch}
-              className="w-full bg-white/90 dark:bg-[#131728]/90 backdrop-blur-2xl rounded-2xl sm:rounded-full p-2 sm:p-2 border border-slate-200/90 dark:border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:border-primary/40 dark:hover:border-primary/40 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all duration-300 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2"
+              className="landing-search-bar w-full bg-white/90 dark:bg-[#131728]/90 backdrop-blur-2xl rounded-2xl sm:rounded-full p-2 sm:p-2 border border-slate-200/90 dark:border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:border-primary/40 dark:hover:border-primary/40 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all duration-300 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2"
             >
               {/* Service Input & Autocomplete Dropdown */}
               <div className="relative w-full flex-1">
@@ -623,7 +623,7 @@ export default function Landing() {
                   type="button"
                   onClick={() => setIsVoiceOpen(true)}
                   title="AI Voice Search"
-                  className="h-10 px-3.5 rounded-xl sm:rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer active:scale-95 shrink-0"
+                  className="landing-search-voice h-10 px-3.5 rounded-xl sm:rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer active:scale-95 shrink-0"
                 >
                   <IconMicrophone size={16} className="text-primary" />
                   <span className="hidden sm:inline">{t('voiceBtn', 'Voice')}</span>
@@ -631,7 +631,7 @@ export default function Landing() {
 
                 <button
                   type="submit"
-                  className="h-10 px-5 rounded-xl sm:rounded-full bg-primary hover:bg-primary/90 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:shadow transition active:scale-95 cursor-pointer shrink-0"
+                  className="landing-search-submit h-10 px-5 rounded-xl sm:rounded-full bg-primary hover:bg-primary/90 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:shadow transition active:scale-95 cursor-pointer shrink-0"
                 >
                   <IconSearch size={15} stroke={2} />
                   <span>{t('searchBtn', 'Search')}</span>
@@ -982,4 +982,4 @@ export default function Landing() {
       </footer>
     </div>
   );
-}
+}
