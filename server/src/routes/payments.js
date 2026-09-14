@@ -8,5 +8,6 @@ router.post('/create-order', auth, rbac('Household'), asyncHandler(c.createOrder
 router.post('/wallet-pay', auth, rbac('Household'), asyncHandler(c.walletPay));
 router.post('/verify', auth, rbac('Household'), asyncHandler(c.verifyAndCapture));
 router.get('/invoice/:bookingId', auth, asyncHandler(c.getInvoice));
+router.patch('/invoice/:invoiceId', auth, rbac('Cooperative Admin'), asyncHandler(c.updateCoopInvoice));
 
 module.exports = router;

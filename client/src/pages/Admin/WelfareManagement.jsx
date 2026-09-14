@@ -7,6 +7,9 @@ import {
   Eye, Download, RefreshCw, Layers
 } from "lucide-react";
 import api from "../../lib/api";
+import { toast } from "../../lib/toast";
+import CustomSelect from "../../components/CustomSelect";
+import ConfirmModal from "../../components/ConfirmModal";
 
 export default function WelfareManagement() {
   const [activeTab, setActiveTab] = useState("schemes"); // 'schemes' | 'queue' | 'disbursed' | 'statutory'
@@ -199,7 +202,7 @@ export default function WelfareManagement() {
         requireEshram: true,
       });
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to create welfare scheme.");
+      toast.error(err.response?.data?.message || "Failed to create welfare scheme.");
     }
   }
 
@@ -207,7 +210,7 @@ export default function WelfareManagement() {
   async function handleApplyClaim(e) {
     e.preventDefault();
     if (!applyForm.providerId || !selectedSchemeForApply) {
-      alert("Please select a worker and scheme.");
+      toast.warning("Please select a worker and scheme.");
       return;
     }
 
@@ -226,7 +229,7 @@ export default function WelfareManagement() {
       showToast("Welfare application submitted for verification review!");
       setApplyForm({ providerId: "", requestedAmount: 3500, purposeDescription: "", docName: "Tax_Invoice_Tools.pdf" });
     } catch (err) {
-      alert(err.response?.data?.message || "Application rejected. Worker already has an active claim.");
+      toast.error(err.response?.data?.message || "Application rejected. Worker already has an active claim.");
     }
   }
 
@@ -247,21 +250,32 @@ export default function WelfareManagement() {
       await loadData();
       showToast(`Claim ${reviewForm.status === "approved" ? "Approved" : "Rejected"} successfully!`);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to review claim.");
+      toast.error(err.response?.data?.message || "Failed to review claim.");
     }
   }
 
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: "", message: "", type: "info", onConfirm: () => {} });
+
   // Handle Disburse Claim
-  async function handleDisburseClaim(claim) {
-    if (!confirm(`Authorize immediate disbursal of ₹${claim.approvedAmount || claim.requestedAmount} from Welfare Reserve Pool?`)) return;
-    try {
-      const res = await api.post(`/welfare/claims/${claim._id}/disburse`);
-      setClaims(claims.map((c) => (c._id === claim._id ? res.data : c)));
-      loadData();
-      showToast(`₹${claim.approvedAmount || claim.requestedAmount} disbursed from Society Reserve!`);
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to disburse funds.");
-    }
+  function handleDisburseClaim(claim) {
+    const amount = claim.approvedAmount || claim.requestedAmount;
+    setConfirmState({
+      isOpen: true,
+      title: "Authorize Disbursal?",
+      message: `Authorize immediate disbursal of ₹${amount} from Welfare Reserve Pool?`,
+      type: "info",
+      confirmText: "Authorize & Disburse",
+      onConfirm: async () => {
+        try {
+          const res = await api.post(`/welfare/claims/${claim._id}/disburse`);
+          setClaims(claims.map((c) => (c._id === claim._id ? res.data : c)));
+          loadData();
+          showToast(`₹${amount} disbursed from Society Reserve!`);
+        } catch (err) {
+          toast.error(err.response?.data?.message || "Failed to disburse funds.");
+        }
+      },
+    });
   }
 
   const categoryBadges = {
@@ -722,18 +736,18 @@ export default function WelfareManagement() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="font-bold text-slate-700">Category</label>
-                  <select
+                  <CustomSelect
                     value={schemeForm.category}
                     onChange={(e) => setSchemeForm({ ...schemeForm, category: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#00288e] focus:bg-white"
-                  >
-                    <option value="equipment">Tool &amp; Equipment Subsidy</option>
-                    <option value="medical">Healthcare / Medical Relief</option>
-                    <option value="emergency">Emergency Discretionary Pool</option>
-                    <option value="education">Child Education Bursary</option>
-                    <option value="insurance">Accident Insurance Support</option>
-                    <option value="general">General Member Assistance</option>
-                  </select>
+                    options={[
+                      { value: "equipment", label: "Tool & Equipment Subsidy" },
+                      { value: "medical", label: "Healthcare / Medical Relief" },
+                      { value: "emergency", label: "Emergency Discretionary Pool" },
+                      { value: "education", label: "Child Education Bursary" },
+                      { value: "insurance", label: "Accident Insurance Support" },
+                      { value: "general", label: "General Member Assistance" },
+                    ]}
+                  />
                 </div>
 
                 <div className="space-y-1">
@@ -840,19 +854,18 @@ export default function WelfareManagement() {
             <form onSubmit={handleApplyClaim} className="space-y-4 text-xs">
               <div className="space-y-1">
                 <label className="font-bold text-slate-700">Select Worker Member</label>
-                <select
-                  required
+                <CustomSelect
                   value={applyForm.providerId}
                   onChange={(e) => setApplyForm({ ...applyForm, providerId: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#00288e] focus:bg-white"
-                >
-                  <option value="">-- Choose Member from Roster --</option>
-                  {providers.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.userId?.name || p.name || "Worker"} ({(p.skills || [])[0] || "Provider"})
-                    </option>
-                  ))}
-                </select>
+                  placeholder="-- Choose Member from Roster --"
+                  options={[
+                    { value: "", label: "-- Choose Member from Roster --" },
+                    ...providers.map((p) => ({
+                      value: p._id,
+                      label: `${p.userId?.name || p.name || "Worker"} (${(p.skills || [])[0] || "Provider"})`,
+                    })),
+                  ]}
+                />
               </div>
 
               <div className="space-y-1">
@@ -1121,6 +1134,11 @@ export default function WelfareManagement() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        {...confirmState}
+        onClose={() => setConfirmState((p) => ({ ...p, isOpen: false }))}
+      />
     </div>
   );
 }

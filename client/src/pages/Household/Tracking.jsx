@@ -4,6 +4,9 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/api";
 import socket from "../../lib/socket";
+import { toast } from "../../lib/toast";
+import CustomSelect from "../../components/CustomSelect";
+import ConfirmModal from "../../components/ConfirmModal";
 import FileUpload from "../../components/FileUpload";
 import {
   ArrowLeft,
@@ -154,24 +157,42 @@ export default function Tracking() {
     }
   };
 
-  const withdrawDispute = async () => {
-    if (!window.confirm("Withdraw this dispute? The booking will return to Completed.")) return;
-    try {
-      await api.patch(`/bookings/${id}/withdraw-dispute`);
-      load();
-    } catch {
-      /* best-effort */
-    }
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: "", message: "", type: "warning", onConfirm: () => {} });
+
+  const withdrawDispute = () => {
+    setConfirmState({
+      isOpen: true,
+      title: "Withdraw Dispute?",
+      message: "The dispute will be withdrawn and the booking status will return to Completed.",
+      type: "warning",
+      onConfirm: async () => {
+        try {
+          await api.patch(`/bookings/${id}/withdraw-dispute`);
+          toast.success("Dispute withdrawn successfully.");
+          load();
+        } catch {
+          /* best-effort */
+        }
+      },
+    });
   };
 
-  const cancelBooking = async () => {
-    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
-    try {
-      await api.patch(`/bookings/${id}/cancel`);
-      load();
-    } catch (err) {
-      alert(err?.response?.data?.message || "Could not cancel the booking. Please try again.");
-    }
+  const cancelBooking = () => {
+    setConfirmState({
+      isOpen: true,
+      title: "Cancel Booking?",
+      message: "Are you sure you want to cancel this booking? This action cannot be reversed.",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          await api.patch(`/bookings/${id}/cancel`);
+          toast.success("Booking cancelled.");
+          load();
+        } catch (err) {
+          toast.error(err?.response?.data?.message || "Could not cancel the booking. Please try again.");
+        }
+      },
+    });
   };
 
   const openReschedule = async () => {
@@ -769,15 +790,11 @@ export default function Tracking() {
 
               <div>
                 <label className="block text-[11px] font-bold text-on-surface-variant mb-1">Grievance Category</label>
-                <select
+                <CustomSelect
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-outline-variant bg-surface text-xs font-semibold text-on-surface outline-none focus:border-primary"
-                >
-                  {DISPUTE_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+                  options={DISPUTE_CATEGORIES.map((c) => ({ value: c, label: c }))}
+                />
               </div>
 
               <div>
@@ -934,6 +951,11 @@ export default function Tracking() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        {...confirmState}
+        onClose={() => setConfirmState((p) => ({ ...p, isOpen: false }))}
+      />
     </div>
   );
 }

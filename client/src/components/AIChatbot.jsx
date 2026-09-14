@@ -247,6 +247,12 @@ export default function AIChatbot() {
   }, [messages, isTyping]);
 
   useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('open-ai-chatbot', handleOpen);
+    return () => window.removeEventListener('open-ai-chatbot', handleOpen);
+  }, []);
+
+  useEffect(() => {
     if (!isOpen) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";

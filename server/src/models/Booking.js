@@ -83,6 +83,59 @@ const bookingSchema = new mongoose.Schema(
       groupName: { type: String },
       memberCount: { type: Number, default: 1 },
     },
+    // Institutional Bulk RFP / Cooperative Multi-Worker Dispatch
+    bulkDetails: {
+      isBulk: { type: Boolean, default: false },
+      rolesNeeded: [
+        {
+          role: { type: String, required: true },
+          count: { type: Number, required: true, default: 1 },
+          dailyRate: { type: Number, default: 0 },
+        },
+      ],
+      durationDays: { type: Number, default: 1 },
+      startDate: { type: Date },
+      siteLocation: { type: String },
+      scopeOfWork: { type: String },
+      quotation: {
+        status: { type: String, enum: ['pending', 'sent', 'accepted', 'rejected'], default: 'pending' },
+        totalAmount: { type: Number, default: 0 },
+        breakdown: [
+          {
+            role: { type: String },
+            count: { type: Number },
+            dailyRate: { type: Number },
+            total: { type: Number },
+          },
+        ],
+        notes: { type: String },
+        sentAt: { type: Date },
+        acceptedAt: { type: Date },
+      },
+      allocations: [
+        {
+          role: { type: String },
+          providerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Provider' },
+          status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
+          rejectionReason: { type: String },
+          allocatedAt: { type: Date, default: Date.now },
+          respondedAt: { type: Date },
+          payoutStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' },
+          payoutProofUrl: { type: String },
+          payoutAmount: { type: Number, default: 0 },
+          payoutTxnRef: { type: String },
+          paidAt: { type: Date },
+        },
+      ],
+      householdPaymentProof: {
+        ssUrl: { type: String },
+        amount: { type: Number, default: 0 },
+        txnRef: { type: String },
+        uploadedAt: { type: Date },
+        verifiedByCoop: { type: Boolean, default: false },
+        verifiedAt: { type: Date },
+      },
+    },
   },
   { timestamps: true }
 );
@@ -90,6 +143,9 @@ const bookingSchema = new mongoose.Schema(
 bookingSchema.index({ householdId: 1, createdAt: -1 });
 bookingSchema.index({ providerId: 1, createdAt: -1 });
 bookingSchema.index({ cooperativeId: 1, status: 1 });
+bookingSchema.index({ cooperativeId: 1, createdAt: -1 });
+bookingSchema.index({ 'bulkDetails.isBulk': 1, createdAt: -1 });
+bookingSchema.index({ 'bulkDetails.allocations.providerId': 1 });
 bookingSchema.index({ status: 1 });
 bookingSchema.index({ createdAt: -1 });
 

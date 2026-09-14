@@ -19,8 +19,8 @@ const PROVIDERS = [
     name: 'groq',
     key: () => process.env.GROQ_API_KEY,
     models: () => process.env.GROQ_MODEL
-      ? [process.env.GROQ_MODEL, 'openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b']
-      : ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'],
+      ? [process.env.GROQ_MODEL, 'groq/compound', 'groq/compound-mini', 'qwen/qwen3.6-27b', 'openai/gpt-oss-120b']
+      : ['groq/compound', 'groq/compound-mini', 'qwen/qwen3.6-27b', 'openai/gpt-oss-120b'],
     async call(model, messages, system, timeoutMs) {
       const resp = await timeoutFetch(
         'https://api.groq.com/openai/v1/chat/completions',
@@ -32,7 +32,6 @@ const PROVIDERS = [
             messages: [{ role: 'system', content: PROMPT_PREAMBLE + system }, ...messages],
             temperature: 0.7,
             max_tokens: 500,
-            response_format: { type: 'json_object' },
           }),
         },
         timeoutMs
@@ -44,8 +43,8 @@ const PROVIDERS = [
     name: 'gemini',
     key: () => process.env.GEMINI_API_KEY,
     models: () => process.env.GEMINI_MODEL
-      ? [process.env.GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
-      : ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'],
+      ? [process.env.GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro']
+      : ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'],
     async call(model, messages, system, timeoutMs) {
       const contents = messages.map((m) => ({
         role: m.role === 'assistant' ? 'model' : 'user',
@@ -64,15 +63,17 @@ const PROVIDERS = [
             generationConfig: {
               temperature: 0.7,
               maxOutputTokens: 800,
-              responseMimeType: 'application/json',
             },
           }),
         },
         timeoutMs
       );
       const data = await parseJson(resp);
+      if (data.error) {
+        throw new Error(`Gemini API Error (${data.error.code || resp.status}): ${data.error.message}`);
+      }
       const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '';
-      if (!text.trim()) throw new Error('Gemini empty response');
+      if (!text.trim()) throw new Error('Gemini returned an empty reply payload');
       return text.trim();
     },
   },
@@ -81,7 +82,7 @@ const PROVIDERS = [
     key: () => process.env.OPENROUTER_API_KEY,
     models: () => process.env.OPENROUTER_MODEL
       ? [process.env.OPENROUTER_MODEL]
-      : null, // discovered lazily below (free models), falls back to FALLBACK_OPENROUTER_MODELS
+      : null,
     async call(model, messages, system, timeoutMs) {
       const resp = await timeoutFetch(
         'https://openrouter.ai/api/v1/chat/completions',
@@ -113,7 +114,7 @@ const PROVIDERS = [
       : ['Qwen/Qwen2.5-7B-Instruct', 'microsoft/Phi-3.5-mini-instruct'],
     async call(model, messages, system, timeoutMs) {
       const resp = await timeoutFetch(
-        `https://api-inference.huggingface.co/models/${model}/v1/chat/completions`,
+        `https://router.huggingface.co/hf-inference/v1/chat/completions`,
         {
           method: 'POST',
           headers: {
@@ -137,9 +138,9 @@ const PROVIDERS = [
 const DEFAULT_TIMEOUT_MS = 15000;
 
 const FALLBACK_OPENROUTER_MODELS = [
-  'deepseek/deepseek-chat-v3:free',
-  'google/gemini-2.0-flash-001:free',
-  'meta-llama/llama-3.3-70b-instruct:free',
+  'google/gemma-2-9b-it:free',
+  'meta-llama/llama-3.1-8b-instruct:free',
+  'mistralai/mistral-7b-instruct:free',
 ];
 
 // Discover free chat models from OpenRouter so we always pick one that works.
@@ -153,7 +154,6 @@ async function discoverOpenRouterModels() {
     });
     if (!resp.ok) return null;
     const data = await resp.json();
-    const now = Date.now();
     const list = Array.isArray(data?.data) ? data.data : [];
     const free = list
       .filter((m) =>
@@ -162,12 +162,6 @@ async function discoverOpenRouterModels() {
         !(m.deprecation?.is_deprecated) &&
         (m.id.endsWith(':free') || (m.pricing && parseFloat(m.pricing.prompt) === 0))
       )
-      .sort((a, b) => {
-        const as = a.name || '';
-        const bs = b.name || '';
-        return (bs.includes('Llama') || bs.includes('DeepSeek') || bs.includes('Qwen') || bs.includes('Gemma')) -
-               (as.includes('Llama') || as.includes('DeepSeek') || as.includes('Qwen') || as.includes('Gemma'));
-      })
       .slice(0, 5)
       .map((m) => m.id);
     return free.length ? free : null;
@@ -206,35 +200,47 @@ async function openAiText(resp, model) {
   return text.trim();
 }
 
+let hasLoggedNotice = false;
+
 // Chat with the full chain. Returns { reply, provider, model } or null if every provider failed.
 async function chatLLM(messages, system) {
   const failures = [];
-  const cache = {};
+  let configuredProvidersCount = 0;
+
   for (const provider of PROVIDERS) {
     const key = provider.key();
-    if (!key) {
-      failures.push(`${provider.name}: no key`);
+    if (!key || !key.trim()) {
+      failures.push(`${provider.name}: API key unconfigured in .env`);
       continue;
     }
+    configuredProvidersCount++;
     let models = provider.models() || [];
     if (models.length === 0 && provider.name === 'openrouter') {
       try { models = await discoverOpenRouterModels(); } catch {}
       if (!models || models.length === 0) models = FALLBACK_OPENROUTER_MODELS;
-      console.log(`   🔎 openrouter: trying ${models.join(', ')}`);
-      cache.openrouter = models;
     }
     for (const model of models) {
       try {
-        const liveSystem = `${system}\n\n[LIVE RUNTIME: You are being served right now by the ${provider.name} provider using the model "${model}". If the user asks what AI model or provider powers you, answer this openly and honestly in one line.]`;
+        const liveSystem = `${system}\n\n[LIVE RUNTIME: You are powered by ${provider.name} model "${model}". Answer dynamically.]`;
         const text = await provider.call(model, messages, liveSystem);
-        console.log(`   ✅ ${provider.name} / ${model} responded`);
+        console.log(`   ✅ Dynamic Cloud AI [${provider.name}:${model}] generated response successfully`);
         return { reply: text, provider: provider.name, model };
       } catch (err) {
         failures.push(`${provider.name}/${model}: ${err.message}`);
+        console.warn(`   ⚠️ Dynamic AI Provider Error [${provider.name}:${model}]:`, err.message);
       }
     }
   }
-  console.log(`   ⚠️  All LLM providers failed:\n      ${failures.join('\n      ')}`);
+
+  if (configuredProvidersCount === 0 && !hasLoggedNotice) {
+    console.log(`\n🤖 [AI Engine Setup Required]`);
+    console.log(`   No active Cloud AI key set in server/.env.`);
+    console.log(`   To activate 100% Dynamic Cloud AI, get a FREE key from:`);
+    console.log(`   👉 Google AI Studio: https://aistudio.google.com/app/apikey`);
+    console.log(`   👉 Groq Cloud: https://console.groq.com/keys`);
+    console.log(`   Then paste key into server/.env -> GEMINI_API_KEY or GROQ_API_KEY\n`);
+    hasLoggedNotice = true;
+  }
   return null;
 }
 

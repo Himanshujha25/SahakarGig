@@ -28,9 +28,6 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
-// Serve uploaded provider documents as static files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: true } });
@@ -51,6 +48,7 @@ app.use('/api/ai', require('./src/routes/ai'));
 app.use('/api/welfare', require('./src/routes/welfare'));
 app.use('/api/notifications', require('./src/routes/notifications'));
 app.use('/api/upload', require('./src/routes/upload'));
+app.use('/api/certifications', require('./src/routes/certifications'));
 
 app.get('/api/stats', async (_req, res) => {
   try {

@@ -11,6 +11,11 @@ const invoiceSchema = new mongoose.Schema(
     items: [{ description: String, qty: Number, rate: Number, amount: Number }],
     tax: { type: Number, default: 0 },
     total: { type: Number, default: 0 },
+    customNotes: { type: String, default: '' },
+    sacCode: { type: String, default: '998719' },
+    terms: { type: String, default: 'Payment held in Sahakar Escrow. Released upon OTP verification.' },
+    editedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    editedAt: { type: Date },
     generatedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }

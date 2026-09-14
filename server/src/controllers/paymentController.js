@@ -248,9 +248,86 @@ async function walletPay(req, res) {
 }
 
 async function getInvoice(req, res) {
-  const inv = await Invoice.findOne({ bookingId: req.params.bookingId })
-    .populate({ path: 'providerId', populate: { path: 'userId', select: 'name' } });
+  let inv = await Invoice.findOne({ bookingId: req.params.bookingId })
+    .populate({
+      path: 'providerId',
+      populate: [
+        { path: 'userId', select: 'name phone email' },
+        { path: 'cooperativeId', select: 'name registrationId region district address contactPhone contactEmail logoUrl stampUrl signatureUrl secretaryName presidentName' },
+      ],
+    })
+    .populate('cooperativeId', 'name registrationId region district address contactPhone contactEmail logoUrl stampUrl signatureUrl secretaryName presidentName')
+    .populate('householdId', 'name phone email address');
+
+  if (!inv) {
+    const Booking = require('../models/Booking');
+    const { invoiceNumber } = require('../utils/helpers');
+    const b = await Booking.findById(req.params.bookingId).populate('householdId providerId cooperativeId');
+    if (b) {
+      const amount = b.price || 500;
+      const coopId = b.cooperativeId?._id || b.cooperativeId;
+      inv = await Invoice.create({
+        invoiceNumber: invoiceNumber(),
+        bookingId: b._id,
+        householdId: b.householdId?._id || b.householdId,
+        providerId: b.providerId?._id || b.providerId,
+        cooperativeId: coopId,
+        items: [{ description: b.service || 'Cooperative Gig Service', qty: 1, rate: amount, amount }],
+        tax: 0,
+        total: amount,
+        customNotes: 'Official PACS Member Invoice for Cooperative Gig Service',
+      });
+
+      inv = await Invoice.findById(inv._id)
+        .populate({
+          path: 'providerId',
+          populate: [
+            { path: 'userId', select: 'name phone email' },
+            { path: 'cooperativeId', select: 'name registrationId region district address contactPhone contactEmail logoUrl stampUrl signatureUrl secretaryName presidentName' },
+          ],
+        })
+        .populate('cooperativeId', 'name registrationId region district address contactPhone contactEmail logoUrl stampUrl signatureUrl secretaryName presidentName')
+        .populate('householdId', 'name phone email address');
+    }
+  }
+
   res.json(inv);
 }
 
-module.exports = { createOrder, verifyAndCapture, walletPay, getInvoice };
+async function updateCoopInvoice(req, res) {
+  const { invoiceId } = req.params;
+  const { customNotes, sacCode, terms, items, logoUrl, stampUrl, signatureUrl, secretaryName } = req.body;
+
+  const inv = await Invoice.findById(invoiceId).populate('cooperativeId providerId');
+  if (!inv) return res.status(404).json({ message: 'Invoice not found' });
+
+  const coop = await Cooperative.findOne({ adminId: req.user.userId });
+  if (!coop) return res.status(403).json({ message: 'Only authorized Cooperative Admins can edit invoices' });
+
+  const invCoopId = inv.cooperativeId?._id?.toString() || inv.providerId?.cooperativeId?.toString();
+  if (!invCoopId || invCoopId !== coop._id.toString()) {
+    return res.status(403).json({ message: 'Access Denied: You can only edit invoices for member workers in your cooperative.' });
+  }
+
+  if (customNotes !== undefined) inv.customNotes = customNotes;
+  if (sacCode !== undefined) inv.sacCode = sacCode;
+  if (terms !== undefined) inv.terms = terms;
+  if (Array.isArray(items)) inv.items = items;
+  inv.editedBy = req.user.userId;
+  inv.editedAt = new Date();
+
+  // If branding/stamp/signature is passed, save it to the Cooperative model as well
+  let coopUpdated = false;
+  if (logoUrl !== undefined) { coop.logoUrl = logoUrl; coopUpdated = true; }
+  if (stampUrl !== undefined) { coop.stampUrl = stampUrl; coopUpdated = true; }
+  if (signatureUrl !== undefined) { coop.signatureUrl = signatureUrl; coopUpdated = true; }
+  if (secretaryName !== undefined) { coop.secretaryName = secretaryName; coopUpdated = true; }
+  if (coopUpdated) {
+    await coop.save();
+  }
+
+  await inv.save();
+  res.json({ message: 'Cooperative invoice & society stamp updated successfully', invoice: inv, cooperative: coop });
+}
+
+module.exports = { createOrder, verifyAndCapture, walletPay, getInvoice, updateCoopInvoice };
