@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/api";
+import { toast } from "../../lib/toast";
 import { SERVER_URL } from "../../lib/config";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import AppearanceSettings from "../../components/AppearanceSettings";
@@ -9,7 +10,7 @@ import { EmailStatusCard, ChangePasswordSection } from "../../components/Account
 import {
   Star, Save, Upload, CheckCircle2, Clock, Briefcase, IndianRupee, ShieldCheck,
   FileText, Trash2, User, Lock, Shield, Sparkles, Camera, HeartHandshake,
-  MapPin, AlertCircle, Building2, Palette, LogOut, Phone, Mail, QrCode, Maximize2, Copy, X, ChevronDown
+  MapPin, AlertCircle, Building2, Palette, LogOut, Phone, Mail, QrCode, Maximize2, Copy, X, ChevronDown, RefreshCw
 } from "lucide-react";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -64,6 +65,36 @@ export default function ProviderProfile() {
   const [saving, setSaving]       = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [uploadingDocType, setUploadingDocType] = useState("");
+
+  async function handleDocUpload(e, docType) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingDocType(docType);
+    setSaveError("");
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = reader.result;
+      try {
+        const { data } = await api.post("/providers/upload-document", {
+          docType,
+          file: base64,
+        });
+        setSaveSuccess(true);
+        if (data.provider) setProvider(data.provider);
+        toast.success(`${docType} uploaded to Cloudinary CDN & submitted for Cooperative Audit!`);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } catch (err) {
+        const msg = err?.response?.data?.message || "Failed to upload document.";
+        setSaveError(msg);
+        toast.error(msg);
+      } finally {
+        setUploadingDocType("");
+      }
+    };
+    reader.readAsDataURL(file);
+  }
 
   const [avatarUrl, setAvatarUrl] = useState(() => {
     return localStorage.getItem("sg_provider_avatar") || null;
@@ -158,10 +189,19 @@ export default function ProviderProfile() {
 
   async function handleSaveProfile(e) {
     e.preventDefault();
-    setSaving(true);
     setSaveError("");
     setSaveSuccess(false);
 
+    if (!form.name.trim()) {
+      setSaveError("Full Name is required.");
+      return;
+    }
+    if (form.phone && form.phone.trim() && !/^\+?[0-9]{10,12}$/.test(form.phone.trim().replace(/[\s-]/g, ""))) {
+      setSaveError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    setSaving(true);
     try {
       if (provider) {
         await api.patch(`/providers/${provider._id}`, {
@@ -252,9 +292,23 @@ export default function ProviderProfile() {
               <h1 className="text-lg sm:text-xl font-bold tracking-tight text-on-surface truncate">
                 {form.name || "Provider Profile"}
               </h1>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10.5px] font-bold">
-                <ShieldCheck size={11} /> Verified Member
-              </span>
+              {provider?.verified || provider?.verificationStatus === "verified" ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10.5px] font-bold">
+                  <ShieldCheck size={11} /> Verified Member ✓
+                </span>
+              ) : provider?.verificationStatus === "re_verification_requested" ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10.5px] font-extrabold animate-pulse">
+                  <RefreshCw size={11} className="animate-spin" /> Re-submission Requested ⚠️
+                </span>
+              ) : provider?.verificationStatus === "pending" ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10.5px] font-bold">
+                  <Clock size={11} /> Verification Pending Audit ⏳
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-[10.5px] font-bold">
+                  <AlertCircle size={11} /> Verification Rejected ❌
+                </span>
+              )}
             </div>
             <p className="text-xs text-on-surface-variant font-medium truncate mt-0.5">
               {form.skills || "Trade Specialist"} &middot; {completedCount} Jobs Settled &middot; ₹{form.hourlyRate || 350}/hr
@@ -282,6 +336,36 @@ export default function ProviderProfile() {
           </button>
         </div>
       </div>
+
+      {/* ── COOPERATIVE RE-VERIFICATION REQUEST ALERT BANNER ── */}
+      {(provider?.verificationStatus === "re_verification_requested" || provider?.reVerificationReason) && (
+        <div className="rounded-2xl p-4 bg-amber-500/10 border-2 border-amber-500/40 text-on-surface flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md animate-alert-in">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 shrink-0">
+              <RefreshCw size={20} className="animate-spin" />
+            </div>
+            <div className="space-y-0.5">
+              <h4 className="font-extrabold text-xs uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                Cooperative Action Required: Re-submission Requested
+              </h4>
+              <p className="text-xs font-bold text-on-surface">
+                Cooperative Note: "{provider?.reVerificationReason || 'Please re-upload a clear copy of your identity card or trade certificate.'}"
+              </p>
+              <p className="text-[11px] text-on-surface-variant font-medium">
+                Please upload the requested statutory document below. Once re-uploaded, your profile will automatically re-enter the Cooperative Audit Queue.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab("welfare")}
+            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 cursor-pointer shadow-xs transition active:scale-95 flex items-center gap-1.5"
+          >
+            <Upload size={14} />
+            <span>Re-upload Document Now</span>
+          </button>
+        </div>
+      )}
 
       {/* ── Save Success / Error Alert Banner ── */}
       {saveSuccess && (
@@ -517,11 +601,11 @@ export default function ProviderProfile() {
 
         {/* ── TAB 3: Cooperative & Welfare ── */}
         {activeTab === "welfare" && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="border-b border-outline-variant/60 pb-3">
-              <h2 className="text-sm font-bold text-on-surface">Cooperative Membership &amp; Social Welfare</h2>
+              <h2 className="text-sm font-bold text-on-surface">Cooperative Membership &amp; Document KYC Verification</h2>
               <p className="text-xs text-on-surface-variant mt-0.5">
-                Verified affiliation with registered labour cooperatives and government welfare schemes.
+                Upload your statutory Aadhaar Card, PAN Card, e-Shram Card, and Skill Certificates. Uploaded documents are securely saved to Cloudinary CDN and sent to your Cooperative Board for verification.
               </p>
             </div>
 
@@ -545,23 +629,77 @@ export default function ProviderProfile() {
               </div>
             </div>
 
-            {/* Document on File */}
-            <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <FileText size={18} className="text-primary shrink-0" />
-                <div className="min-w-0">
-                  <p className="font-bold text-on-surface text-xs truncate">Aadhaar &amp; Skill Verification Certificate</p>
-                  <p className="text-[11px] text-on-surface-variant truncate">On file with cooperative federation</p>
-                </div>
+            {/* Cloudinary Document Upload Grid */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-on-surface uppercase tracking-wider">Government Identity &amp; Skill Credentials</h3>
+                <span className="text-[11px] text-primary font-semibold">Powered by Cloudinary CDN</span>
               </div>
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="px-3 py-1.5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:opacity-90 transition cursor-pointer shadow-2xs shrink-0"
-              >
-                Update
-              </button>
-              <input ref={fileRef} type="file" className="hidden" />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  { type: "Aadhaar Card", label: "Aadhaar Card (Govt ID)", desc: "12-digit UIDAI Identity Card" },
+                  { type: "PAN Card", label: "PAN Card (Tax Registration)", desc: "Permanent Account Number Card" },
+                  { type: "e-Shram Card", label: "e-Shram UAN Card", desc: "Unorganized Workers National Database Card" },
+                  { type: "Skill Certificate", label: "Trade Skill Certificate", desc: "Cooperative / ITI Trade Certificate" },
+                ].map(({ type, label, desc }) => {
+                  const attachedDoc = provider?.documentDetails?.find((d) => d.docType === type);
+                  const isUploading = uploadingDocType === type;
+                  const isVerifiedDoc = attachedDoc?.status === "verified" || provider?.verified || provider?.verificationStatus === "verified";
+
+                  return (
+                    <div key={type} className="p-4 rounded-2xl border border-outline-variant/60 bg-surface-container-low space-y-3 flex flex-col justify-between">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                            <FileText size={18} />
+                          </div>
+                          <div>
+                            <p className="font-bold text-on-surface text-xs">{label}</p>
+                            <p className="text-[10.5px] text-on-surface-variant">{desc}</p>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          isVerifiedDoc
+                            ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                            : attachedDoc
+                            ? "bg-amber-500/10 text-amber-700 border border-amber-500/20"
+                            : "bg-surface-container text-on-surface-variant"
+                        }`}>
+                          {isVerifiedDoc ? "Verified ✓" : attachedDoc ? "Pending Audit" : "Not Uploaded"}
+                        </span>
+                      </div>
+
+                      {attachedDoc?.docUrl && (
+                        <div className="p-2 rounded-xl bg-surface border border-outline-variant/40 flex items-center justify-between text-[11px]">
+                          <span className="font-mono text-on-surface truncate max-w-[170px]">
+                            {attachedDoc.docNumber || "Document Attached"}
+                          </span>
+                          <a
+                            href={attachedDoc.docUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary font-bold hover:underline flex items-center gap-1"
+                          >
+                            View Document
+                          </a>
+                        </div>
+                      )}
+
+                      <label className="w-full py-2 rounded-xl bg-primary text-on-primary text-xs font-bold text-center hover:opacity-90 transition cursor-pointer shadow-2xs block">
+                        {isUploading ? "Uploading to Cloudinary..." : attachedDoc ? "Re-upload " + type : "Upload " + type}
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="hidden"
+                          onChange={(e) => handleDocUpload(e, type)}
+                          disabled={isUploading}
+                        />
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}

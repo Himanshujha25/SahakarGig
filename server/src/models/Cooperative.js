@@ -10,6 +10,9 @@ const coopSchema = new mongoose.Schema(
     address: { type: String, default: '' },
     contactEmail: { type: String },
     contactPhone: { type: String },
+    logoUrl: { type: String, default: '' },
+    stampUrl: { type: String, default: '' },
+    signatureUrl: { type: String, default: '' },
     presidentName: { type: String, default: '' },
     secretaryName: { type: String, default: '' },
     foundedYear: { type: String, default: '' },
@@ -111,5 +114,8 @@ const coopSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+coopSchema.index({ adminId: 1 });
+coopSchema.index({ registrationId: 1 });
 
 module.exports = mongoose.model('Cooperative', coopSchema);

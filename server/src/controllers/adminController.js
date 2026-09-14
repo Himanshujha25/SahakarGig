@@ -4,12 +4,14 @@ const Cooperative = require('../models/Cooperative');
 const Payment = require('../models/Payment');
 
 async function getCoop(req) {
-  const coop = await Cooperative.findOne({ adminId: req.user.userId });
+  if (req._cachedCoop) return req._cachedCoop;
+  const coop = await Cooperative.findOne({ adminId: req.user.userId }).lean();
   if (!coop) {
     const e = new Error('No cooperative linked to this admin');
     e.status = 403;
     throw e;
   }
+  req._cachedCoop = coop;
   return coop;
 }
 
@@ -93,7 +95,18 @@ async function dashboard(req, res) {
 
 async function pendingVerifications(req, res) {
   const coop = await getCoop(req);
-  const p = await Provider.find({ cooperativeId: coop._id, verified: false }).populate('userId', 'name email phone');
+  const p = await Provider.find({
+    $or: [
+      { cooperativeId: coop._id },
+      { _id: { $in: coop.memberProviderIds || [] } },
+      { cooperativeId: null },
+      { cooperativeId: { $exists: false } }
+    ],
+    $or: [
+      { verified: false },
+      { verificationStatus: { $in: ['pending', 're_verification_requested'] } }
+    ]
+  }).populate('userId', 'name email phone avatarUrl profileImage');
   res.json(p);
 }
 
@@ -326,7 +339,7 @@ async function getCoopProfile(req, res) {
 
 async function updateCoopProfile(req, res) {
   const coop = await getCoop(req);
-  const { name, region, district, contactEmail, contactPhone, commissionRate, welfareFundAllocation } = req.body;
+  const { name, region, district, contactEmail, contactPhone, commissionRate, welfareFundAllocation, logoUrl, stampUrl, signatureUrl, secretaryName, presidentName, address } = req.body;
   if (name) coop.name = name.trim();
   if (region) coop.region = region.trim();
   if (district) coop.district = district.trim();
@@ -334,6 +347,12 @@ async function updateCoopProfile(req, res) {
   if (contactPhone) coop.contactPhone = contactPhone.trim();
   if (commissionRate !== undefined) coop.commissionRate = Number(commissionRate);
   if (welfareFundAllocation !== undefined) coop.welfareFundAllocation = Number(welfareFundAllocation);
+  if (logoUrl !== undefined) coop.logoUrl = logoUrl;
+  if (stampUrl !== undefined) coop.stampUrl = stampUrl;
+  if (signatureUrl !== undefined) coop.signatureUrl = signatureUrl;
+  if (secretaryName !== undefined) coop.secretaryName = secretaryName.trim();
+  if (presidentName !== undefined) coop.presidentName = presidentName.trim();
+  if (address !== undefined) coop.address = address.trim();
   await coop.save();
   res.json(coop);
 }
@@ -423,7 +442,15 @@ async function verifyProviderAction(req, res) {
   const { action, notes, reason } = req.body; // 'approve' | 'reject' | 're_verify'
   const { providerId } = req.params;
 
-  const provider = await Provider.findOne({ _id: providerId, cooperativeId: coop._id }).populate('userId');
+  const provider = await Provider.findOne({
+    _id: providerId,
+    $or: [
+      { cooperativeId: coop._id },
+      { _id: { $in: coop.memberProviderIds || [] } },
+      { cooperativeId: null },
+      { cooperativeId: { $exists: false } }
+    ]
+  }).populate('userId');
   if (!provider) return res.status(404).json({ message: 'Provider not found' });
 
   const adminName = req.user?.name || 'Cooperative Admin';
@@ -432,12 +459,22 @@ async function verifyProviderAction(req, res) {
     provider.verified = true;
     provider.verificationStatus = 'verified';
     provider.reVerificationReason = '';
+    provider.cooperativeId = coop._id;
+    if (Array.isArray(provider.documentDetails)) {
+      provider.documentDetails.forEach((d) => {
+        d.status = 'verified';
+      });
+    }
     provider.verificationHistory.push({
       action: 'Approved',
       date: new Date(),
       adminName,
       notes: notes || 'All identity & e-Shram documents verified by Cooperative.',
     });
+    if (!coop.memberProviderIds.includes(provider._id)) {
+      coop.memberProviderIds.push(provider._id);
+      await coop.save();
+    }
   } else if (action === 're_verify') {
     provider.verified = false;
     provider.verificationStatus = 're_verification_requested';
@@ -461,6 +498,19 @@ async function verifyProviderAction(req, res) {
   }
 
   await provider.save();
+
+  // Notify gig worker of state change
+  if (provider.userId) {
+    try {
+      const notify = require('../utils/notify');
+      const targetUserId = (provider.userId._id || provider.userId).toString();
+      const msg = action === 'approve'
+        ? `🎉 Account Verified! ${coop.name} has approved your credentials. Dispatch sirens are now active.`
+        : `⚠️ Verification Update from ${coop.name}: ${action === 're_verify' ? 'Re-submission requested' : 'Verification rejected'}.`;
+      await notify(targetUserId, 'verification_update', msg, coop._id);
+    } catch {}
+  }
+
   res.json({ message: `Provider verification ${action}ed successfully`, provider });
 }
 
@@ -515,7 +565,7 @@ async function getFinancials(req, res) {
       { $match: { status: 'released' } },
       { $lookup: { from: 'bookings', localField: 'bookingId', foreignField: '_id', as: 'b' } },
       { $unwind: '$b' },
-      { $match: { 'b.cooperativeId': coop._id } },
+      { $match: { $or: [{ 'b.cooperativeId': coop._id }, { 'b.cooperativeId': null }, { 'b.cooperativeId': { $exists: false } }] } },
       {
         $group: {
           _id: null,
@@ -527,9 +577,9 @@ async function getFinancials(req, res) {
       },
     ]),
     Payment.find()
-      .populate({ path: 'bookingId', match: { cooperativeId: coop._id } })
+      .populate('bookingId')
       .sort({ createdAt: -1 })
-      .limit(30)
+      .limit(50)
       .lean(),
   ]);
 
@@ -797,26 +847,26 @@ async function resolveGrievance(req, res) {
 async function listRFPs(req, res) {
   const coop = await getCoop(req);
   const bookings = await Booking.find({
-    $and: [
-      {
-        $or: [
-          { cooperativeId: coop._id },
-          { cooperativeId: null },
-          { cooperativeId: { $exists: false } },
-        ],
-      },
-      {
-        $or: [
-          { service: { $regex: '^Bulk Crew', $options: 'i' } },
-          { notes: { $regex: 'Institutional Bulk RFP', $options: 'i' } },
-          { 'groupBooking.enabled': true, price: { $gte: 2000 } },
-        ],
-      },
+    cooperativeId: { $in: [coop._id, null, undefined] },
+    $or: [
+      { 'bulkDetails.isBulk': true },
+      { 'groupBooking.enabled': true },
+      { service: { $regex: 'Bulk', $options: 'i' } },
     ],
   })
-    .populate('householdId', 'name email phone')
-    .populate('providerId')
+    .populate('householdId', 'name email phone avatarUrl')
+    .populate({
+      path: 'providerId',
+      select: 'userId skills verified',
+      populate: { path: 'userId', select: 'name phone email avatar' },
+    })
+    .populate({
+      path: 'bulkDetails.allocations.providerId',
+      select: 'userId skills verified',
+      populate: { path: 'userId', select: 'name phone email avatar' },
+    })
     .sort({ createdAt: -1 })
+    .limit(100)
     .lean();
   res.json(bookings);
 }
@@ -853,7 +903,7 @@ async function acceptRFP(req, res) {
 
 async function updateRFPQuotation(req, res) {
   const coop = await getCoop(req);
-  const { price, notes } = req.body;
+  const { price, notes, breakdown } = req.body;
   const booking = await Booking.findOne({
     _id: req.params.bookingId,
     cooperativeId: coop._id,
@@ -863,10 +913,17 @@ async function updateRFPQuotation(req, res) {
   if (price && Number(price) > 0) {
     booking.price = Number(price);
   }
-  const chatMsg = `📑 Revised Cooperative Institutional Quotation: ₹${booking.price.toLocaleString('en-IN')}.${notes ? ` Note: ${notes}` : ''}`;
-  if (notes) {
-    booking.notes = (booking.notes ? booking.notes + '\n' : '') + `[Cooperative Quotation Note: ${notes}]`;
-  }
+
+  if (!booking.bulkDetails) booking.bulkDetails = { isBulk: true };
+  booking.bulkDetails.quotation = {
+    status: 'sent',
+    totalAmount: Number(price) || booking.price || 0,
+    breakdown: Array.isArray(breakdown) ? breakdown : [],
+    notes: notes || '',
+    sentAt: new Date(),
+  };
+
+  const chatMsg = `📑 Official Cooperative Institutional Quotation: ₹${booking.price.toLocaleString('en-IN')}.${notes ? ` Note: ${notes}` : ''}`;
   booking.chat.push({
     sender: req.user.userId,
     message: chatMsg,
@@ -881,7 +938,7 @@ async function updateRFPQuotation(req, res) {
       await notify(
         booking.householdId._id.toString(),
         'booking_updated',
-        `${coop.name} updated your Institutional Quotation to ₹${booking.price.toLocaleString('en-IN')}`,
+        `${coop.name} sent official Institutional Quotation of ₹${booking.price.toLocaleString('en-IN')}. Please review and accept.`,
         booking._id
       );
     } catch (e) {}
@@ -896,7 +953,306 @@ async function updateRFPQuotation(req, res) {
     });
   }
 
-  res.json({ message: 'Quotation updated successfully', booking });
+  res.json({ message: 'Quotation sent successfully', booking });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Bulk Crew Allocation & Re-allocation
+// ─────────────────────────────────────────────────────────────
+async function allocateWorkers(req, res) {
+  const coop = await getCoop(req);
+  const { allocations } = req.body; // Array of { role, providerId }
+  if (!Array.isArray(allocations) || allocations.length === 0) {
+    return res.status(400).json({ message: 'allocations array is required' });
+  }
+
+  const booking = await Booking.findOne({
+    _id: req.params.bookingId,
+    cooperativeId: coop._id,
+  });
+  if (!booking) return res.status(404).json({ message: 'RFP booking not found' });
+
+  if (!booking.bulkDetails) booking.bulkDetails = { isBulk: true, allocations: [] };
+
+  const notify = require('../utils/notify');
+  const { emitTo } = require('../socket');
+
+  const newAllocations = [];
+  for (const item of allocations) {
+    const provider = await Provider.findById(item.providerId).populate('userId', 'name phone');
+    if (!provider) continue;
+
+    const record = {
+      role: item.role || 'Labour',
+      providerId: provider._id,
+      status: 'pending',
+      allocatedAt: new Date(),
+    };
+    newAllocations.push(record);
+  }
+
+  booking.bulkDetails.allocations = newAllocations;
+  booking.status = 'in-progress';
+
+  booking.chat.push({
+    sender: req.user.userId,
+    message: `👷 Cooperative Admin allocated ${newAllocations.length} worker crew members. Pending worker acceptance.`,
+    at: new Date(),
+  });
+
+  await booking.save();
+
+  // Notify each allocated worker with the fully saved booking document
+  for (const allocRecord of newAllocations) {
+    const provider = await Provider.findById(allocRecord.providerId).populate('userId', 'name phone');
+    if (provider?.userId?._id) {
+      const pUserId = provider.userId._id.toString();
+      try {
+        await notify(
+          pUserId,
+          'booking_request',
+          `You have been allocated by ${coop.name} for ${allocRecord.role} starting ${booking.scheduledTime ? new Date(booking.scheduledTime).toLocaleDateString('en-IN') : 'Soon'} (${booking.bulkDetails.durationDays || 1} Days). Please Accept or Reject.`,
+          booking._id
+        );
+      } catch (e) {}
+      emitTo(pUserId, 'rfp:worker_allocated', {
+        bookingId: booking._id,
+        role: allocRecord.role,
+        startDate: booking.scheduledTime,
+        durationDays: booking.bulkDetails.durationDays,
+        cooperativeName: coop.name,
+      });
+      emitTo(pUserId, 'booking:new', booking);
+      emitTo(pUserId, 'booking:updated', booking);
+    }
+  }
+
+  emitTo(booking.householdId.toString(), 'booking:updated', booking);
+
+  res.json({ message: 'Workers allocated successfully', booking });
+}
+
+async function reallocateWorker(req, res) {
+  const coop = await getCoop(req);
+  const { allocationId, providerId, sameWorker } = req.body;
+  if (!allocationId || !providerId) {
+    return res.status(400).json({ message: 'allocationId and providerId are required' });
+  }
+
+  const booking = await Booking.findOne({
+    _id: req.params.bookingId,
+    cooperativeId: coop._id,
+  });
+  if (!booking) return res.status(404).json({ message: 'RFP booking not found' });
+
+  const alloc = booking.bulkDetails?.allocations?.id?.(allocationId) || booking.bulkDetails?.allocations?.find?.(a => a._id.toString() === allocationId);
+  if (!alloc) return res.status(404).json({ message: 'Allocation record not found' });
+
+  const provider = await Provider.findById(providerId).populate('userId', 'name phone');
+  if (!provider) return res.status(404).json({ message: 'Worker not found' });
+
+  alloc.providerId = provider._id;
+  alloc.status = 'pending';
+  alloc.rejectionReason = undefined;
+  alloc.allocatedAt = new Date();
+  alloc.respondedAt = undefined;
+
+  const notify = require('../utils/notify');
+  const { emitTo } = require('../socket');
+
+  booking.chat.push({
+    sender: req.user.userId,
+    message: `🔄 Cooperative Admin re-allocated ${alloc.role} slot to worker ${provider.userId?.name || 'Worker'} (${sameWorker ? 'Re-sent to same worker' : 'New replacement worker'}).`,
+    at: new Date(),
+  });
+
+  await booking.save();
+
+  if (provider.userId?._id) {
+    const pUserId = provider.userId._id.toString();
+    try {
+      await notify(
+        pUserId,
+        'booking_request',
+        `RE-ALLOCATED: You have been assigned by ${coop.name} for ${alloc.role} (${booking.bulkDetails.durationDays || 1} Days). Please Accept or Reject.`,
+        booking._id
+      );
+    } catch (e) {}
+    emitTo(pUserId, 'rfp:worker_allocated', {
+      bookingId: booking._id,
+      role: alloc.role,
+      startDate: booking.scheduledTime,
+      durationDays: booking.bulkDetails.durationDays,
+      cooperativeName: coop.name,
+    });
+    emitTo(pUserId, 'booking:new', booking);
+  }
+
+  res.json({ message: 'Worker re-allocated successfully', booking });
+}
+
+async function verifyHouseholdPayment(req, res) {
+  const coop = await getCoop(req);
+  const booking = await Booking.findOne({
+    _id: req.params.bookingId,
+    cooperativeId: coop._id,
+  });
+  if (!booking) return res.status(404).json({ message: 'RFP booking not found' });
+
+  if (!booking.bulkDetails?.householdPaymentProof) {
+    return res.status(400).json({ message: 'No payment proof uploaded by household' });
+  }
+
+  if (!booking.bulkDetails.householdPaymentProof.amount || booking.bulkDetails.householdPaymentProof.amount === 0) {
+    booking.bulkDetails.householdPaymentProof.amount = booking.price || 0;
+  }
+
+  booking.bulkDetails.householdPaymentProof.verifiedByCoop = true;
+  booking.bulkDetails.householdPaymentProof.verifiedAt = new Date();
+
+  const verifiedAmount = booking.bulkDetails.householdPaymentProof.amount;
+
+  booking.chat.push({
+    sender: req.user.userId,
+    message: `✅ Cooperative Admin VERIFIED Household payment screenshot proof (₹${verifiedAmount.toLocaleString('en-IN')}). Funds locked in Society Escrow.`,
+    at: new Date(),
+  });
+
+  await booking.save();
+
+  const notify = require('../utils/notify');
+  const { emitTo } = require('../socket');
+
+  if (booking.householdId) {
+    try {
+      await notify(
+        booking.householdId.toString(),
+        'payment',
+        `Your Payment Screenshot Proof for RFP #${booking._id.toString().slice(-6)} has been VERIFIED by Cooperative Admin.`,
+        booking._id
+      );
+    } catch (e) {}
+    emitTo(booking.householdId.toString(), 'booking:updated', booking);
+  }
+
+  res.json({ message: 'Household payment proof verified successfully', booking });
+}
+
+async function uploadWorkerPayoutProof(req, res) {
+  const coop = await getCoop(req);
+  const { allocationId, payoutProofUrl, amount, txnRef } = req.body;
+  if (!allocationId || !payoutProofUrl) {
+    return res.status(400).json({ message: 'allocationId and payoutProofUrl are required' });
+  }
+
+  const booking = await Booking.findOne({
+    _id: req.params.bookingId,
+    cooperativeId: coop._id,
+  });
+  if (!booking) return res.status(404).json({ message: 'RFP booking not found' });
+
+  const alloc = booking.bulkDetails?.allocations?.id?.(allocationId) || booking.bulkDetails?.allocations?.find?.(a => a._id.toString() === allocationId);
+  if (!alloc) return res.status(404).json({ message: 'Allocation slot not found' });
+
+  const provider = await Provider.findById(alloc.providerId).populate('userId', 'name email');
+  if (!provider) return res.status(404).json({ message: 'Worker not found' });
+
+  const payoutAmt = Number(amount) || alloc.payoutAmount || 2000;
+  const refCode = txnRef || `PAYOUT-SS-${Date.now().toString().slice(-6)}`;
+
+  alloc.payoutStatus = 'paid';
+  alloc.payoutProofUrl = payoutProofUrl;
+  alloc.payoutAmount = payoutAmt;
+  alloc.payoutTxnRef = refCode;
+  alloc.paidAt = new Date();
+
+  await booking.save();
+
+  // Create Payout, Payment, and Invoice Records
+  const Payout = require('../models/Payout');
+  const WalletTransaction = require('../models/WalletTransaction');
+  const Payment = require('../models/Payment');
+  const Invoice = require('../models/Invoice');
+  const { invoiceNumber } = require('../utils/helpers');
+
+  // 1. Record Payment for Cooperative Ledger Aggregation
+  let payment = await Payment.findOne({ bookingId: booking._id, providerPayout: payoutAmt });
+  if (!payment) {
+    payment = await Payment.create({
+      bookingId: booking._id,
+      amount: payoutAmt,
+      cooperativeCommission: Math.round(payoutAmt * 0.08),
+      federationCommission: 0,
+      providerPayout: payoutAmt,
+      status: 'released',
+      payoutStatus: 'disbursed',
+      disbursedAt: new Date(),
+      method: 'coop_payout_ss',
+    });
+  } else {
+    payment.status = 'released';
+    payment.payoutStatus = 'disbursed';
+    payment.disbursedAt = new Date();
+    await payment.save();
+  }
+
+  // 2. Record PACS Member Invoice
+  let inv = await Invoice.findOne({ bookingId: booking._id, providerId: provider._id });
+  if (!inv) {
+    inv = await Invoice.create({
+      invoiceNumber: invoiceNumber(),
+      bookingId: booking._id,
+      paymentId: payment._id,
+      householdId: booking.householdId,
+      providerId: provider._id,
+      cooperativeId: coop._id,
+      items: [{ description: `${booking.service} (${alloc.role} Payout)`, qty: 1, rate: payoutAmt, amount: payoutAmt }],
+      tax: 0,
+      total: payoutAmt,
+      customNotes: `Cooperative Worker Payout Disbursed with SS Proof (Ref: ${refCode})`,
+    });
+  }
+
+  const pUser = provider.userId;
+  if (pUser) {
+    await Payout.create({
+      payoutId: refCode,
+      providerId: pUser._id,
+      providerName: pUser.name || 'Worker',
+      providerEmail: pUser.email || 'worker@sahakargig.in',
+      amount: payoutAmt,
+      paymentMethod: 'Cooperative Bank Transfer SS Proof',
+      bankAccountOrUpi: 'Verified Bank Account',
+      transactionRef: refCode,
+      cooperativeStampId: coop.registrationId || 'MSCS-STAMP',
+      status: 'Completed',
+    });
+
+    await WalletTransaction.create({
+      userId: pUser._id,
+      type: 'credit',
+      amount: payoutAmt,
+      method: 'coop_payout_ss',
+      bookingId: booking._id,
+      note: `Cooperative Payout for ${alloc.role} (Ref: ${refCode})`,
+    });
+
+    const notify = require('../utils/notify');
+    const { emitTo } = require('../socket');
+    const pUserId = pUser._id.toString();
+    try {
+      await notify(
+        pUserId,
+        'payment',
+        `💰 Cooperative transferred ₹${payoutAmt.toLocaleString('en-IN')} payout with screenshot proof! Ref: ${refCode}`,
+        booking._id
+      );
+    } catch (e) {}
+    emitTo(pUserId, 'booking:updated', booking);
+    emitTo(pUserId, 'wallet:updated', { amount: payoutAmt });
+  }
+
+  res.json({ message: 'Worker payout SS proof recorded successfully', booking, allocation: alloc, payment, invoice: inv });
 }
 
 module.exports = {
@@ -932,4 +1288,8 @@ module.exports = {
   listRFPs,
   acceptRFP,
   updateRFPQuotation,
+  allocateWorkers,
+  reallocateWorker,
+  verifyHouseholdPayment,
+  uploadWorkerPayoutProof,
 };

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
+import { useTranslation } from "react-i18next";
+import { LANGUAGES } from "../../i18n";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/api";
 import AuthShell from "../../components/AuthShell";
@@ -24,9 +26,9 @@ const GOOGLE_ICON = (
 );
 
 const ROLES = [
-  { value: "Household",         label: "Household",       desc: "Customer Account",  icon: Home },
-  { value: "Provider",          label: "Gig Worker",      desc: "Service Provider",  icon: Wrench },
-  { value: "Cooperative Admin", label: "Cooperative",     desc: "Society Entity",    icon: Building },
+  { value: "Household",         key: "household",     label: "Household",       desc: "Customer Account",  icon: Home },
+  { value: "Provider",          key: "provider",      label: "Gig Worker",      desc: "Service Provider",  icon: Wrench },
+  { value: "Cooperative Admin", key: "coopAdmin",     label: "Cooperative",     desc: "Society Entity",    icon: Building },
 ];
 
 const SKILL_CATEGORIES = [
@@ -44,22 +46,22 @@ const COOP_SECTORS = [
   "Urban Services Cooperative", "Women Empowerment Collective", "Multi-State Labor Federation"
 ];
 
-const inputCls = "w-full h-9 px-3 rounded-lg bg-slate-900/90 border border-slate-700/80 text-white text-xs placeholder:text-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 outline-none transition";
-const labelCls = "block text-[11px] font-semibold text-slate-300 mb-1";
+const inputCls = "w-full h-10 px-3.5 rounded-xl bg-surface-container-low border border-outline-variant text-on-surface text-xs placeholder:text-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition shadow-xs font-medium";
+const labelCls = "block text-[12px] font-bold text-on-surface mb-1";
 
 // Shared step progress bar for all multi-step signup flows.
 function StepBar({ step, total, labels }) {
   return (
     <div className="mb-3">
       <div className="flex items-center justify-between mb-1.5">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Step {step} of {total}</p>
-        <p className="text-[10px] font-bold text-blue-400">{labels[step - 1]}</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70">Step {step} of {total}</p>
+        <p className="text-[10px] font-bold text-primary">{labels[step - 1]}</p>
       </div>
       <div className="flex gap-1.5">
         {labels.map((_, i) => (
           <div
             key={i}
-            className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i < step ? "bg-[#00288e]" : "bg-slate-800"}`}
+            className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i < step ? "bg-primary" : "bg-surface-variant"}`}
           />
         ))}
       </div>
@@ -68,6 +70,7 @@ function StepBar({ step, total, labels }) {
 }
 
 export default function Signup() {
+  const { t, i18n } = useTranslation();
   const { signup } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -103,7 +106,7 @@ export default function Signup() {
     householdState: "",
     bio: "",
     householdSize: "",
-    prefLang: "",
+    prefLang: i18n.language || "en",
     emergencyContactName: "",
     emergencyContactPhone: "",
     specialInstructions: "",
@@ -141,6 +144,12 @@ export default function Signup() {
     bankName: "",
     bankHolderName: "",
   });
+
+  useEffect(() => {
+    if (i18n.language && form.prefLang !== i18n.language) {
+      setForm((f) => ({ ...f, prefLang: i18n.language }));
+    }
+  }, [i18n.language]);
 
   useEffect(() => {
     if (inviteName || inviteEmail) {
@@ -184,9 +193,6 @@ export default function Signup() {
   // Google OAuth: verify identity then auto-fill the form so the user only
   // needs to complete the remaining role-specific fields before submitting.
   const googleAutoFill = useGoogleLogin({
-    // Authorization-code flow (proper OAuth 2.0): returns a one-time `code` that
-    // the server exchanges for the user's profile using the client secret. The
-    // profile is fetched via /auth/google/profile and used to pre-fill the form.
     flow: 'auth-code',
     ux_mode: 'popup',
     onSuccess: async (tokenResponse) => {
@@ -242,9 +248,6 @@ export default function Signup() {
     setLocatingArea(true);
     setErr("");
     try {
-      // 1) Get the best possible GPS fix. Start with a high-accuracy fix, then
-      //    refine it with watchPosition until the accuracy circle is tight
-      //    (< 25 m) or ~10 s elapse — whichever comes first.
       const getFix = () => new Promise((resolve, reject) =>
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
@@ -277,8 +280,6 @@ export default function Signup() {
       longitude = refined.longitude;
       accuracy = refined.accuracy;
 
-      // 2) Reverse-geocode at zoom=18 (building/house level) for a precise,
-      //    street-level address instead of a vague area name.
       let locality = "";
       let city = "";
       let state = "";
@@ -295,7 +296,6 @@ export default function Signup() {
           addr.suburb || addr.neighbourhood || addr.residential || addr.quarter || "",
         ].filter(Boolean);
 
-        // Street-level detail first; fall back to the widest area label available.
         locality = parts.join(", ") ||
           addr.road || addr.town || addr.village || addr.city || addr.state || "";
 
@@ -330,8 +330,6 @@ export default function Signup() {
     }
   }
 
-  // Government ID validation rules per ID type. Aadhaar must be exactly
-  // 12 digits; PAN follows the ABCDE1234F pattern; others get sane length checks.
   function validateIdNumber(type, value) {
     const v = value.replace(/[\s-]/g, "");
     switch (type) {
@@ -557,26 +555,26 @@ export default function Signup() {
 
   return (
     <AuthShell
-      title="Join the Cooperative Economy."
-      subtitle="Connect, work, and build wealth in a verified, community-governed ecosystem."
+      title={t('joinCoopEconomy', "Join the Cooperative Economy.")}
+      subtitle={t('joinCoopSubtitle', "Connect, work, and build wealth in a verified, community-governed ecosystem.")}
       back="/"
-      backLabel="Back to Home"
+      backLabel={t('backToHome', "Back to Home")}
     >
-      <div className="w-full space-y-3">
+      <div className="w-full space-y-3.5">
         {/* Header */}
         <div>
-          <h2 className="text-xl font-bold text-white tracking-tight leading-tight">
-            Create Account
+          <h2 className="text-2xl font-extrabold text-on-surface tracking-tight leading-tight">
+            {t('createAccount', "Create Account")}
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {role === "Household" && `Step ${step} of 2: Home Services Onboarding`}
-            {role === "Provider" && `Step ${step} of 3: Worker Identity & Skill Verification`}
-            {role === "Cooperative Admin" && `Step ${step} of 3: Society Statutory Registration`}
+          <p className="text-xs sm:text-sm text-on-surface-variant mt-1 font-medium">
+            {role === "Household" && `${t('step', 'Step')} ${step} ${t('of', 'of')} 2: ${t('homeServicesOnboarding', 'Home Services Onboarding')}`}
+            {role === "Provider" && `${t('step', 'Step')} ${step} ${t('of', 'of')} 3: ${t('workerIdentitySkillVerify', 'Worker Identity & Skill Verification')}`}
+            {role === "Cooperative Admin" && `${t('step', 'Step')} ${step} ${t('of', 'of')} 3: ${t('societyStatutoryReg', 'Society Statutory Registration')}`}
           </p>
         </div>
 
         {/* ── Role Selector ── */}
-        <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-900 border border-slate-800">
+        <div className="grid grid-cols-3 gap-1.5 p-1.5 rounded-xl bg-surface-container-low border border-outline-variant/80 shadow-xs">
           {ROLES.map((r) => {
             const IconComp = r.icon;
             const isSelected = role === r.value;
@@ -585,39 +583,39 @@ export default function Signup() {
                 key={r.value}
                 type="button"
                 onClick={() => { setRole(r.value); setStep(1); setErr(""); }}
-                className={`flex items-center justify-center gap-2 py-2 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   isSelected
-                    ? "bg-[#00288e] text-white shadow-xs"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                    ? "bg-primary text-on-primary shadow-xs"
+                    : "text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/60"
                 }`}
               >
                 <IconComp size={15} />
-                <span className="truncate">{r.label}</span>
+                <span className="truncate">{t(r.key, r.label)}</span>
               </button>
             );
           })}
         </div>
 
         {/* ── Enterprise Step Breadcrumbs (all roles) ── */}
-        <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800 text-xs">
+        <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/80 text-xs shadow-xs">
           {(role === "Household"
-            ? ["Login", "Address & Safety"]
+            ? [t('login', "Login"), t('addressAndHousehold', "Address & Household")]
             : role === "Provider"
-              ? ["Profile", "Cooperative & ID", "Documents"]
-              : ["Society Info", "Governance", "Documents"]
-          ).map((label, idx, arr) => {
+              ? [t('profile', "Profile"), t('coopAndId', "Cooperative & ID"), t('documents', "Documents")]
+              : [t('societyInfo', "Society Info"), t('governance', "Governance"), t('documents', "Documents")]
+          ).map((label, idx) => {
             const n = idx + 1;
             const done = step > n;
             const active = step === n;
             return (
               <div key={label} className="flex items-center gap-1.5 flex-1 justify-center">
-                {idx > 0 && <span className="text-slate-600 mr-1.5">─</span>}
+                {idx > 0 && <span className="text-outline-variant mr-1.5">─</span>}
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10.5px] font-bold ${
-                  done ? "bg-emerald-600 text-white" : active ? "bg-[#00288e] text-white" : "bg-slate-800 text-slate-400"
+                  done ? "bg-emerald-600 text-white" : active ? "bg-primary text-on-primary shadow-xs" : "bg-surface-variant text-on-surface-variant/70"
                 }`}>
                   {done ? "✓" : n}
                 </span>
-                <span className={step >= n ? "font-bold text-slate-200" : "text-slate-500"}>
+                <span className={step >= n ? "font-bold text-on-surface" : "text-on-surface-variant/60"}>
                   {label}
                 </span>
               </div>
@@ -626,8 +624,8 @@ export default function Signup() {
         </div>
 
         {err && (
-          <div className="rounded-lg bg-red-950/60 border border-red-800/80 px-3 py-1.5 flex items-center gap-2 text-red-200 text-xs font-semibold">
-            <AlertCircle size={14} className="text-red-400 shrink-0" />
+          <div className="rounded-xl bg-error-container border border-error/20 px-3.5 py-2.5 flex items-center gap-2.5 text-on-error-container text-xs font-medium shadow-xs">
+            <AlertCircle size={15} className="text-error shrink-0" />
             <span>{err}</span>
           </div>
         )}
@@ -638,48 +636,58 @@ export default function Signup() {
         {role === "Household" && (
           <div>
           {step === 1 && (
-          <form onSubmit={handleNextStep} className="space-y-2.5">
+          <form onSubmit={handleNextStep} className="space-y-3">
             <button
               type="button"
               onClick={googleAutoFill}
               disabled={loading}
-              className="w-full h-9 px-3 rounded-lg border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+              className="w-full h-10 px-3.5 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container-high text-on-surface text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
             >
               {GOOGLE_ICON}
-              <span>{loading ? "Connecting…" : "Auto-fill with Google"}</span>
+              <span>{loading ? t('signingIn', "Connecting…") : t('autoFillWithGoogle', "Auto-fill with Google")}</span>
             </button>
 
-            <StepBar step={step} total={2} labels={["Personal & Login", "Address & Household"]} />
+            <StepBar step={step} total={2} labels={[t('personalAndLogin', "Personal & Login"), t('addressAndHousehold', "Address & Household")]} />
 
-            <div className="flex items-center gap-2 my-1">
-              <div className="h-px bg-slate-800 flex-1" />
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">or sign up with email</span>
-              <div className="h-px bg-slate-800 flex-1" />
+            <div className="flex items-center gap-2 my-1.5">
+              <div className="h-px bg-outline-variant flex-1" />
+              <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider">{t('orSignUpWithEmail', "OR SIGN UP WITH EMAIL")}</span>
+              <div className="h-px bg-outline-variant flex-1" />
             </div>
 
             <div>
-              <label className={labelCls}>Full Name *</label>
+              <label className={labelCls}>{t('fullName', "Full Name")} *</label>
               <input
                 type="text" required value={form.name}
                 onChange={(e) => set("name", e.target.value)}
-                placeholder="Enter your full name"
+                placeholder={t('enterFullName', "Enter your full name")}
                 className={inputCls}
               />
             </div>
 
             <div>
-              <label className={labelCls}>Preferred Language</label>
-              <select value={form.prefLang} onChange={(e) => set("prefLang", e.target.value)} className={inputCls + " cursor-pointer"}>
-                <option value="" disabled>Select preferred language</option>
-                {["English", "हिन्दी (Hindi)", "मराठी (Marathi)", "తెలుగు (Telugu)", "தமிழ் (Tamil)", "বাংলা (Bengali)", "ಕನ್ನಡ (Kannada)", "മലയാളം (Malayalam)"].map((l) => (
-                  <option key={l} value={l}>{l}</option>
+              <label className={labelCls}>{t('preferredLanguage', "Preferred Language")}</label>
+              <select
+                value={form.prefLang || i18n.language}
+                onChange={(e) => {
+                  const code = e.target.value;
+                  set("prefLang", code);
+                  i18n.changeLanguage(code);
+                }}
+                className={inputCls + " cursor-pointer"}
+              >
+                <option value="" disabled>{t('selectPreferredLanguage', "Select preferred language")}</option>
+                {LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.flag} {l.native} ({l.name})
+                  </option>
                 ))}
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className={labelCls}>Email Address *</label>
+                <label className={labelCls}>{t('emailAddress', "Email Address")} *</label>
                 <input
                   type="email" required value={form.email}
                   onChange={(e) => set("email", e.target.value)}
@@ -688,7 +696,7 @@ export default function Signup() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Mobile (Phone)</label>
+                <label className={labelCls}>{t('mobilePhone', "Mobile (Phone)")}</label>
                 <input
                   type="tel" value={form.phone}
                   onChange={(e) => set("phone", e.target.value)}
@@ -698,38 +706,38 @@ export default function Signup() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className={labelCls}>Password *</label>
+                <label className={labelCls}>{t('password', "Password")} *</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"} required minLength={8}
                     value={form.password} onChange={(e) => set("password", e.target.value)}
-                    placeholder="8+ characters"
-                    className={inputCls + " pr-8"}
+                    placeholder={t('eightPlusChars', "8+ characters")}
+                    className={inputCls + " pr-9"}
                   />
                   <button
                     type="button" onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface"
                   >
-                    {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
                 </div>
               </div>
               <div>
-                <label className={labelCls}>Confirm Password *</label>
+                <label className={labelCls}>{t('confirmPassword', "Confirm Password")} *</label>
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? "text" : "password"} required minLength={8}
                     value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)}
-                    placeholder="Re-enter password"
-                    className={inputCls + " pr-8"}
+                    placeholder={t('reEnterPassword', "Re-enter password")}
+                    className={inputCls + " pr-9"}
                   />
                   <button
                     type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface"
                   >
-                    {showConfirmPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                    {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
                 </div>
               </div>
@@ -737,41 +745,40 @@ export default function Signup() {
 
             <button
               type="submit"
-              className="w-full h-10 mt-2 rounded-lg bg-[#00288e] hover:bg-[#001f70] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
+              className="w-full h-10 mt-3 rounded-xl bg-primary hover:bg-primary/90 text-on-primary font-bold text-xs shadow-[0_4px_14px_rgba(30,107,101,0.3)] flex items-center justify-center gap-2 transition cursor-pointer"
             >
-              <span>Next: Address & Household Details</span>
+              <span>{t('nextAddressDetails', "Next: Address & Household Details")}</span>
               <ArrowRight size={14} />
             </button>
           </form>
           )}
 
           {step === 2 && (
-          <form onSubmit={submitFinal} className="space-y-2.5">
-
-            {/* Residential Address (for nearby services) */}
+          <form onSubmit={submitFinal} className="space-y-3">
+            {/* Residential Address */}
             <div>
-              <label className={labelCls}>House / Street Address</label>
+              <label className={labelCls}>{t('houseStreetAddress', "House / Street Address")}</label>
               <input
                 type="text" value={form.householdAddress}
                 onChange={(e) => set("householdAddress", e.target.value)}
-                placeholder="House no, society, street"
+                placeholder={t('houseStreetPlaceholder', "House no, society, street")}
                 className={inputCls}
               />
               <button
                 type="button"
                 onClick={detectArea}
                 disabled={locatingArea}
-                className="mt-1 w-full h-7 rounded-md border border-slate-700 bg-slate-900 text-slate-300 text-[11px] font-semibold flex items-center justify-center gap-1.5 hover:bg-slate-800 transition cursor-pointer disabled:opacity-60"
+                className="mt-1.5 w-full h-8 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary text-[11.5px] font-bold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-60"
               >
-                <MapPin size={12} />
-                {locatingArea ? "Detecting your location…" : "📍 Use my current location"}
+                <MapPin size={13} />
+                {locatingArea ? t('detectingLocation', "Detecting your location…") : t('useCurrentLocation', "📍 Use my current location")}
               </button>
-              <p className="text-[10px] text-slate-500 mt-0.5">Auto-fills address, city &amp; state from your GPS.</p>
+              <p className="text-[10.5px] text-on-surface-variant/70 mt-1">{t('autoFillGpsNote', "Auto-fills address, city & state from your GPS.")}</p>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className={labelCls}>City</label>
+                <label className={labelCls}>{t('city', "City")}</label>
                 <input
                   type="text" value={form.householdCity}
                   onChange={(e) => set("householdCity", e.target.value)}
@@ -780,7 +787,7 @@ export default function Signup() {
                 />
               </div>
               <div>
-                <label className={labelCls}>State</label>
+                <label className={labelCls}>{t('state', "State")}</label>
                 <input
                   type="text" value={form.householdState}
                   onChange={(e) => set("householdState", e.target.value)}
@@ -789,7 +796,7 @@ export default function Signup() {
                 />
               </div>
               <div>
-                <label className={labelCls}>PIN Code</label>
+                <label className={labelCls}>{t('pinCode', "PIN Code")}</label>
                 <input
                   type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
                   value={form.householdPincode}
@@ -800,9 +807,9 @@ export default function Signup() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className={labelCls}>Household Size</label>
+                <label className={labelCls}>{t('householdSize', "Household Size")}</label>
                 <input
                   type="number" min={1} max={30} value={form.householdSize}
                   onChange={(e) => set("householdSize", e.target.value)}
@@ -811,7 +818,7 @@ export default function Signup() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Emergency Contact Name</label>
+                <label className={labelCls}>{t('emergencyContactName', "Emergency Contact Name")}</label>
                 <input
                   type="text" value={form.emergencyContactName}
                   onChange={(e) => set("emergencyContactName", e.target.value)}
@@ -822,7 +829,7 @@ export default function Signup() {
             </div>
 
             <div>
-              <label className={labelCls}>Emergency Contact Phone</label>
+              <label className={labelCls}>{t('emergencyContactPhone', "Emergency Contact Phone")}</label>
               <input
                 type="tel" value={form.emergencyContactPhone}
                 onChange={(e) => set("emergencyContactPhone", e.target.value)}
@@ -832,7 +839,7 @@ export default function Signup() {
             </div>
 
             <div>
-              <label className={labelCls}>About You / Special Instructions</label>
+              <label className={labelCls}>{t('aboutYouSpecialInstructions', "About You / Special Instructions")}</label>
               <textarea
                 rows={2} value={form.specialInstructions}
                 onChange={(e) => set("specialInstructions", e.target.value)}
@@ -841,18 +848,18 @@ export default function Signup() {
               />
             </div>
 
-            <div className="flex gap-2 pt-1">
+            <div className="flex gap-2.5 pt-1">
               <button
                 type="button" onClick={() => setStep(1)}
-                className="h-10 px-4 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-xs font-semibold flex items-center gap-1 hover:bg-slate-700 cursor-pointer"
+                className="h-10 px-4 rounded-xl border border-outline-variant bg-surface-container-low text-on-surface text-xs font-semibold flex items-center gap-1 hover:bg-surface-container-high cursor-pointer shadow-xs"
               >
-                <ArrowLeft size={14} /> Back
+                <ArrowLeft size={14} /> {t('back', "Back")}
               </button>
               <button
                 type="submit" disabled={loading}
-                className="flex-1 h-10 rounded-lg bg-[#00288e] hover:bg-[#001f70] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                className="flex-1 h-10 rounded-xl bg-primary hover:bg-primary/90 text-on-primary font-bold text-xs shadow-[0_4px_14px_rgba(30,107,101,0.3)] flex items-center justify-center gap-2 transition cursor-pointer"
               >
-                {loading ? "Creating..." : "Create Household Account"}
+                {loading ? t('creating', "Creating...") : t('createHouseholdAccount', "Create Household Account")}
                 <ArrowRight size={14} />
               </button>
             </div>
@@ -866,36 +873,36 @@ export default function Signup() {
         {/* ─────────────────────────────────────────────────────────── */}
         {role === "Provider" && (
           <div>
-            <StepBar step={step} total={3} labels={["Personal & Trade", "Cooperative & ID", "Certifications"]} />
+            <StepBar step={step} total={3} labels={[t('personalAndTrade', "Personal & Trade"), t('coopAndId', "Cooperative & ID"), t('certifications', "Certifications")]} />
             {/* STEP 1: Personal & Trade Details */}
             {step === 1 && (
-              <form onSubmit={handleNextStep} className="space-y-2.5">
+              <form onSubmit={handleNextStep} className="space-y-3">
                 <button
                   type="button"
                   onClick={googleAutoFill}
                   disabled={loading}
-                  className="w-full h-9 px-3 rounded-lg border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+                  className="w-full h-10 px-3.5 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container-high text-on-surface text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
                 >
                   {GOOGLE_ICON}
-                  <span>{loading ? "Connecting…" : "Auto-fill with Google"}</span>
+                  <span>{loading ? t('signingIn', "Connecting…") : t('autoFillWithGoogle', "Auto-fill with Google")}</span>
                 </button>
-                <div className="flex items-center gap-2 my-1">
-                  <div className="h-px bg-slate-800 flex-1" />
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">or fill manually</span>
-                  <div className="h-px bg-slate-800 flex-1" />
+                <div className="flex items-center gap-2 my-1.5">
+                  <div className="h-px bg-outline-variant flex-1" />
+                  <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider">{t('orFillManually', "OR FILL MANUALLY")}</span>
+                  <div className="h-px bg-outline-variant flex-1" />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className={labelCls}>Full Legal Name *</label>
+                    <label className={labelCls}>{t('fullLegalName', "Full Legal Name")} *</label>
                     <input
                       type="text" required value={form.name}
                       onChange={(e) => set("name", e.target.value)}
-                      placeholder="Enter your full legal name"
+                      placeholder={t('enterFullLegalName', "Enter your full legal name")}
                       className={inputCls}
                     />
                   </div>
                   <div>
-                    <label className={labelCls}>Mobile (Phone) *</label>
+                    <label className={labelCls}>{t('mobilePhone', "Mobile (Phone)")} *</label>
                     <input
                       type="tel" required value={form.phone}
                       onChange={(e) => set("phone", e.target.value)}
@@ -906,7 +913,7 @@ export default function Signup() {
                 </div>
 
                 <div>
-                  <label className={labelCls}>Email Address *</label>
+                  <label className={labelCls}>{t('emailAddress', "Email Address")} *</label>
                   <input
                     type="email" required value={form.email}
                     onChange={(e) => set("email", e.target.value)}
@@ -915,22 +922,22 @@ export default function Signup() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className={labelCls}>Primary Trade Skill</label>
+                    <label className={labelCls}>{t('primaryTradeSkill', "Primary Trade Skill")}</label>
                     <select
                       value={form.primarySkill}
                       onChange={(e) => set("primarySkill", e.target.value)}
                       className={inputCls + " cursor-pointer"}
                     >
-                      <option value="" disabled>Select your primary skill</option>
+                      <option value="" disabled>{t('selectPrimarySkill', "Select your primary skill")}</option>
                       {SKILL_CATEGORIES.map((cat) => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className={labelCls}>Experience (Years)</label>
+                    <label className={labelCls}>{t('experienceYears', "Experience (Years)")}</label>
                     <input
                       type="number" min={1} max={40} value={form.experienceYears}
                       onChange={(e) => set("experienceYears", e.target.value)}
@@ -939,9 +946,9 @@ export default function Signup() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className={labelCls}>Hourly Rate (₹)</label>
+                    <label className={labelCls}>{t('hourlyRate', "Hourly Rate (₹)")}</label>
                     <input
                       type="number" min={100} value={form.hourlyRate}
                       onChange={(e) => set("hourlyRate", e.target.value)}
@@ -950,7 +957,7 @@ export default function Signup() {
                     />
                   </div>
                   <div>
-                    <label className={labelCls}>Locality / Area</label>
+                    <label className={labelCls}>{t('localityArea', "Locality / Area")}</label>
                     <input
                       type="text" value={form.address}
                       onChange={(e) => set("address", e.target.value)}
@@ -961,46 +968,46 @@ export default function Signup() {
                       type="button"
                       onClick={detectArea}
                       disabled={locatingArea}
-                      className="mt-1 w-full h-7 rounded-md border border-slate-700 bg-slate-900 text-slate-300 text-[11px] font-semibold flex items-center justify-center gap-1.5 hover:bg-slate-800 transition cursor-pointer disabled:opacity-60"
+                      className="mt-1.5 w-full h-8 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary text-[11.5px] font-bold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-60"
                     >
-                      {MapPin ? <MapPin size={12} /> : null}
-                      {locatingArea ? "Detecting your location…" : "📍 Use my current location"}
+                      {MapPin ? <MapPin size={13} /> : null}
+                      {locatingArea ? t('detectingLocation', "Detecting your location…") : t('useCurrentLocation', "📍 Use my current location")}
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className={labelCls}>Password *</label>
+                    <label className={labelCls}>{t('password', "Password")} *</label>
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"} required minLength={8}
                         value={form.password} onChange={(e) => set("password", e.target.value)}
-                        placeholder="8+ characters"
-                        className={inputCls + " pr-8"}
+                        placeholder={t('eightPlusChars', "8+ characters")}
+                        className={inputCls + " pr-9"}
                       />
                       <button
                         type="button" onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface"
                       >
-                        {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                        {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className={labelCls}>Confirm Password *</label>
+                    <label className={labelCls}>{t('confirmPassword', "Confirm Password")} *</label>
                     <div className="relative">
                       <input
                         type={showConfirmPassword ? "text" : "password"} required minLength={8}
                         value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)}
-                        placeholder="Re-enter password"
-                        className={inputCls + " pr-8"}
+                        placeholder={t('reEnterPassword', "Re-enter password")}
+                        className={inputCls + " pr-9"}
                       />
                       <button
                         type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface"
                       >
-                        {showConfirmPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                        {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
                     </div>
                   </div>
@@ -1008,9 +1015,9 @@ export default function Signup() {
 
                 <button
                   type="submit"
-                  className="w-full h-10 mt-2 rounded-lg bg-[#00288e] hover:bg-[#001f70] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                  className="w-full h-10 mt-3 rounded-xl bg-primary hover:bg-primary/90 text-on-primary font-bold text-xs shadow-[0_4px_14px_rgba(30,107,101,0.3)] flex items-center justify-center gap-2 transition cursor-pointer"
                 >
-                  <span>Next: Cooperative & ID Details</span>
+                  <span>{t('nextCoopDetails', "Next: Cooperative & ID Details")}</span>
                   <ArrowRight size={14} />
                 </button>
               </form>
@@ -1018,38 +1025,38 @@ export default function Signup() {
 
             {/* STEP 2: Cooperative Selection & Govt ID */}
             {step === 2 && (
-              <form onSubmit={handleNextStep} className="space-y-2.5">
+              <form onSubmit={handleNextStep} className="space-y-3">
                 <div>
-                  <label className={labelCls}>Accredited Cooperative Society *</label>
+                  <label className={labelCls}>{t('accreditedCoop', "Accredited Cooperative Society")} *</label>
                   <select
                     value={form.cooperativeId}
                     onChange={(e) => set("cooperativeId", e.target.value)}
                     className={inputCls + " cursor-pointer"}
                   >
-                    <option value="">-- Select Cooperative Society --</option>
+                    <option value="">{t('selectCoopSociety', "-- Select Cooperative Society --")}</option>
                     {coops.map((c) => (
                       <option key={c._id} value={c._id}>{c.name}</option>
                     ))}
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className={labelCls}>Govt ID Type *</label>
+                    <label className={labelCls}>{t('govtIdType', "Govt ID Type")} *</label>
                     <select
                       required
                       value={form.idType}
                       onChange={(e) => set("idType", e.target.value)}
                       className={inputCls + " cursor-pointer"}
                     >
-                      <option value="" disabled>Select ID type</option>
+                      <option value="" disabled>{t('selectIdType', "Select ID type")}</option>
                       {GOVT_ID_TYPES.map((id) => (
                         <option key={id} value={id}>{id}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className={labelCls}>ID Document Number *</label>
+                    <label className={labelCls}>{t('idDocNumber', "ID Document Number")} *</label>
                     <input
                       type="text" required value={form.idNumber}
                       onChange={(e) => {
@@ -1071,16 +1078,16 @@ export default function Signup() {
                       className={inputCls}
                     />
                     {form.idType === "Aadhaar Card" && (
-                      <p className="text-[10px] text-slate-500 mt-0.5">Exactly 12 digits, numbers only — no spaces or dashes.</p>
+                      <p className="text-[10.5px] text-on-surface-variant/70 mt-1">{t('aadhaarFormatNote', "Exactly 12 digits, numbers only — no spaces or dashes.")}</p>
                     )}
                     {form.idType === "PAN Card" && (
-                      <p className="text-[10px] text-slate-500 mt-0.5">10 characters in ABCDE1234F format.</p>
+                      <p className="text-[10.5px] text-on-surface-variant/70 mt-1">{t('panFormatNote', "10 characters in ABCDE1234F format.")}</p>
                     )}
                   </div>
                 </div>
 
                 <div>
-                  <label className={labelCls}>Upload Government ID Document (PDF / Photo) *</label>
+                  <label className={labelCls}>{t('uploadGovtIdDoc', "Upload Government ID Document (PDF / Photo)")} *</label>
                   <FileUpload
                     label={`Upload ${form.idType}`}
                     folder="sahakargig/kyc"
@@ -1088,24 +1095,24 @@ export default function Signup() {
                     onSelect={(url) => set("idDocUrl", url)}
                   />
                   {form.idDocUrl && (
-                    <p className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1 mt-1">
-                      <CheckCircle2 size={13} /> Document uploaded successfully
+                    <p className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1 mt-1">
+                      <CheckCircle2 size={13} /> {t('docUploadedSuccess', "Document uploaded successfully")}
                     </p>
                   )}
                 </div>
 
-                <div className="flex gap-2 pt-1">
+                <div className="flex gap-2.5 pt-1">
                   <button
                     type="button" onClick={() => setStep(1)}
-                    className="h-10 px-4 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-xs font-semibold flex items-center gap-1 hover:bg-slate-700 cursor-pointer"
+                    className="h-10 px-4 rounded-xl border border-outline-variant bg-surface-container-low text-on-surface text-xs font-semibold flex items-center gap-1 hover:bg-surface-container-high cursor-pointer shadow-xs"
                   >
-                    <ArrowLeft size={14} /> Back
+                    <ArrowLeft size={14} /> {t('back', "Back")}
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 h-10 rounded-lg bg-[#00288e] hover:bg-[#001f70] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                    className="flex-1 h-10 rounded-xl bg-primary hover:bg-primary/90 text-on-primary font-bold text-xs shadow-[0_4px_14px_rgba(30,107,101,0.3)] flex items-center justify-center gap-2 transition cursor-pointer"
                   >
-                    <span>Next: Certifications & Clearance</span>
+                    <span>{t('nextCertifications', "Next: Certifications & Clearance")}</span>
                     <ArrowRight size={14} />
                   </button>
                 </div>
@@ -1114,10 +1121,10 @@ export default function Signup() {
 
             {/* STEP 3: Trade Certifications & Police Verification */}
             {step === 3 && (
-              <form onSubmit={submitFinal} className="space-y-2.5">
-                <div className="grid grid-cols-2 gap-2">
+              <form onSubmit={submitFinal} className="space-y-3">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className={labelCls}>Trade / Skill Certificate</label>
+                    <label className={labelCls}>{t('tradeSkillCert', "Trade / Skill Certificate")}</label>
                     <FileUpload
                       label="Skill Proof"
                       folder="sahakargig/certificates"
@@ -1125,14 +1132,14 @@ export default function Signup() {
                       onSelect={(url) => set("skillCertUrl", url)}
                     />
                     {form.skillCertUrl && (
-                      <p className="text-[10.5px] text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                      <p className="text-[10.5px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
                         <CheckCircle2 size={12} /> Uploaded
                       </p>
                     )}
                   </div>
 
                   <div>
-                    <label className={labelCls}>Police Clearance (PCC)</label>
+                    <label className={labelCls}>{t('policeClearancePcc', "Police Clearance (PCC)")}</label>
                     <FileUpload
                       label="Police PCC"
                       folder="sahakargig/police"
@@ -1140,7 +1147,7 @@ export default function Signup() {
                       onSelect={(url) => set("policeVerificationUrl", url)}
                     />
                     {form.policeVerificationUrl && (
-                      <p className="text-[10.5px] text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                      <p className="text-[10.5px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
                         <CheckCircle2 size={12} /> Uploaded
                       </p>
                     )}
@@ -1148,7 +1155,7 @@ export default function Signup() {
                 </div>
 
                 <div>
-                  <label className={labelCls}>Direct Escrow Payout UPI ID</label>
+                  <label className={labelCls}>{t('directEscrowUpi', "Direct Escrow Payout UPI ID")}</label>
                   <input
                     type="text" value={form.payoutUpi}
                     onChange={(e) => set("payoutUpi", e.target.value)}
@@ -1157,25 +1164,25 @@ export default function Signup() {
                   />
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-blue-950/40 border border-blue-800/60 text-[11px] text-blue-200">
-                  <p className="font-semibold text-blue-300 flex items-center gap-1 mb-0.5">
-                    <ShieldCheck size={14} /> Cooperative Verification Gate
+                <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-[11.5px] text-on-surface">
+                  <p className="font-bold text-primary flex items-center gap-1 mb-0.5">
+                    <ShieldCheck size={14} /> {t('coopVerifyGateTitle', "Cooperative Verification Gate")}
                   </p>
-                  Your credentials will be audited by the cooperative society board. Active dispatching unlocks upon approval.
+                  {t('coopVerifyGateDesc', "Your credentials will be audited by the cooperative society board. Active dispatching unlocks upon approval.")}
                 </div>
 
-                <div className="flex gap-2 pt-1">
+                <div className="flex gap-2.5 pt-1">
                   <button
                     type="button" onClick={() => setStep(2)}
-                    className="h-10 px-4 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-xs font-semibold flex items-center gap-1 hover:bg-slate-700 cursor-pointer"
+                    className="h-10 px-4 rounded-xl border border-outline-variant bg-surface-container-low text-on-surface text-xs font-semibold flex items-center gap-1 hover:bg-surface-container-high cursor-pointer shadow-xs"
                   >
-                    <ArrowLeft size={14} /> Back
+                    <ArrowLeft size={14} /> {t('back', "Back")}
                   </button>
                   <button
                     type="submit" disabled={loading}
-                    className="flex-1 h-10 rounded-lg bg-[#00288e] hover:bg-[#001f70] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                    className="flex-1 h-10 rounded-xl bg-primary hover:bg-primary/90 text-on-primary font-bold text-xs shadow-[0_4px_14px_rgba(30,107,101,0.3)] flex items-center justify-center gap-2 transition cursor-pointer"
                   >
-                    {loading ? "Submitting..." : "Submit Application & Verify Email"}
+                    {loading ? t('submitting', "Submitting...") : t('submitAppVerifyEmail', "Submit Application & Verify Email")}
                     <Check size={14} />
                   </button>
                 </div>
@@ -1189,37 +1196,37 @@ export default function Signup() {
         {/* ─────────────────────────────────────────────────────────── */}
         {role === "Cooperative Admin" && (
           <div>
-            <StepBar step={step} total={3} labels={["Society Info", "Governance & Sector", "Documents"]} />
+            <StepBar step={step} total={3} labels={[t('societyInfo', "Society Info"), t('governance', "Governance & Sector"), t('documents', "Documents")]} />
             {/* STEP 1: Society Info */}
             {step === 1 && (
-              <form onSubmit={handleNextStep} className="space-y-2.5">
+              <form onSubmit={handleNextStep} className="space-y-3">
                 <button
                   type="button"
                   onClick={googleAutoFill}
                   disabled={loading}
-                  className="w-full h-9 px-3 rounded-lg border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+                  className="w-full h-10 px-3.5 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container-high text-on-surface text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
                 >
                   {GOOGLE_ICON}
-                  <span>{loading ? "Connecting…" : "Auto-fill with Google"}</span>
+                  <span>{loading ? t('signingIn', "Connecting…") : t('autoFillWithGoogle', "Auto-fill with Google")}</span>
                 </button>
-                <div className="flex items-center gap-2 my-1">
-                  <div className="h-px bg-slate-800 flex-1" />
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">or fill manually</span>
-                  <div className="h-px bg-slate-800 flex-1" />
+                <div className="flex items-center gap-2 my-1.5">
+                  <div className="h-px bg-outline-variant flex-1" />
+                  <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider">{t('orFillManually', "OR FILL MANUALLY")}</span>
+                  <div className="h-px bg-outline-variant flex-1" />
                 </div>
                 <div>
-                  <label className={labelCls}>Cooperative Society Legal Name *</label>
+                  <label className={labelCls}>{t('coopLegalName', "Cooperative Society Legal Name")} *</label>
                   <input
                     type="text" required value={form.coopName}
                     onChange={(e) => set("coopName", e.target.value)}
-                    placeholder="Enter society legal name"
+                    placeholder={t('enterCoopLegalName', "Enter society legal name")}
                     className={inputCls}
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className={labelCls}>Reg. ID (MSCS / State) *</label>
+                    <label className={labelCls}>{t('regIdMscs', "Reg. ID (MSCS / State)")} *</label>
                     <input
                       type="text" required value={form.registrationId}
                       onChange={(e) => set("registrationId", e.target.value)}
@@ -1228,7 +1235,7 @@ export default function Signup() {
                     />
                   </div>
                   <div>
-                    <label className={labelCls}>Official Contact Phone *</label>
+                    <label className={labelCls}>{t('officialContactPhone', "Official Contact Phone")} *</label>
                     <input
                       type="tel" required value={form.phone}
                       onChange={(e) => set("phone", e.target.value)}
@@ -1238,9 +1245,9 @@ export default function Signup() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className={labelCls}>State *</label>
+                    <label className={labelCls}>{t('state', "State")} *</label>
                     <input
                       type="text" required value={form.state}
                       onChange={(e) => set("state", e.target.value)}
@@ -1249,7 +1256,7 @@ export default function Signup() {
                     />
                   </div>
                   <div>
-                    <label className={labelCls}>District *</label>
+                    <label className={labelCls}>{t('district', "District")} *</label>
                     <input
                       type="text" required value={form.district}
                       onChange={(e) => set("district", e.target.value)}
@@ -1260,17 +1267,17 @@ export default function Signup() {
                 </div>
 
                 <div>
-                  <label className={labelCls}>Registered Office Address</label>
+                  <label className={labelCls}>{t('registeredOfficeAddress', "Registered Office Address")}</label>
                   <textarea
                     rows={2} value={form.coopAddress}
                     onChange={(e) => set("coopAddress", e.target.value)}
-                    placeholder="Full society office address"
+                    placeholder={t('fullOfficeAddressPlaceholder', "Full society office address")}
                     className={inputCls + " resize-none"}
                   />
                 </div>
 
                 <div>
-                  <label className={labelCls}>Year of Establishment</label>
+                  <label className={labelCls}>{t('yearOfEstablishment', "Year of Establishment")}</label>
                   <input
                     type="text" value={form.foundedYear}
                     onChange={(e) => set("foundedYear", e.target.value)}
@@ -1280,7 +1287,7 @@ export default function Signup() {
                 </div>
 
                 <div>
-                  <label className={labelCls}>Official Society Email *</label>
+                  <label className={labelCls}>{t('officialSocietyEmail', "Official Society Email")} *</label>
                   <input
                     type="email" required value={form.email}
                     onChange={(e) => set("email", e.target.value)}
@@ -1289,38 +1296,38 @@ export default function Signup() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className={labelCls}>Password *</label>
+                    <label className={labelCls}>{t('password', "Password")} *</label>
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"} required minLength={8}
                         value={form.password} onChange={(e) => set("password", e.target.value)}
-                        placeholder="8+ characters"
-                        className={inputCls + " pr-8"}
+                        placeholder={t('eightPlusChars', "8+ characters")}
+                        className={inputCls + " pr-9"}
                       />
                       <button
                         type="button" onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface"
                       >
-                        {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                        {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className={labelCls}>Confirm Password *</label>
+                    <label className={labelCls}>{t('confirmPassword', "Confirm Password")} *</label>
                     <div className="relative">
                       <input
                         type={showConfirmPassword ? "text" : "password"} required minLength={8}
                         value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)}
-                        placeholder="Re-enter password"
-                        className={inputCls + " pr-8"}
+                        placeholder={t('reEnterPassword', "Re-enter password")}
+                        className={inputCls + " pr-9"}
                       />
                       <button
                         type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface"
                       >
-                        {showConfirmPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                        {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
                     </div>
                   </div>
@@ -1328,9 +1335,9 @@ export default function Signup() {
 
                 <button
                   type="submit"
-                  className="w-full h-10 mt-2 rounded-lg bg-[#00288e] hover:bg-[#001f70] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                  className="w-full h-10 mt-3 rounded-xl bg-primary hover:bg-primary/90 text-on-primary font-bold text-xs shadow-[0_4px_14px_rgba(30,107,101,0.3)] flex items-center justify-center gap-2 transition cursor-pointer"
                 >
-                  <span>Next: Governance & Leadership</span>
+                  <span>{t('nextGovernance', "Next: Governance & Leadership")}</span>
                   <ArrowRight size={14} />
                 </button>
               </form>
@@ -1338,29 +1345,29 @@ export default function Signup() {
 
             {/* STEP 2: Governance & Sector */}
             {step === 2 && (
-              <form onSubmit={handleNextStep} className="space-y-2.5">
+              <form onSubmit={handleNextStep} className="space-y-3">
                 <div>
-                  <label className={labelCls}>President / Secretary Full Name *</label>
+                  <label className={labelCls}>{t('presidentSecretaryName', "President / Secretary Full Name")} *</label>
                   <input
                     type="text" required value={form.presidentName}
                     onChange={(e) => set("presidentName", e.target.value)}
-                    placeholder="Enter president's full name"
+                    placeholder={t('enterPresidentName', "Enter president's full name")}
                     className={inputCls}
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className={labelCls}>Society Secretary Name</label>
+                    <label className={labelCls}>{t('secretaryName', "Society Secretary Name")}</label>
                     <input
                       type="text" value={form.secretaryName}
                       onChange={(e) => set("secretaryName", e.target.value)}
-                      placeholder="Secretary of the society"
+                      placeholder={t('secretaryPlaceholder', "Secretary of the society")}
                       className={inputCls}
                     />
                   </div>
                   <div>
-                    <label className={labelCls}>Commission Rate (%)</label>
+                    <label className={labelCls}>{t('commissionRate', "Commission Rate (%)")}</label>
                     <input
                       type="number" step="0.5" min={0} max={50} value={form.commissionRate}
                       onChange={(e) => set("commissionRate", e.target.value)}
@@ -1370,13 +1377,13 @@ export default function Signup() {
                 </div>
 
                 <div>
-                  <label className={labelCls}>Cooperative Sector *</label>
+                  <label className={labelCls}>{t('coopSector', "Cooperative Sector")} *</label>
                   <select
                     value={form.sector}
                     onChange={(e) => set("sector", e.target.value)}
                     className={inputCls + " cursor-pointer"}
                   >
-                    <option value="" disabled>Select cooperative sector</option>
+                    <option value="" disabled>{t('selectCoopSector', "Select cooperative sector")}</option>
                     {COOP_SECTORS.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
@@ -1384,7 +1391,7 @@ export default function Signup() {
                 </div>
 
                 <div>
-                  <label className={labelCls}>Active Registered Worker Members *</label>
+                  <label className={labelCls}>{t('activeMemberCount', "Active Registered Worker Members")} *</label>
                   <input
                     type="number" min={5} value={form.memberCount}
                     onChange={(e) => set("memberCount", e.target.value)}
@@ -1393,18 +1400,18 @@ export default function Signup() {
                   />
                 </div>
 
-                <div className="flex gap-2 pt-1">
+                <div className="flex gap-2.5 pt-1">
                   <button
                     type="button" onClick={() => setStep(1)}
-                    className="h-10 px-4 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-xs font-semibold flex items-center gap-1 hover:bg-slate-700 cursor-pointer"
+                    className="h-10 px-4 rounded-xl border border-outline-variant bg-surface-container-low text-on-surface text-xs font-semibold flex items-center gap-1 hover:bg-surface-container-high cursor-pointer shadow-xs"
                   >
-                    <ArrowLeft size={14} /> Back
+                    <ArrowLeft size={14} /> {t('back', "Back")}
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 h-10 rounded-lg bg-[#00288e] hover:bg-[#001f70] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                    className="flex-1 h-10 rounded-xl bg-primary hover:bg-primary/90 text-on-primary font-bold text-xs shadow-[0_4px_14px_rgba(30,107,101,0.3)] flex items-center justify-center gap-2 transition cursor-pointer"
                   >
-                    <span>Next: Statutory Documents</span>
+                    <span>{t('nextStatutoryDocs', "Next: Statutory Documents")}</span>
                     <ArrowRight size={14} />
                   </button>
                 </div>
@@ -1413,10 +1420,10 @@ export default function Signup() {
 
             {/* STEP 3: Statutory Document Uploads */}
             {step === 3 && (
-              <form onSubmit={submitFinal} className="space-y-2.5">
-                <div className="grid grid-cols-2 gap-2">
+              <form onSubmit={submitFinal} className="space-y-3">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className={labelCls}>Registration Certificate *</label>
+                    <label className={labelCls}>{t('regCertDoc', "Registration Certificate")} *</label>
                     <FileUpload
                       label="Upload Reg. Cert"
                       folder="sahakargig/coop-docs"
@@ -1424,14 +1431,14 @@ export default function Signup() {
                       onSelect={(url) => set("coopRegDocUrl", url)}
                     />
                     {form.coopRegDocUrl && (
-                      <p className="text-[10.5px] text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                      <p className="text-[10.5px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
                         <CheckCircle2 size={12} /> Uploaded
                       </p>
                     )}
                   </div>
 
                   <div>
-                    <label className={labelCls}>Society Bylaws (PDF)</label>
+                    <label className={labelCls}>{t('societyBylawsPdf', "Society Bylaws (PDF)")}</label>
                     <FileUpload
                       label="Upload Bylaws"
                       folder="sahakargig/coop-docs"
@@ -1439,16 +1446,16 @@ export default function Signup() {
                       onSelect={(url) => set("bylawsDocUrl", url)}
                     />
                     {form.bylawsDocUrl && (
-                      <p className="text-[10.5px] text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                      <p className="text-[10.5px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
                         <CheckCircle2 size={12} /> Uploaded
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className={labelCls}>Account Holder Name</label>
+                    <label className={labelCls}>{t('accountHolderName', "Account Holder Name")}</label>
                     <input
                       type="text" value={form.bankHolderName}
                       onChange={(e) => set("bankHolderName", e.target.value)}
@@ -1457,7 +1464,7 @@ export default function Signup() {
                     />
                   </div>
                   <div>
-                    <label className={labelCls}>Bank Name</label>
+                    <label className={labelCls}>{t('bankName', "Bank Name")}</label>
                     <input
                       type="text" value={form.bankName}
                       onChange={(e) => set("bankName", e.target.value)}
@@ -1467,9 +1474,9 @@ export default function Signup() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className={labelCls}>Cooperative Bank A/C</label>
+                    <label className={labelCls}>{t('coopBankAcc', "Cooperative Bank A/C")}</label>
                     <input
                       type="text" value={form.bankAccount}
                       onChange={(e) => set("bankAccount", e.target.value)}
@@ -1478,7 +1485,7 @@ export default function Signup() {
                     />
                   </div>
                   <div>
-                    <label className={labelCls}>Bank IFSC Code</label>
+                    <label className={labelCls}>{t('bankIfscCode', "Bank IFSC Code")}</label>
                     <input
                       type="text" value={form.bankIfsc}
                       onChange={(e) => set("bankIfsc", e.target.value)}
@@ -1488,25 +1495,25 @@ export default function Signup() {
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-blue-950/40 border border-blue-800/60 text-[11px] text-blue-200">
-                  <p className="font-semibold text-blue-300 flex items-center gap-1 mb-0.5">
-                    <Building2 size={14} /> Federation Accreditation Review
+                <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-[11.5px] text-on-surface">
+                  <p className="font-bold text-primary flex items-center gap-1 mb-0.5">
+                    <Building2 size={14} /> {t('federationReviewTitle', "Federation Accreditation Review")}
                   </p>
-                  Your registration documents will be audited by the National Federation Board before accreditation activation.
+                  {t('federationReviewDesc', "Your registration documents will be audited by the National Federation Board before accreditation activation.")}
                 </div>
 
-                <div className="flex gap-2 pt-1">
+                <div className="flex gap-2.5 pt-1">
                   <button
                     type="button" onClick={() => setStep(2)}
-                    className="h-10 px-4 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-xs font-semibold flex items-center gap-1 hover:bg-slate-700 cursor-pointer"
+                    className="h-10 px-4 rounded-xl border border-outline-variant bg-surface-container-low text-on-surface text-xs font-semibold flex items-center gap-1 hover:bg-surface-container-high cursor-pointer shadow-xs"
                   >
-                    <ArrowLeft size={14} /> Back
+                    <ArrowLeft size={14} /> {t('back', "Back")}
                   </button>
                   <button
                     type="submit" disabled={loading}
-                    className="flex-1 h-10 rounded-lg bg-[#00288e] hover:bg-[#001f70] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                    className="flex-1 h-10 rounded-xl bg-primary hover:bg-primary/90 text-on-primary font-bold text-xs shadow-[0_4px_14px_rgba(30,107,101,0.3)] flex items-center justify-center gap-2 transition cursor-pointer"
                   >
-                    {loading ? "Submitting..." : "Submit Registration Application"}
+                    {loading ? t('submitting', "Submitting...") : t('submitRegApp', "Submit Registration Application")}
                     <Check size={14} />
                   </button>
                 </div>
@@ -1516,14 +1523,14 @@ export default function Signup() {
         )}
 
         {/* Footer Link */}
-        <div className="pt-1 text-center">
-          <p className="text-xs text-slate-400">
-            Already registered?{" "}
+        <div className="pt-2 text-center">
+          <p className="text-xs text-on-surface-variant font-medium">
+            {t('alreadyRegistered', "Already registered?")}{" "}
             <Link
               to="/login"
-              className="font-bold text-blue-400 hover:text-blue-300 hover:underline cursor-pointer ml-1"
+              className="font-bold text-primary hover:underline cursor-pointer ml-1"
             >
-              Sign In
+              {t('signIn', "Sign In")}
             </Link>
           </p>
         </div>

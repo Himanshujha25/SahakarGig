@@ -5,6 +5,7 @@ import {
   ShieldCheck, AlertTriangle, ArrowUpRight, TrendingUp,
   Landmark, ChevronRight
 } from 'lucide-react';
+import { SkeletonStats } from '../../components/UIStateComponents';
 
 export default function FederationDashboard() {
   const [data, setData] = useState(null);
@@ -25,12 +26,7 @@ export default function FederationDashboard() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="animate-pulse h-6 w-48 rounded-xl bg-surface-container" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse h-16 rounded-xl bg-surface-container" />
-          ))}
-        </div>
+        <SkeletonStats count={4} />
       </div>
     );
   }

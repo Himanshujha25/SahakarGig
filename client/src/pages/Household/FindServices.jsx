@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
+import { toast } from "../../lib/toast";
+import CustomSelect from "../../components/CustomSelect";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import FavoriteButton from "../../components/FavoriteButton";
 import { Search, SlidersHorizontal, Star, MapPin, Mic, MicOff, Heart, LocateFixed, Navigation, History, X, Map, List } from "lucide-react";
@@ -63,7 +65,7 @@ export default function FindServices() {
   const startVoiceSearch = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Voice search is not supported on this browser. Try Chrome or Edge.");
+      toast.warning("Voice search is not supported on this browser. Try Chrome or Edge.");
       return;
     }
 
@@ -403,20 +405,17 @@ export default function FindServices() {
           {locStatus === "on" ? (
             <>
               {/* Radius selector */}
-              <label className="inline-flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-[13px] font-semibold text-on-surface">
-                <Navigation size={14} className="text-primary" />
-                <span className="text-on-surface-variant">Radius</span>
-                <select
+              <div className="flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface-container-low px-3 py-1 text-[13px] font-semibold text-on-surface">
+                <Navigation size={14} className="text-primary shrink-0" />
+                <span className="text-on-surface-variant shrink-0">Radius:</span>
+                <CustomSelect
                   value={radius}
                   onChange={(e) => setRadius(Number(e.target.value))}
-                  className="bg-transparent text-[13px] font-bold text-on-surface outline-none cursor-pointer"
-                  aria-label="Search radius"
-                >
-                  {RADII.map((r) => (
-                    <option key={r} value={r}>{r} km</option>
-                  ))}
-                </select>
-              </label>
+                  size="sm"
+                  options={RADII.map((r) => ({ value: r, label: `${r} km` }))}
+                  className="w-24"
+                />
+              </div>
               <button
                 type="button"
                 onClick={clearLocation}
@@ -452,6 +451,16 @@ export default function FindServices() {
               isListening ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-outline-variant"
             }`}
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => { setQuery(""); commitSearch(""); }}
+              className="absolute right-10 top-1/2 -translate-y-1/2 p-1 rounded-lg text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
+              title="Clear search query"
+            >
+              <X size={14} />
+            </button>
+          )}
           <button
             type="button"
             onClick={startVoiceSearch}
@@ -563,51 +572,52 @@ export default function FindServices() {
             </label>
 
             {/* Min rating */}
-            <label className="flex flex-col gap-1 rounded-xl border border-outline-variant/60 bg-surface-container-low px-3 py-2.5">
-              <span className="text-[12px] font-bold text-on-surface-variant">Min rating</span>
-              <select
+            <div className="flex flex-col gap-1 rounded-xl border border-outline-variant/60 bg-surface-container-low px-3 py-2">
+              <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Min rating</span>
+              <CustomSelect
                 value={minRating}
                 onChange={(e) => setMinRating(Number(e.target.value))}
-                className="bg-transparent text-[13px] font-bold text-on-surface outline-none cursor-pointer"
-              >
-                <option value={0}>Any</option>
-                <option value={4.5}>4.5+ ★</option>
-                <option value={4}>4.0+ ★</option>
-                <option value={3.5}>3.5+ ★</option>
-                <option value={3}>3.0+ ★</option>
-              </select>
-            </label>
+                size="sm"
+                options={[
+                  { value: 0, label: "Any" },
+                  { value: 4.5, label: "4.5+ ★" },
+                  { value: 4, label: "4.0+ ★" },
+                  { value: 3.5, label: "3.5+ ★" },
+                  { value: 3, label: "3.0+ ★" },
+                ]}
+              />
+            </div>
 
             {/* Max rate */}
-            <label className="flex flex-col gap-1 rounded-xl border border-outline-variant/60 bg-surface-container-low px-3 py-2.5">
-              <span className="text-[12px] font-bold text-on-surface-variant">Max rate / hr</span>
-              <select
+            <div className="flex flex-col gap-1 rounded-xl border border-outline-variant/60 bg-surface-container-low px-3 py-2">
+              <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Max rate / hr</span>
+              <CustomSelect
                 value={maxRate}
                 onChange={(e) => setMaxRate(Number(e.target.value))}
-                className="bg-transparent text-[13px] font-bold text-on-surface outline-none cursor-pointer"
-              >
-                <option value={0}>Any</option>
-                <option value={200}>Under ₹200</option>
-                <option value={300}>Under ₹300</option>
-                <option value={400}>Under ₹400</option>
-                <option value={500}>Under ₹500</option>
-              </select>
-            </label>
+                size="sm"
+                options={[
+                  { value: 0, label: "Any" },
+                  { value: 200, label: "Under ₹200" },
+                  { value: 300, label: "Under ₹300" },
+                  { value: 400, label: "Under ₹400" },
+                  { value: 500, label: "Under ₹500" },
+                ]}
+              />
+            </div>
 
             {/* Cooperative */}
-            <label className="flex flex-col gap-1 rounded-xl border border-outline-variant/60 bg-surface-container-low px-3 py-2.5">
-              <span className="text-[12px] font-bold text-on-surface-variant">Cooperative</span>
-              <select
+            <div className="flex flex-col gap-1 rounded-xl border border-outline-variant/60 bg-surface-container-low px-3 py-2">
+              <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Cooperative</span>
+              <CustomSelect
                 value={coopId}
                 onChange={(e) => setCoopId(e.target.value)}
-                className="bg-transparent text-[13px] font-bold text-on-surface outline-none cursor-pointer truncate"
-              >
-                <option value="">Any</option>
-                {cooperatives.map((c) => (
-                  <option key={c._id} value={c._id}>{c.name}</option>
-                ))}
-              </select>
-            </label>
+                size="sm"
+                options={[
+                  { value: "", label: "Any" },
+                  ...cooperatives.map((c) => ({ value: c._id, label: c.name })),
+                ]}
+              />
+            </div>
           </div>
 
           {/* Available today */}

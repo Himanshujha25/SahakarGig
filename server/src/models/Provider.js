@@ -39,6 +39,17 @@ const providerSchema = new mongoose.Schema(
         notes: { type: String },
       },
     ],
+    completedCertifications: [
+      {
+        courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'CertificationCourse' },
+        title: { type: String, required: true },
+        badgeName: { type: String, required: true },
+        certifiedBy: { type: String, default: 'Cooperative Society' },
+        certificateNo: { type: String, required: true },
+        scorePercent: { type: Number, default: 100 },
+        completedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

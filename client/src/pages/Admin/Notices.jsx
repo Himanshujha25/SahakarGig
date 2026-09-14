@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/api";
+import CustomSelect from "../../components/CustomSelect";
+import ConfirmModal from "../../components/ConfirmModal";
 import {
   Megaphone, Plus, Bell, FileText, Calendar,
   Users, CheckCircle2, AlertCircle, Trash2, X,
@@ -75,15 +77,25 @@ export default function CooperativeNotices() {
     }
   }
 
-  async function handleDeleteNotice(id) {
-    if (!window.confirm("Delete this notice?")) return;
-    try {
-      await api.delete(`/admin/notices/${id}`);
-      showToast("Notice deleted.");
-      load();
-    } catch (err) {
-      showToast("Failed to delete notice.");
-    }
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: "", message: "", type: "danger", onConfirm: () => {} });
+
+  function handleDeleteNotice(id) {
+    setConfirmState({
+      isOpen: true,
+      title: "Delete Notice?",
+      message: "Are you sure you want to delete this notice? This action cannot be undone.",
+      type: "danger",
+      confirmText: "Delete",
+      onConfirm: async () => {
+        try {
+          await api.delete(`/admin/notices/${id}`);
+          showToast("Notice deleted.");
+          load();
+        } catch (err) {
+          showToast("Failed to delete notice.");
+        }
+      },
+    });
   }
 
   async function handleUploadMinutes(e) {
@@ -326,29 +338,29 @@ export default function CooperativeNotices() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="font-bold text-slate-700 uppercase">Category</label>
-                  <select
+                  <CustomSelect
                     value={noticeCategory}
                     onChange={(e) => setNoticeCategory(e.target.value)}
-                    className="w-full h-11 rounded-2xl border border-slate-200 px-4 font-semibold text-slate-900 bg-slate-50 outline-none"
-                  >
-                    <option value="General">General Notice</option>
-                    <option value="Compliance">Compliance &amp; Documents</option>
-                    <option value="Payout">Payout &amp; Earnings</option>
-                    <option value="Training">Skill Upskilling / Training</option>
-                  </select>
+                    options={[
+                      { value: "General", label: "General Notice" },
+                      { value: "Compliance", label: "Compliance & Documents" },
+                      { value: "Payout", label: "Payout & Earnings" },
+                      { value: "Training", label: "Skill Upskilling / Training" },
+                    ]}
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="font-bold text-slate-700 uppercase">Priority</label>
-                  <select
+                  <CustomSelect
                     value={noticePriority}
                     onChange={(e) => setNoticePriority(e.target.value)}
-                    className="w-full h-11 rounded-2xl border border-slate-200 px-4 font-semibold text-slate-900 bg-slate-50 outline-none"
-                  >
-                    <option value="Normal">Normal</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent Alert</option>
-                  </select>
+                    options={[
+                      { value: "Normal", label: "Normal" },
+                      { value: "High", label: "High" },
+                      { value: "Urgent", label: "Urgent Alert" },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -466,6 +478,11 @@ export default function CooperativeNotices() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        {...confirmState}
+        onClose={() => setConfirmState((p) => ({ ...p, isOpen: false }))}
+      />
     </div>
   );
 }
