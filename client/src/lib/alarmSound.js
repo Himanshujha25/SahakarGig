@@ -73,6 +73,16 @@ export function stopSiren() {
   } catch {}
 }
 
+// Backward-compatible aliases used by older callers in the app
+export function stopAlarmSound() {
+  stopSiren();
+}
+
+export function playAlarmSound(enabled = true, durationSec = 20) {
+  if (enabled === false) return false;
+  return playSiren(durationSec);
+}
+
 // ── 2. Play Synthesized High-Pitch Emergency Siren ──────────────────
 export async function playSiren(durationSec = 20) {
   stopSiren();

@@ -8,7 +8,13 @@ import {
   ShieldCheck, FileCheck2, Building, UserCheck, ExternalLink, RefreshCw
 } from "lucide-react";
 
-import { playSiren, stopSiren, triggerJobAlert } from "../../lib/alarmSound";
+import {
+  playAlarmSound,
+  playSiren,
+  stopAlarmSound,
+  stopSiren,
+  triggerJobAlert,
+} from "../../lib/alarmSound";
 
 // ── Push Notification Dispatch ──────────────────────────────────────
 async function pushNotify(title, body) {

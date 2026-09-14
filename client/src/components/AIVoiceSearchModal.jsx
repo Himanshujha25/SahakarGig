@@ -238,8 +238,8 @@ export default function AIVoiceSearchModal({ isOpen, onClose, initialQuery = "" 
   const CategoryIcon = meta?.icon || Zap;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0d1c2e]/60 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-lg rounded-3xl border border-[#c4c5d5]/70 bg-white text-[#0d1c2e] p-6 sm:p-8 shadow-[0_24px_64px_rgba(0,40,142,0.18)] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center min-h-screen p-4 bg-[#0d1c2e]/60 backdrop-blur-md animate-fadeIn">
+      <div className="relative w-full max-w-lg max-h-[85vh] rounded-3xl border border-[#c4c5d5]/70 bg-white text-[#0d1c2e] p-6 sm:p-8 shadow-[0_24px_64px_rgba(0,40,142,0.18)] overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
