@@ -51,6 +51,11 @@ async function chatWithGroq(req, res) {
   return res.json(result);
 }
 
+async function aiStatus(req, res) {
+  const { getAIStatus } = require('../lib/llm');
+  return res.json({ ok: true, ...getAIStatus(), time: new Date().toISOString() });
+}
+
 async function recommendProviders(req, res) {
   const householdId = req.user?.userId;
   const bookings = await Booking.find({ householdId }).select('service status').lean();
@@ -162,6 +167,7 @@ module.exports = {
   demandForecast,
   nudgeProviders,
   chatWithGroq,
+  aiStatus,
   recommendProviders,
   translateContent,
   estimatePrice,

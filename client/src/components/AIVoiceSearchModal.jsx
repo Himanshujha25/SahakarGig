@@ -12,6 +12,7 @@ const CATEGORY_META = {
   Electrician: { icon: Zap, bg: "bg-[#e8edff] border-[#00288e]/30 text-[#00288e]" },
   Plumber:     { icon: Wrench, bg: "bg-[#e0f2fe] border-[#0284c7]/30 text-[#0284c7]" },
   Cook:        { icon: Utensils, bg: "bg-[#ffedd5] border-[#ea580c]/30 text-[#ea580c]" },
+  'AC Repair': { icon: Zap, bg: "bg-[#e0f2fe] border-[#0284c7]/30 text-[#0284c7]" },
   Tutor:       { icon: GraduationCap, bg: "bg-[#f3e8ff] border-[#7c3aed]/30 text-[#7c3aed]" },
   Cleaner:     { icon: CheckCircle2, bg: "bg-[#ccfbf1] border-[#0d9488]/30 text-[#0d9488]" },
   Caregiver:   { icon: HeartPulse, bg: "bg-[#ffe4e6] border-[#e11d48]/30 text-[#e11d48]" },
@@ -20,6 +21,45 @@ const CATEGORY_META = {
   Carpenter:   { icon: Hammer, bg: "bg-[#fef3c7] border-[#d97706]/30 text-[#d97706]" },
   Painter:     { icon: Palette, bg: "bg-[#fae8ff] border-[#c084fc]/30 text-[#c084fc]" },
 };
+
+// ── Instant on-device multi-intent matcher (0ms, runs every keystroke / speech chunk)
+// Mirrors server MULTI_INTENT_RULES so UI feels real-time even before cloud replies.
+const INSTANT_RULES = [
+  { category: 'Electrician', reason: 'Bijli / light / switch issue — Electrician book karo', kws: ['electric','electri','bijli','bijali','light','lait','current','karant','switch','swich','short','fan','pankha','wiring','fuse','bulb','बिजली','लाइट','स्विच','पंखा'] },
+  { category: 'Plumber', reason: 'Nal / tap / paani leakage — Plumber turant book karo', kws: ['plumb','plambar','pulamber','pulambar','pipe','paip','leak','lik','paani','pani','water','tap','tapka','nal','nul','flush','drain','dren','sink','tank','tanki','sewage','basin','kharab','kharb','tuti','पानी','नल','लीक','टंकी','खराब','प्लंबर'] },
+  { category: 'Cook', reason: 'Bhook / khana — Home Cook se fresh meal book karo', kws: ['cook','kuk','khana','khaana','rasoi','chef','roti','food','fud','kitchen','lunch','dinner','nashta','masi','maasi','bhook','bhukh','bhookh','bhuk','hunger','hungry','meal','dabba','tiffin','भूख','खाना','रसोई','टिफिन'] },
+  { category: 'Cleaner', reason: 'Safai / jhadu-pocha — Cleaner book karo', kws: ['clean','klin','safai','pocha','jhadu','dusting','bathroom','laundry','सफाई','झाडू','पोछा'] },
+  { category: 'Tutor', reason: 'Padhai / tuition — verified Tutor book karo', kws: ['tutor','tution','tuition','study','teacher','math','padhana','padhai','exam','class','school','पढ़ाई','टीचर'] },
+  { category: 'Caregiver', reason: 'Buzurg / patient dekhbhal — Caregiver book karo', kws: ['care','elder','bujurg','nurse','dada','dadi','patient','senior','bimar','dekhbhal','नर्स','बुजुर्ग','बीमार'] },
+  { category: 'Driver', reason: 'Gaadi / travel — verified Driver book karo', kws: ['driver','draivar','gaddi','gadi','gaadi','car','travel','drive','tour','cab','ड्राइवर','गाड़ी'] },
+  { category: 'Gardener', reason: 'Paudhe / lawn — Gardener book karo', kws: ['garden','paudhe','plant','mali','grass','lawn','flower','phool','माली','पौधे'] },
+  { category: 'Carpenter', reason: 'Lakdi / furniture — Carpenter book karo', kws: ['carpent','badai','wood','lakdi','furniture','door','table','chair','lock','darwaza','बढ़ई','लकड़ी','फर्नीचर'] },
+  { category: 'Painter', reason: 'Deewar / paint — Painter book karo', kws: ['paint','pent','color','colour','wall','diwar','deewar','putty','रंग','दीवार','पेंट'] },
+  { category: 'AC Repair', reason: 'AC cooling issue — AC expert book karo', kws: ['ac ','a.c','air condition','cooling','cool','fridge','एसी'] },
+];
+
+function instantMultiClassify(text) {
+  if (!text || !text.trim()) return [];
+  const norm = ` ${text.toLowerCase().replace(/[^a-z\u0900-\u097F\s]/g, ' ').replace(/\s+/g, ' ')} `;
+  const hits = [];
+  for (const r of INSTANT_RULES) {
+    let score = 0;
+    for (const k of r.kws) {
+      if (k.length <= 2) continue;
+      if (norm.includes(k)) score += k.length > 4 ? 3 : 2;
+    }
+    if (score > 0) hits.push({ ...r, score });
+  }
+  hits.sort((a, b) => b.score - a.score);
+  const emerg = /urgent|emergenc|turant|short|burst|paani nahi/.test(norm);
+  return hits.slice(0, 3).map((h) => ({
+    category: h.category,
+    reason: h.reason,
+    isEmergency: emerg,
+    confidence: h.score >= 6 ? '99.2%' : '94.0%',
+    live: true,
+  }));
+}
 
 const INTENT_RULES = [
   {
@@ -128,30 +168,46 @@ export default function AIVoiceSearchModal({ isOpen, onClose, initialQuery = "" 
   const [isListening, setIsListening] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [parsedIntent, setParsedIntent] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [aiReply, setAiReply] = useState("");
+  const [aiVia, setAiVia] = useState("");
   const recognitionRef = useRef(null);
   const debounceTimerRef = useRef(null);
+  const lastCloudTextRef = useRef("");
 
   async function analyzeWithGroq(text) {
     if (!text || !text.trim()) {
       setParsedIntent(null);
+      setSuggestions([]);
+      setAiReply("");
       return;
     }
+    lastCloudTextRef.current = text;
     setIsAnalyzing(true);
     try {
       const { data } = await api.post("/ai/chat", { message: text });
-      if (data && data.actionCategory) {
-        setParsedIntent({
-          category: data.actionCategory,
-          reason: data.reason || `${data.actionCategory} service intent classified`,
-          isEmergency: !!data.isEmergency,
-          confidence: data.confidence || "99.2%",
-          reply: data.reply,
-        });
-      } else {
-        setParsedIntent(fallbackClassify(text));
+      if (lastCloudTextRef.current !== text) return; // stale response guard
+      const cloudSugs = Array.isArray(data?.suggestions) && data.suggestions.length
+        ? data.suggestions
+        : data?.actionCategory
+          ? [{ category: data.actionCategory, reason: data.reason || `${data.actionCategory} service intent`, isEmergency: !!data.isEmergency, confidence: data.confidence || '98.5%' }]
+          : [];
+      // Merge: cloud first, then any instant hits cloud missed (e.g. 2nd intent)
+      const instant = instantMultiClassify(text);
+      const merged = [...cloudSugs];
+      for (const s of instant) {
+        if (merged.length >= 3) break;
+        if (!merged.some((m) => m.category === s.category)) merged.push({ ...s, live: false });
       }
+      const finalSugs = merged.slice(0, 3);
+      setSuggestions(finalSugs);
+      setParsedIntent(finalSugs[0] ? { category: finalSugs[0].category, reason: finalSugs[0].reason, isEmergency: finalSugs[0].isEmergency, confidence: finalSugs[0].confidence, reply: data?.reply } : fallbackClassify(text));
+      setAiReply(data?.reply || "");
+      setAiVia(data?.via || "");
     } catch {
-      setParsedIntent(fallbackClassify(text));
+      const instant = instantMultiClassify(text);
+      setSuggestions(instant);
+      setParsedIntent(instant[0] ? { category: instant[0].category, reason: instant[0].reason, isEmergency: instant[0].isEmergency, confidence: instant[0].confidence } : fallbackClassify(text));
     } finally {
       setIsAnalyzing(false);
     }
@@ -159,10 +215,21 @@ export default function AIVoiceSearchModal({ isOpen, onClose, initialQuery = "" 
 
   function handleQueryUpdate(newText) {
     setTranscript(newText);
+    // 1) INSTANT real-time path (0ms): show dynamic suggestions as user speaks/types
+    const instant = instantMultiClassify(newText);
+    if (instant.length) {
+      setSuggestions(instant);
+      setParsedIntent({ category: instant[0].category, reason: instant[0].reason, isEmergency: instant[0].isEmergency, confidence: instant[0].confidence });
+    } else if (!newText.trim()) {
+      setSuggestions([]);
+      setParsedIntent(null);
+      setAiReply("");
+    }
+    // 2) Debounced cloud path (Gemini/Groq): enriches reply + confirms intents
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
       analyzeWithGroq(newText);
-    }, 300);
+    }, 450);
   }
 
   useEffect(() => {
@@ -196,21 +263,33 @@ export default function AIVoiceSearchModal({ isOpen, onClose, initialQuery = "" 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       try {
+        if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
         const rec = new SpeechRecognition();
-        rec.continuous = false;
+        rec.continuous = true;
         rec.interimResults = true;
         rec.lang = "hi-IN";
+        rec.maxAlternatives = 1;
 
         rec.onstart = () => setIsListening(true);
         rec.onresult = (event) => {
-          let current = "";
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            current += event.results[i][0].transcript;
+          // Accumulate ALL finals + current interim so multi-sentence Hinglish stays live
+          let interim = "";
+          let fin = "";
+          for (let i = 0; i < event.results.length; i++) {
+            const t = event.results[i][0].transcript;
+            if (event.results[i].isFinal) fin += t + " ";
+            else interim += t;
           }
-          handleQueryUpdate(current);
+          handleQueryUpdate((fin + interim).trim());
         };
         rec.onerror = () => setIsListening(false);
-        rec.onend = () => setIsListening(false);
+        rec.onend = () => {
+          // Auto-restart while modal open & user still wants mic (mobile Chrome quirk)
+          if (recognitionRef.current === rec && isOpen) {
+            try { rec.start(); return; } catch {}
+          }
+          setIsListening(false);
+        };
 
         recognitionRef.current = rec;
         rec.start();
@@ -231,11 +310,11 @@ export default function AIVoiceSearchModal({ isOpen, onClose, initialQuery = "" 
     setIsListening(false);
   }
 
-  function handleDispatchRedirect() {
-    const cat = parsedIntent?.category || "Electrician";
-    const emergency = parsedIntent?.isEmergency ? "true" : "false";
+  function handleDispatchRedirect(catOverride, emergOverride) {
+    const cat = catOverride || parsedIntent?.category || suggestions[0]?.category || "Electrician";
+    const emerg = emergOverride ?? parsedIntent?.isEmergency ?? suggestions[0]?.isEmergency ?? false;
     onClose();
-    const targetUrl = `/household/dispatch?category=${encodeURIComponent(cat)}&emergency=${emergency}`;
+    const targetUrl = `/household/dispatch?category=${encodeURIComponent(cat)}&emergency=${emerg ? "true" : "false"}`;
     if (!user) {
       navigate(`/signup?role=Household&redirect=${encodeURIComponent(targetUrl)}`);
       return;
@@ -245,43 +324,40 @@ export default function AIVoiceSearchModal({ isOpen, onClose, initialQuery = "" 
 
   if (!isOpen) return null;
 
-  const meta = parsedIntent?.category ? CATEGORY_META[parsedIntent.category] || CATEGORY_META.Electrician : null;
-  const CategoryIcon = meta?.icon || Zap;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center min-h-screen p-4 bg-[#0d1c2e]/60 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-lg max-h-[85vh] rounded-3xl border border-[#c4c5d5]/70 bg-white text-[#0d1c2e] p-6 sm:p-8 shadow-[0_24px_64px_rgba(0,40,142,0.18)] overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center min-h-screen px-4 pt-[84px] pb-6 bg-black/60 backdrop-blur-md animate-fadeIn overflow-y-auto">
+      <div className="relative w-full max-w-lg max-h-[calc(100vh-110px)] rounded-2xl border border-outline-variant bg-surface text-on-surface p-6 sm:p-7 shadow-2xl overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 w-9 h-9 rounded-full bg-[#f8f9ff] text-[#444653] hover:text-[#00288e] hover:bg-[#e8edff] flex items-center justify-center transition-all cursor-pointer border border-[#c4c5d5]/50"
+          aria-label="Close voice search"
+          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-surface-container text-on-surface-variant hover:text-primary hover:bg-primary-container flex items-center justify-center transition-all cursor-pointer border border-outline-variant"
         >
           <X size={18} />
         </button>
 
-        {/* Official Institutional Badge */}
-        <div className="flex items-center gap-2 mb-6">
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e8edff] border border-[#00288e]/20 text-xs font-bold text-[#00288e]">
-            <Building2 size={14} className="text-[#00288e]" />
+        {/* Institutional Badge — app tokens */}
+        <div className="flex items-center gap-2 mb-5 pr-10">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-container border border-primary/20 text-xs font-bold text-primary">
+            <Building2 size={14} />
             <span>Ministry of Cooperation</span>
-            <span className="w-1 h-1 rounded-full bg-[#00288e]/40" />
-            <span className="text-[#444653]">Voice Intent Parser</span>
+            <span className="w-1 h-1 rounded-full bg-primary/40" />
+            <span className="text-on-surface-variant font-semibold">Voice Intent Parser</span>
           </span>
         </div>
 
         {/* Microphone Station */}
-        <div className="flex flex-col items-center justify-center text-center my-6">
+        <div className="flex flex-col items-center justify-center text-center my-5">
           <div className="relative mb-4">
             {isListening && (
-              <div className="absolute -inset-3 rounded-full border-2 border-[#00288e]/30 animate-pulse" />
+              <div className="absolute -inset-3 rounded-full border-2 border-primary/30 animate-ping" />
             )}
             <button
               type="button"
               onClick={isListening ? stopListening : startListening}
-              className={`relative z-10 w-20 h-20 rounded-full flex items-center justify-center text-white shadow-md transition-all duration-200 cursor-pointer ${
-                isListening
-                  ? "bg-[#00288e] scale-105"
-                  : "bg-[#00288e] hover:bg-[#173bab]"
+              aria-label={isListening ? 'Stop listening' : 'Start voice search'}
+              className={`relative z-10 w-20 h-20 rounded-full flex items-center justify-center bg-primary text-on-primary shadow-[0_10px_25px_rgba(0,40,142,0.35)] transition-all duration-200 cursor-pointer hover:opacity-90 active:scale-95 ${
+                isListening ? 'scale-105' : ''
               }`}
             >
               {isListening ? (
@@ -292,27 +368,28 @@ export default function AIVoiceSearchModal({ isOpen, onClose, initialQuery = "" 
             </button>
           </div>
 
-          <p className="text-[15px] font-bold text-[#0d1c2e] tracking-tight">
-            {isListening ? "Listening (Hindi / English)…" : "Tap Microphone to Speak"}
+          <p className="text-[15px] font-bold text-on-surface tracking-tight">
+            {isListening ? 'Listening (Hindi / English)…' : 'Tap Microphone to Speak'}
           </p>
-          <p className="text-[12.5px] text-[#757684] mt-0.5">
-            Speak your requirement: <span className="italic text-[#00288e] font-semibold">"मेरा पानी नहीं आ रहा घर में"</span>
+          <p className="text-[12.5px] text-on-surface-variant mt-1">
+            Speak your requirement: <span className="italic text-primary font-semibold">"मेरा पानी नहीं आ रहा घर में"</span>
           </p>
         </div>
 
-        {/* Input Bar */}
-        <div className="relative mb-6">
+        {/* Input Bar — app .input token */}
+        <div className="relative mb-5">
           <input
             type="text"
             value={transcript}
             onChange={(e) => handleQueryUpdate(e.target.value)}
             placeholder="Or type here e.g. Mera paani nahi aa raha…"
-            className="w-full h-12 pl-4 pr-10 rounded-2xl border border-[#c4c5d5]/80 bg-[#f8f9ff] text-[14px] font-medium text-[#0d1c2e] outline-none focus:border-[#00288e] focus:bg-white focus:ring-2 focus:ring-[#00288e]/10 transition-all"
+            className="input pr-10"
           />
           {transcript && (
             <button
-              onClick={() => handleQueryUpdate("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#757684] hover:text-[#0d1c2e] cursor-pointer"
+              onClick={() => handleQueryUpdate('')}
+              aria-label="Clear search text"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface cursor-pointer"
             >
               <X size={16} />
             </button>
@@ -321,90 +398,86 @@ export default function AIVoiceSearchModal({ isOpen, onClose, initialQuery = "" 
 
         {/* AI Analyzing Indicator */}
         {isAnalyzing && (
-          <div className="flex items-center justify-center gap-2 p-3 text-[13px] font-semibold text-[#00288e]">
+          <div className="flex items-center justify-center gap-2 p-3 text-[13px] font-semibold text-primary">
             <LoaderCircle size={16} className="animate-spin" />
-            <span>Analyzing service intent…</span>
+            <span>{suggestions.length ? 'Confirming with AI…' : 'Analyzing service intent…'} {aiVia ? `(${aiVia})` : ''}</span>
           </div>
         )}
 
-        {/* Intent Result Card */}
-        {parsedIntent && parsedIntent.category && !isAnalyzing && (
-          <div className="rounded-2xl border border-[#00288e]/20 bg-[#f0f4ff] p-5 space-y-4 shadow-sm animate-fadeIn">
-            {/* Top Meta Bar */}
+        {/* Dynamic multi-service suggestion cards (AI reply text hidden — cards only) */}
+        {suggestions.length > 0 && (
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#00288e] flex items-center gap-1.5">
-                Service Intent Classified
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-primary">
+                {suggestions.length > 1 ? `${suggestions.length} Services Detected — Book Each` : 'Service Intent Classified'}
               </span>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#00288e] text-white">
-                {parsedIntent.confidence || "99.2% Match"}
-              </span>
+              <span className="text-[10.5px] font-semibold text-on-surface-variant">live suggestions</span>
             </div>
-
-            {/* Category & Reason Row */}
-            <div className="flex items-start gap-3.5">
-              <div className={`w-12 h-12 rounded-2xl ${meta?.bg || 'bg-[#e8edff] text-[#00288e]'} flex items-center justify-center shrink-0 border`}>
-                <CategoryIcon size={24} strokeWidth={2.2} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="text-[20px] font-extrabold text-[#0d1c2e] tracking-tight">
-                    {parsedIntent.category}
-                  </h4>
-                  {parsedIntent.isEmergency ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-600 text-white">
-                      <Flame size={11} fill="currentColor" /> Emergency Priority
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-700 text-white">
-                      <CheckCircle2 size={11} /> Ready for Dispatch
-                    </span>
-                  )}
+            {suggestions.map((s) => {
+              const m = CATEGORY_META[s.category] || CATEGORY_META.Electrician;
+              const Ico = m.icon || Zap;
+              return (
+                <div key={s.category} className="card p-4 space-y-3 animate-fadeIn">
+                  <div className="flex items-start gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-primary-container text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                      <Ico size={22} strokeWidth={2.2} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-[18px] font-extrabold text-on-surface tracking-tight">{s.category}</h4>
+                        {s.isEmergency ? (
+                          <span className="badge-emergency status-pill">
+                            <Flame size={11} fill="currentColor" /> Emergency
+                          </span>
+                        ) : (
+                          <span className="badge-completed status-pill">
+                            <CheckCircle2 size={11} /> Ready
+                          </span>
+                        )}
+                        <span className="status-pill bg-primary text-on-primary">{s.confidence || '98%'}</span>
+                      </div>
+                      <p className="text-[12.5px] text-on-surface-variant mt-1 leading-relaxed">{s.reason}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleDispatchRedirect(s.category, s.isEmergency)}
+                      className="btn-primary flex-1 !h-10 !text-[13px]"
+                    >
+                      <span>Book {s.category} Now</span>
+                      <ArrowRight size={14} strokeWidth={2.5} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { onClose(); navigate(`/household/find?query=${encodeURIComponent(s.category)}`); }}
+                      className="btn-secondary flex-1 !h-10 !text-[13px]"
+                    >
+                      <span>Find in Directory</span>
+                    </button>
+                  </div>
                 </div>
-                <p className="text-[13px] text-[#444653] mt-1 leading-relaxed">
-                  {parsedIntent.reason || parsedIntent.reply}
-                </p>
-              </div>
-            </div>
-
-            {/* Primary Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={handleDispatchRedirect}
-                className="flex-1 h-11 rounded-xl bg-[#00288e] text-white font-bold text-[13.5px] flex items-center justify-center gap-2 hover:bg-[#173bab] active:scale-[0.99] transition-all cursor-pointer shadow-sm"
-              >
-                <span>Broadcast {parsedIntent.category} Now</span>
-                <ArrowRight size={15} strokeWidth={2.5} />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  navigate(`/household/find?query=${encodeURIComponent(parsedIntent.category || '')}`);
-                }}
-                className="flex-1 h-11 rounded-xl bg-[#e8edff] text-[#00288e] border border-[#00288e]/30 font-bold text-[13.5px] flex items-center justify-center gap-1.5 hover:bg-[#d7e3ff] active:scale-[0.99] transition-all cursor-pointer"
-              >
-                <span>Find in Directory</span>
-              </button>
-            </div>
+              );
+            })}
           </div>
         )}
 
         {/* Footer Quick Test Pills */}
-        <div className="mt-5 pt-4 border-t border-[#c4c5d5]/50 flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-bold text-[#757684]">Sample Queries:</span>
+        <div className="mt-5 pt-4 border-t border-outline-variant flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-bold text-on-surface-variant">Try:</span>
           {[
-            "Mere ghar me electric nahi hai",
-            "मेरा पानी नहीं आ रहा घर में",
-            "मुझे खाना बनाने के लिए कुक चाहिए",
+            'Mujhe bhook lagi hai mere ghar ka tap kharab ho gaya hai',
+            'Mere ghar me electric nahi hai',
+            'मेरा पानी नहीं आ रहा घर में',
+            'मुझे खाना बनाने के लिए कुक चाहिए',
           ].map((sample) => (
             <button
               key={sample}
               type="button"
               onClick={() => handleQueryUpdate(sample)}
-              className="text-[11.5px] font-semibold text-[#00288e] bg-[#e8edff] hover:bg-[#d7e3ff] px-2.5 py-1 rounded-lg transition-all cursor-pointer"
+              className="text-[11.5px] font-semibold text-primary bg-primary-container hover:opacity-80 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
             >
-              "{sample}"
+              &ldquo;{sample}&rdquo;
             </button>
           ))}
         </div>

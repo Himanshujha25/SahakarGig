@@ -3,6 +3,7 @@ const c = require('../controllers/aiController');
 const auth = require('../middleware/auth');
 const asyncHandler = require('../middleware/error');
 
+router.get('/status', asyncHandler(c.aiStatus));
 router.get('/demand', auth, asyncHandler(c.demandForecast));
 router.get('/recommend', auth, asyncHandler(c.recommendProviders));
 router.post('/nudge', auth, asyncHandler(c.nudgeProviders));
