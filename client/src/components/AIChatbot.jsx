@@ -330,10 +330,10 @@ export default function AIChatbot() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 rounded-full bg-primary text-on-primary shadow-[0_8px_30px_rgba(0,0,0,0.35)] hover:opacity-90 hover:scale-110 active:scale-95 transition-all cursor-pointer border border-white/10 flex items-center justify-center group"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 rounded-full bg-[#c7d2fe]/85 dark:bg-white/10 backdrop-blur-xl text-[#1e40af] dark:text-white border border-white/50 dark:border-white/15 shadow-[0_8px_30px_rgba(15,23,42,0.25)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.45)] hover:scale-110 active:scale-95 transition-all cursor-pointer flex items-center justify-center group"
           title="Saarthi AI Assistant"
         >
-          <span className="absolute top-1 right-1 w-3 h-3 rounded-full bg-[#84cc16] ring-2 ring-surface" />
+          <span className="absolute top-1 right-1 w-3 h-3 rounded-full bg-[#84cc16] ring-2 ring-white/70 dark:ring-white/20" />
           <Bot size={24} className="group-hover:rotate-12 transition-transform" />
         </button>
       )}
@@ -351,24 +351,23 @@ export default function AIChatbot() {
       {isOpen && (
         <div className="fixed z-50 bottom-4 inset-x-3 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-[400px] h-[75dvh] sm:h-[580px] max-h-[660px] rounded-2xl sm:rounded-[28px] border border-outline-variant bg-surface shadow-[0_24px_80px_rgba(0,0,0,0.4)] flex flex-col overflow-hidden animate-chat-in">
 
-          {/* Drawer Header — Premium Gloss */}
-          <div className="relative shrink-0 px-4 py-3.5 bg-primary text-on-primary flex items-center justify-between">
-            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+          {/* Drawer Header — Frosted Glass */}
+          <div className="relative shrink-0 px-4 py-3.5 bg-[#c7d2fe]/70 dark:bg-white/[0.07] backdrop-blur-xl border-b border-white/40 dark:border-white/10 text-[#1e40af] dark:text-white flex items-center justify-between">
             <div className="relative flex items-center gap-3">
-              <div className="relative w-10 h-10 rounded-2xl bg-on-primary/15 flex items-center justify-center border border-on-primary/20">
-                <Bot size={22} className="text-on-primary" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#84cc16] border-2 border-primary" />
+              <div className="relative w-10 h-10 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center border border-white/50 dark:border-white/15">
+                <Bot size={22} />
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#84cc16] border-2 border-white/70 dark:border-white/20" />
               </div>
               <div>
                 <h3 className="text-[15px] font-black tracking-tight leading-tight" style={{ fontFamily: "Hanken Grotesk, sans-serif" }}>
                   Saarthi
                 </h3>
-                <p className="text-[10.5px] text-on-primary/80 font-medium">SahakarGig AI Assistant</p>
+                <p className="text-[10.5px] opacity-70 font-medium">SahakarGig AI Assistant</p>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="relative w-8 h-8 rounded-full bg-on-primary/15 hover:bg-on-primary/25 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              className="relative w-8 h-8 rounded-full bg-black/[0.06] dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer shrink-0"
               aria-label="Close chat"
             >
               <X size={17} />
@@ -468,7 +467,7 @@ export default function AIChatbot() {
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center disabled:opacity-40 hover:opacity-90 transition-all cursor-pointer shrink-0 shadow-sm"
+                className="w-8 h-8 rounded-full bg-[#c7d2fe]/85 dark:bg-white/10 backdrop-blur-xl text-[#1e40af] dark:text-white border border-white/50 dark:border-white/15 flex items-center justify-center disabled:opacity-40 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0"
                 aria-label="Send"
               >
                 <Send size={14} />

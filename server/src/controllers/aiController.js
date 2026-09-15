@@ -72,7 +72,7 @@ async function recommendProviders(req, res) {
 
   const providers = await Provider.find({ verified: true })
     .populate('cooperativeId', 'name district state')
-    .populate('userId', 'name email phone')
+    .populate('userId', 'name email phone avatarUrl')
     .lean();
 
   const scored = providers.map((p) => {

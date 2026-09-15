@@ -1196,6 +1196,288 @@ html.dark .orvia-badge-lime {
   border: 1px solid var(--color-secondary-container);
 }
 
+/* ============================================================
+   Household Premium Dashboard scope.
+   - Light mode (default): airy frosted-white glass on #eef2f9.
+   - Dark mode (html.dark): deep-navy frosted glass (target mock).
+   Real frosted recipe: translucent neutral fill + 20px blur +
+   hairline light border + top inner highlight. Zero colored glow.
+   ============================================================ */
+.hh-premium {
+  --color-background: #eef2f9;
+  --color-on-background: #0f172a;
+  --color-surface: #eef2f9;
+  --color-surface-dim: #e3e9f4;
+  --color-surface-bright: #ffffff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f5f8fd;
+  --color-surface-container: #e9eff8;
+  --color-surface-container-high: #dfe7f3;
+  --color-surface-container-highest: #d3dcee;
+  --color-surface-variant: #e9eff8;
+  --color-on-surface: #0f172a;
+  --color-on-surface-variant: #5b6484;
+  --color-inverse-surface: #0f172a;
+  --color-inverse-on-surface: #f1f5fb;
+  --color-outline: #b9c5dd;
+  --color-outline-variant: #d9e1f0;
+  --color-primary: #1d4ed8;
+  --color-on-primary: #1e40af;
+  --color-primary-container: #dbe4ff;
+  --color-on-primary-container: #1e40af;
+  --color-surface-tint: #1d4ed8;
+  --color-primary-fixed: #dbe4ff;
+  --color-primary-fixed-dim: #9db4ff;
+  --color-secondary: #059669;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #d1fae5;
+  --color-on-secondary-container: #065f46;
+  --color-tertiary: #d97706;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #fef3c7;
+  --color-on-tertiary-container: #92400e;
+  --color-error: #dc2626;
+  --color-on-error: #ffffff;
+  --color-error-container: #fee2e2;
+  --color-on-error-container: #991b1b;
+}
+html.dark .hh-premium {
+  --color-background: #0a0e1a;
+  --color-on-background: #e9edf6;
+  --color-surface: #0a0e1a;
+  --color-surface-dim: #080b14;
+  --color-surface-bright: #1a2140;
+  --color-surface-container-lowest: #10162b;
+  --color-surface-container-low: #0c1122;
+  --color-surface-container: #151b32;
+  --color-surface-container-high: #1a2140;
+  --color-surface-container-highest: #222a4d;
+  --color-surface-variant: #151b32;
+  --color-on-surface: #e9edf6;
+  --color-on-surface-variant: #a6aec9;
+  --color-inverse-surface: #e9edf6;
+  --color-inverse-on-surface: #0a0e1a;
+  --color-outline: #2a3352;
+  --color-outline-variant: #1e2542;
+  --color-primary: #8ea6ff;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #1a2456;
+  --color-on-primary-container: #9db4ff;
+  --color-surface-tint: #8ea6ff;
+  --color-secondary: #34d399;
+  --color-on-secondary: #052e1b;
+  --color-secondary-container: #0d3b2e;
+  --color-on-secondary-container: #6ee7b7;
+  --color-tertiary: #fbbf24;
+  --color-on-tertiary: #451a03;
+  --color-tertiary-container: #45300a;
+  --color-on-tertiary-container: #fcd34d;
+  --color-error: #f87171;
+  --color-on-error: #450a0a;
+  --color-error-container: #3f1d24;
+  --color-on-error-container: #fecaca;
+}
+/* Cards + inputs follow the active mode */
+.hh-premium .card,
+.hh-premium .stat-tile {
+  background-color: #ffffff;
+  border-color: #d9e1f0;
+  box-shadow: 0 6px 22px rgba(15, 23, 42, 0.07);
+}
+html.dark .hh-premium .card,
+html.dark .hh-premium .stat-tile {
+  background-color: #10162b;
+  border-color: #1e2542;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+.hh-premium .input {
+  background-color: #ffffff;
+  border-color: #d9e1f0;
+  color: #0f172a;
+}
+.hh-premium .input::placeholder {
+  color: #8a94ad;
+}
+html.dark .hh-premium .input {
+  background-color: #12172c;
+  border-color: #232b4d;
+  color: #e9edf6;
+}
+html.dark .hh-premium .input::placeholder {
+  color: #5b6484;
+}
+/* Real frosted-glass pill buttons — light */
+.hh-premium .btn-primary,
+.hh-premium .btn-secondary {
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  border-radius: 9999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 6px 18px rgba(15, 23, 42, 0.1);
+}
+.hh-premium .btn-primary {
+  background-color: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  color: #1e40af;
+}
+.hh-premium .btn-primary:hover {
+  background-color: rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 8px 22px rgba(15, 23, 42, 0.13);
+}
+.hh-premium .btn-secondary {
+  background-color: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  color: #334155;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 4px 14px rgba(15, 23, 42, 0.07);
+}
+.hh-premium .btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.65);
+}
+/* Real frosted-glass pill buttons — dark */
+html.dark .hh-premium .btn-primary,
+html.dark .hh-premium .btn-secondary {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+html.dark .hh-premium .btn-primary {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+html.dark .hh-premium .btn-primary:hover {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+html.dark .hh-premium .btn-secondary {
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cdd6f4;
+}
+html.dark .hh-premium .btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.11);
+}
+/* Leftover solid-blue utility surfaces inside household → neutral frost */
+.hh-premium .bg-primary {
+  background-color: rgba(148, 163, 184, 0.28);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+}
+html.dark .hh-premium .bg-primary {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+/* Frosted sidebar pill (selected nav) — light */
+.hh-nav-active {
+  background-color: rgba(255, 255, 255, 0.66);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(29, 78, 216, 0.28);
+  color: #1d4ed8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 6px 18px rgba(15, 23, 42, 0.1);
+}
+/* Frosted sidebar pill (selected nav) — dark */
+html.dark .hh-nav-active {
+  background-color: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+/* Subtle hover lift (no glow) for dashboard cards & controls */
+.hh-premium .hh-hover {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s, box-shadow 0.25s, background-color 0.25s;
+}
+.hh-premium .hh-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+html.dark .hh-premium .hh-hover:hover {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+.hh-premium .hh-row {
+  transition: background-color 0.2s;
+}
+.hh-premium .hh-row:hover {
+  background-color: rgba(148, 163, 184, 0.14);
+}
+.hh-premium .hh-icon-btn {
+  transition: transform 0.2s, background-color 0.2s;
+}
+.hh-premium .hh-icon-btn:hover {
+  transform: translateY(-1px);
+}
+.hh-premium .hh-icon-btn:active {
+  transform: scale(0.96);
+}
+
+/* ── Frosted dropdowns (native selects, suggestion panels, menus) ── */
+.hh-premium select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.5rem;
+  background-color: rgba(255, 255, 255, 0.62);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 9999px;
+  color: #0f172a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 4px 14px rgba(15, 23, 42, 0.07);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235b6484' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+}
+html.dark .hh-premium select {
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e9edf6;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 4px 14px rgba(0, 0, 0, 0.3);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b93ad' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+/* Frosted text / date / textarea fields (radius untouched — pages keep theirs) */
+.hh-premium input:not([type="checkbox"]):not([type="radio"]):not(.input):not(.bg-transparent),
+.hh-premium textarea {
+  background-color: rgba(255, 255, 255, 0.62);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+html.dark .hh-premium input:not([type="checkbox"]):not([type="radio"]):not(.input):not(.bg-transparent),
+html.dark .hh-premium textarea {
+  background-color: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+/* Native option list + selected option */
+.hh-premium select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+html.dark .hh-premium select option {
+  background-color: #10162b;
+  color: #e9edf6;
+}
+/* Floating dropdown / suggestion / menu panels → frosted */
+.hh-premium .animate-dropdown-in,
+.hh-premium .sg-dropdown-list {
+  background-color: rgba(255, 255, 255, 0.78);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 18px 50px rgba(15, 23, 42, 0.16);
+}
+html.dark .hh-premium .animate-dropdown-in,
+html.dark .hh-premium .sg-dropdown-list {
+  background-color: rgba(16, 22, 43, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+/* Selected item inside custom dropdown lists */
+.hh-premium .sg-dropdown-list [aria-selected="true"],
+.hh-premium .animate-dropdown-in [aria-selected="true"] {
+  background-color: rgba(29, 78, 216, 0.1);
+}
+html.dark .hh-premium .sg-dropdown-list [aria-selected="true"],
+html.dark .hh-premium .animate-dropdown-in [aria-selected="true"] {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
 /* ── 3D Flip Card Animation Utilities ── */
 .perspective-1000 {
   perspective: 1000px;
@@ -1213,3 +1495,30 @@ html.dark .orvia-badge-lime {
   -webkit-transform: rotateY(180deg);
 }
 
+
+/* Custom scrollbar for horizontal carousels */
+::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(203 213 225);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(148 163 184);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(71 85 105);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgb(100 116 139);
+}

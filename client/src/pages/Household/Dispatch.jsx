@@ -246,12 +246,12 @@ function CategoryDropdown({ value, onChange }) {
       <button
         type="button"
         onClick={handleToggle}
-        className={`group h-14 sm:h-13 w-full inline-flex items-center justify-between gap-3 pl-3.5 pr-2.5 rounded-2xl border text-[14px] font-semibold transition-all duration-300 shadow-[0_1px_2px_rgba(4,9,29,0.05)] ${
+        className={`group h-14 sm:h-13 w-full inline-flex items-center justify-between gap-3 pl-3.5 pr-2.5 rounded-2xl border text-[14px] font-semibold transition-all duration-300 backdrop-blur-xl ${
           open
-            ? "border-primary/70 bg-primary-container/40 text-on-primary-container ring-4 ring-primary/10"
+            ? "border-primary/40 bg-primary/10 text-on-surface ring-2 ring-primary/15"
             : selected
-            ? "border-primary/50 bg-surface-container-lowest text-on-surface hover:border-primary/70 hover:shadow-[0_6px_20px_-6px_rgba(0,40,142,0.25)]"
-            : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/50 hover:bg-surface-container-lowest hover:shadow-[0_6px_20px_-8px_rgba(0,40,142,0.30)]"
+            ? "border-outline-variant bg-surface-container-lowest/70 text-on-surface hover:border-primary/40"
+            : "border-transparent bg-surface-container-lowest/70 text-on-surface-variant hover:border-primary/30"
         }`}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -290,10 +290,10 @@ function CategoryDropdown({ value, onChange }) {
           )}
         </div>
         <div
-          className={`w-8 h-8 shrink-0 rounded-[10px] flex items-center justify-center transition-all duration-300 ${
+          className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all duration-300 ${
             open
-              ? "bg-primary text-on-primary rotate-180 shadow-[0_2px_8px_-2px_rgba(0,40,142,0.5)]"
-              : "bg-surface-container-low text-on-surface-variant group-hover:bg-primary-container group-hover:text-primary"
+              ? "bg-primary/15 text-primary border-primary/30 rotate-180"
+              : "bg-surface-container-low/60 text-on-surface-variant border-transparent group-hover:text-primary"
           }`}
         >
           <ChevronDown size={17} strokeWidth={2.5} />
@@ -350,10 +350,10 @@ function CategoryDropdown({ value, onChange }) {
                       setOpen(false);
                       setSearch("");
                     }}
-                    className={`group/row w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all duration-150 cursor-pointer ${
+                    className={`group/row w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all duration-150 cursor-pointer border ${
                       isSel
-                        ? "bg-primary-container/70 text-on-primary-container shadow-2xs"
-                        : "hover:bg-surface-container-low text-on-surface"
+                        ? "bg-primary/15 border-primary/30 text-on-surface backdrop-blur-xl"
+                        : "border-transparent hover:bg-surface-container-low text-on-surface"
                     }`}
                   >
                     <IconComp
@@ -370,7 +370,7 @@ function CategoryDropdown({ value, onChange }) {
                       </div>
                     </div>
                     {isSel ? (
-                      <span className="w-6 h-6 shrink-0 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-[0_2px_8px_-2px_rgba(0,40,142,0.5)]">
+                      <span className="w-6 h-6 shrink-0 rounded-full bg-primary/20 border border-primary/30 text-primary backdrop-blur-xl flex items-center justify-center">
                         <Check size={13} strokeWidth={3} />
                       </span>
                     ) : (

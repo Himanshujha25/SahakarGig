@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import socket from "../../lib/socket";
@@ -8,7 +8,8 @@ import FileUpload from "../../components/FileUpload";
 import {
   Mic, IndianRupee, CalendarDays, Heart, CheckCircle2,
   ShieldCheck, Building2, MapPin, Send, Check, Plus, Trash2,
-  Clock, FileText, Upload, AlertCircle, Sparkles
+  Clock, FileText, Upload, AlertCircle, Sparkles, X,
+  ChevronDown
 } from "lucide-react";
 import {
   IconHammer, IconBolt, IconTool, IconSpray, IconChefHat,
@@ -99,6 +100,22 @@ export default function BulkOrder() {
   const [myRfps, setMyRfps] = useState([]);
   const [loadingRfps, setLoadingRfps] = useState(false);
   const [activeTab, setActiveTab] = useState("create"); // 'create' | 'track'
+
+  // Custom frosted duration dropdown
+  const [durOpen, setDurOpen] = useState(false);
+  const durRef = useRef(null);
+  useEffect(() => {
+    function onDoc(e) {
+      if (durRef.current && !durRef.current.contains(e.target)) setDurOpen(false);
+    }
+    function onKey(e) { if (e.key === "Escape") setDurOpen(false); }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
 
   // Payment Proof Modal State
   const [paymentModalRfp, setPaymentModalRfp] = useState(null);
@@ -289,12 +306,6 @@ export default function BulkOrder() {
       {/* ── Top Header ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-primary-container/50 text-primary text-xs font-bold border border-primary/20">
-              <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
-              Institutional RFP & Multi-Worker Dispatch
-            </span>
-          </div>
           <h1
             className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface"
             style={{ fontFamily: "Hanken Grotesk, sans-serif" }}
@@ -306,15 +317,19 @@ export default function BulkOrder() {
           </p>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-2">
+        {/* Navigation Tabs — frosted pill with sliding indicator */}
+        <div className="relative flex items-center gap-1 p-1 rounded-full border border-outline-variant bg-surface-container-low/70 backdrop-blur-xl w-fit">
+          <span
+            aria-hidden
+            className={`absolute top-1 bottom-1 rounded-full hh-nav-active !border-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              activeTab === "create" ? "left-1 right-1/2 mr-0.5" : "left-1/2 right-1 ml-0.5"
+            }`}
+          />
           <button
             type="button"
             onClick={() => setActiveTab("create")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "create"
-                ? "bg-primary text-on-primary shadow-xs"
-                : "bg-surface border border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
+            className={`relative z-10 px-4 py-2 rounded-full text-xs font-bold transition-colors duration-300 cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "create" ? "text-[#1d4ed8] dark:text-white" : "text-on-surface-variant hover:text-on-surface"
             }`}
           >
             <Plus size={14} />
@@ -323,10 +338,8 @@ export default function BulkOrder() {
           <button
             type="button"
             onClick={() => setActiveTab("track")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "track"
-                ? "bg-primary text-on-primary shadow-xs"
-                : "bg-surface border border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
+            className={`relative z-10 px-4 py-2 rounded-full text-xs font-bold transition-colors duration-300 cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "track" ? "text-[#1d4ed8] dark:text-white" : "text-on-surface-variant hover:text-on-surface"
             }`}
           >
             <FileText size={14} />
@@ -348,7 +361,7 @@ export default function BulkOrder() {
               <button
                 type="button"
                 onClick={() => setActiveTab("create")}
-                className="px-4 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold hover:opacity-90 transition cursor-pointer inline-flex items-center gap-1"
+                className="btn-primary px-4 py-2 text-xs inline-flex items-center gap-1"
               >
                 <Plus size={14} /> Create Bulk RFP Now
               </button>
@@ -420,24 +433,25 @@ export default function BulkOrder() {
                           <span className="text-primary flex items-center gap-1">
                             <IconUsers size={14} /> Worker Allocations ({acceptedWorkers}/{totalAllocated} Confirmed)
                           </span>
-                          {rejectedWorkers > 0 && (
-                            <span className="text-amber-600 dark:text-amber-400 text-[10.5px]">
-                              ⚠️ {rejectedWorkers} Rejected (Re-allocating)
-                            </span>
-                          )}
+                            {rejectedWorkers > 0 && (
+                              <span className="text-amber-600 dark:text-amber-400 text-[10.5px] inline-flex items-center gap-1">
+                                <AlertCircle size={11} /> {rejectedWorkers} Rejected (Re-allocating)
+                              </span>
+                            )}
                         </div>
                         <div className="grid grid-cols-2 gap-1.5 pt-1">
                           {allocations.map((a, idx) => (
                             <div key={idx} className="p-1.5 rounded-lg bg-surface border border-outline-variant text-[11px] flex items-center justify-between">
                               <span className="font-bold text-on-surface truncate">{a.role}</span>
-                              <span className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold ${
+                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9.5px] font-bold ${
                                 a.status === "accepted"
-                                  ? "bg-emerald-100 text-emerald-800"
+                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
                                   : a.status === "rejected"
-                                  ? "bg-rose-100 text-rose-800"
-                                  : "bg-amber-100 text-amber-800"
+                                  ? "bg-red-500/15 text-red-600 dark:text-red-300"
+                                  : "bg-amber-500/15 text-amber-600 dark:text-amber-300"
                               }`}>
-                                {a.status === "accepted" ? "✓ Accepted" : a.status === "rejected" ? "❌ Rejected" : "● Pending"}
+                                {a.status === "accepted" ? <Check size={10} strokeWidth={3} /> : a.status === "rejected" ? <X size={10} strokeWidth={3} /> : <Clock size={10} strokeWidth={3} />}
+                                {a.status === "accepted" ? "Accepted" : a.status === "rejected" ? "Rejected" : "Pending"}
                               </span>
                             </div>
                           ))}
@@ -449,8 +463,8 @@ export default function BulkOrder() {
                     <div className="pt-2 border-t border-outline-variant/60 flex items-center justify-between gap-2 flex-wrap">
                       {isQuotationSent && !isQuotationAccepted ? (
                         <div className="w-full space-y-2">
-                          <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200 text-xs">
-                            <p className="font-bold">📑 Official Quotation Received!</p>
+                          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 text-xs">
+                            <p className="font-bold inline-flex items-center gap-1.5"><FileText size={13} /> Official Quotation Received!</p>
                             <p className="text-[11px] mt-0.5">{rfp.bulkDetails?.quotation?.notes || "Cooperative has reviewed and sent final institutional quotation."}</p>
                           </div>
                           <button
@@ -468,10 +482,11 @@ export default function BulkOrder() {
                               <CheckCircle2 size={14} /> Quotation Accepted
                             </span>
                             {paymentProof ? (
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                paymentProof.verifiedByCoop ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                paymentProof.verifiedByCoop ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" : "bg-amber-500/15 text-amber-600 dark:text-amber-300"
                               }`}>
-                                {paymentProof.verifiedByCoop ? "✓ Payment Proof Verified" : "● Payment Proof Pending Verification"}
+                                {paymentProof.verifiedByCoop ? <Check size={10} strokeWidth={3} /> : <Clock size={10} strokeWidth={3} />}
+                                {paymentProof.verifiedByCoop ? "Payment Proof Verified" : "Payment Proof Pending Verification"}
                               </span>
                             ) : null}
                           </div>
@@ -480,7 +495,7 @@ export default function BulkOrder() {
                             <button
                               type="button"
                               onClick={() => setPaymentModalRfp(rfp)}
-                              className="w-full h-9 rounded-xl bg-primary text-on-primary font-bold text-xs flex items-center justify-center gap-1 hover:opacity-90 transition cursor-pointer"
+                              className="btn-primary w-full !h-9 !text-xs"
                             >
                               <Upload size={14} /> Upload Payment Screenshot Proof (SS)
                             </button>
@@ -527,11 +542,12 @@ export default function BulkOrder() {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 bg-surface px-2 py-1 rounded-lg border border-outline-variant">
+                        <div className="flex items-center gap-1.5 bg-surface-container-low/70 backdrop-blur-xl px-1.5 py-1 rounded-full border border-outline-variant">
                           <button
                             type="button"
                             onClick={() => handleCountChange(roleObj.role, -1)}
-                            className="w-6 h-6 rounded bg-surface-container-high font-bold text-xs flex items-center justify-center hover:bg-outline-variant cursor-pointer"
+                            aria-label="Decrease headcount"
+                            className="w-6 h-6 rounded-full bg-surface-container-high font-bold text-xs flex items-center justify-center hover:bg-outline-variant active:scale-90 transition cursor-pointer"
                           >
                             -
                           </button>
@@ -539,7 +555,8 @@ export default function BulkOrder() {
                           <button
                             type="button"
                             onClick={() => handleCountChange(roleObj.role, 1)}
-                            className="w-6 h-6 rounded bg-surface-container-high font-bold text-xs flex items-center justify-center hover:bg-outline-variant cursor-pointer"
+                            aria-label="Increase headcount"
+                            className="w-6 h-6 rounded-full bg-surface-container-high font-bold text-xs flex items-center justify-center hover:bg-outline-variant active:scale-90 transition cursor-pointer"
                           >
                             +
                           </button>
@@ -570,13 +587,13 @@ export default function BulkOrder() {
                           type="button"
                           disabled={isAdded}
                           onClick={() => handleAddRole(skill.label)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border backdrop-blur-xl ${
                             isAdded
-                              ? "bg-surface-container-low text-on-surface-variant/50 border border-outline-variant/40 cursor-not-allowed"
-                              : "bg-surface border border-outline-variant text-on-surface hover:border-primary hover:text-primary"
+                              ? "bg-primary/20 border-primary/60 text-on-surface shadow-xs"
+                              : "bg-surface-container-low/60 border-outline-variant text-on-surface-variant hover:border-primary/50 hover:text-on-surface active:scale-95"
                           }`}
                         >
-                          <Plus size={12} /> {skill.label}
+                          {isAdded ? <Check size={12} strokeWidth={3} className="text-primary" /> : <Plus size={12} />} {skill.label}
                         </button>
                       );
                     })}
@@ -603,20 +620,46 @@ export default function BulkOrder() {
                   <label className="block text-[11.5px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
                     3. Work Duration (Days)
                   </label>
-                  <select
-                    value={selectedDuration.days}
-                    onChange={(e) => {
-                      const d = DURATIONS.find((x) => x.days === Number(e.target.value)) || DURATIONS[0];
-                      setSelectedDuration(d);
-                    }}
-                    className="w-full h-11 px-3.5 rounded-xl border border-outline-variant bg-surface-container-low text-xs font-bold text-on-surface outline-none focus:border-primary cursor-pointer"
-                  >
-                    {DURATIONS.map((d) => (
-                      <option key={d.days} value={d.days}>
-                        {d.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div ref={durRef} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setDurOpen((o) => !o)}
+                      aria-expanded={durOpen}
+                      className={`w-full h-11 px-3.5 rounded-xl border text-xs font-bold text-on-surface flex items-center justify-between gap-2 backdrop-blur-xl transition-all cursor-pointer ${
+                        durOpen
+                          ? "border-primary/40 bg-primary/10"
+                          : "border-outline-variant bg-surface-container-low/70 hover:border-primary/40"
+                      }`}
+                    >
+                      <span className="truncate">{selectedDuration.label}</span>
+                      <span className={`w-7 h-7 rounded-full bg-primary/10 border border-primary/25 text-primary flex items-center justify-center shrink-0 transition-transform duration-300 ${durOpen ? "rotate-180" : ""}`}>
+                        <ChevronDown size={14} strokeWidth={2.5} />
+                      </span>
+                    </button>
+                    {durOpen && (
+                      <div className="sg-dropdown-list absolute left-0 right-0 top-[calc(100%+8px)] z-50 rounded-2xl border border-outline-variant/80 overflow-hidden animate-dropdown-in p-1.5 space-y-0.5 max-h-60 overflow-y-auto">
+                        {DURATIONS.map((d) => {
+                          const sel = d.days === selectedDuration.days;
+                          return (
+                            <button
+                              key={d.days}
+                              type="button"
+                              onClick={() => { setSelectedDuration(d); setDurOpen(false); }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-all cursor-pointer border ${
+                                sel
+                                  ? "bg-primary/15 border-primary/30 text-on-surface backdrop-blur-xl"
+                                  : "border-transparent text-on-surface hover:bg-surface-container-low"
+                              }`}
+                            >
+                              <CalendarDays size={14} className={sel ? "text-primary" : "text-on-surface-variant"} />
+                              <span className="flex-1">{d.label}</span>
+                              {sel && <Check size={14} strokeWidth={3} className="text-primary shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -656,9 +699,8 @@ export default function BulkOrder() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full h-12 rounded-xl bg-primary hover:opacity-90 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs active:scale-98 transition cursor-pointer disabled:opacity-60"
+                className="btn-primary w-full !h-12 !text-xs sm:!text-sm disabled:opacity-60"
               >
-                <Send size={16} />
                 <span>{submitting ? "Transmitting RFP to Cooperative..." : `Dispatch Institutional RFP for ${totalWorkerHeadcount} Workers (${totalDays} Days)`}</span>
               </button>
             </form>
@@ -737,9 +779,9 @@ export default function BulkOrder() {
                   return (
                     <label
                       key={coop._id}
-                      className={`block p-3 rounded-xl border transition cursor-pointer ${
+                      className={`block p-3 rounded-xl border transition-all cursor-pointer backdrop-blur-xl ${
                         isSelected
-                          ? "border-primary bg-primary-container/50/70 shadow-xs"
+                          ? "border-primary/60 bg-primary/10 shadow-xs"
                           : "border-outline-variant bg-surface hover:bg-surface-container-low"
                       }`}
                     >
@@ -808,7 +850,7 @@ export default function BulkOrder() {
               <button
                 type="submit"
                 disabled={uploadingPayment || !paymentSsUrl}
-                className="px-5 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-xs hover:opacity-90 transition cursor-pointer disabled:opacity-50"
+                className="btn-primary px-5 py-2 !text-xs disabled:opacity-50"
               >
                 {uploadingPayment ? "Uploading..." : "Submit Payment Proof"}
               </button>
@@ -842,7 +884,7 @@ export default function BulkOrder() {
                   setSuccessModal(null);
                   setActiveTab("track");
                 }}
-                className="w-full h-10 rounded-xl bg-primary hover:opacity-90 text-white text-xs font-bold transition cursor-pointer"
+                className="btn-primary w-full !h-10 !text-xs"
               >
                 Track in My RFP Orders
               </button>

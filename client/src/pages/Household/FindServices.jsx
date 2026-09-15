@@ -737,7 +737,7 @@ export default function FindServices() {
 
               {/* Book button */}
               <Link to={`/household/book/${p._id}`}
-                className="w-full h-11 sm:h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-surface text-[13px] font-semibold text-on-surface hover:border-primary/40 hover:bg-primary-container hover:text-on-primary-container transition-all duration-200">
+                className="w-full h-11 sm:h-10 flex items-center justify-center rounded-xl border border-outline-variant bg-surface dark:bg-white/[0.07] dark:border-white/15 dark:backdrop-blur-xl text-[13px] font-bold text-on-surface hover:border-primary/40 hover:bg-primary-container hover:text-on-primary-container transition-all duration-200">
                 Book Now
               </Link>
             </div>

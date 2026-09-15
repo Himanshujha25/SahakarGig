@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import api from "../../lib/api";
 import Icon from "../../components/Icon";
+import FrostedSelect from "../../components/FrostedSelect";
 
 const DAY_KEYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const FREQ_OPTIONS = [
@@ -293,15 +294,11 @@ export default function BookingRequest() {
               </div>
               <div>
                 <span className="mb-1.5 block font-heading text-xs font-semibold text-on-surface-variant">Total visits</span>
-                <select
+                <FrostedSelect
                   value={recurRepeats}
-                  onChange={(e) => setRecurRepeats(Number(e.target.value))}
-                  className="h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm font-semibold text-on-surface outline-none focus:border-primary cursor-pointer"
-                >
-                  {[2, 4, 6, 8, 12, 16, 24].map((n) => (
-                    <option key={n} value={n}>{n} visits</option>
-                  ))}
-                </select>
+                  onChange={(v) => setRecurRepeats(Number(v))}
+                  options={[2, 4, 6, 8, 12, 16, 24].map((n) => ({ value: n, label: `${n} visits` }))}
+                />
               </div>
             </div>
           )}
@@ -339,15 +336,11 @@ export default function BookingRequest() {
               </label>
               <label className="block">
                 <span className="mb-1.5 block font-heading text-xs font-semibold text-on-surface-variant">Members</span>
-                <select
+                <FrostedSelect
                   value={groupMemberCount}
-                  onChange={(e) => setGroupMemberCount(Number(e.target.value))}
-                  className="h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm font-semibold text-on-surface outline-none focus:border-primary cursor-pointer"
-                >
-                  {[2, 3, 4, 5, 6, 8, 10].map((n) => (
-                    <option key={n} value={n}>{n} members</option>
-                  ))}
-                </select>
+                  onChange={(v) => setGroupMemberCount(Number(v))}
+                  options={[2, 3, 4, 5, 6, 8, 10].map((n) => ({ value: n, label: `${n} members` }))}
+                />
               </label>
             </div>
           )}

@@ -204,11 +204,11 @@ export default function Bookings() {
         </div>
         <div className="hidden sm:flex items-center gap-2.5">
           <button onClick={() => navigate("/household/bulk")}
-            className="h-9 inline-flex items-center gap-2 px-3.5 rounded-xl border border-primary/30 bg-primary-container/50 text-[13px] font-bold text-primary hover:bg-primary/15 transition-all duration-200 cursor-pointer shadow-xs">
-            <span>🏢 Bulk Crew RFP</span>
+            className="btn-secondary !h-9 !text-[13px] !px-3.5">
+            <IconBuildingCommunity size={15} stroke={2} /> Bulk Crew RFP
           </button>
           <button onClick={() => navigate("/household")}
-            className="h-9 inline-flex items-center gap-2 px-4 rounded-xl border border-outline-variant bg-surface text-[13px] font-semibold text-on-surface hover:border-primary/40 hover:bg-primary-container/40 hover:text-primary transition-all duration-200 cursor-pointer">
+            className="btn-primary !h-9 !text-[13px] !px-4">
             <IconPlus size={15} stroke={2} /> New Booking
           </button>
         </div>
@@ -219,10 +219,10 @@ export default function Bookings() {
         <button
           type="button"
           onClick={toggleFilter}
-          className={`group h-12 w-full inline-flex items-center justify-between gap-3 pl-4 pr-2 rounded-2xl border text-[13.5px] font-semibold transition-all duration-300 shadow-xs ${
+          className={`group h-12 w-full inline-flex items-center justify-between gap-3 pl-4 pr-2 rounded-xl border text-[13.5px] font-semibold transition-all duration-300 backdrop-blur-xl ${
             filterOpen
-              ? "border-primary/70 bg-primary-container/40 text-on-primary-container ring-4 ring-primary/10"
-              : "border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary/50 hover:shadow-[0_6px_20px_-8px_rgba(0,40,142,0.30)]"
+              ? "border-primary/40 bg-primary/10 text-on-surface ring-2 ring-primary/15"
+              : "border-transparent bg-surface-container-lowest/70 text-on-surface hover:border-primary/30"
           }`}
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -234,10 +234,10 @@ export default function Bookings() {
               </span>
             )}
           </div>
-          <div className={`w-8 h-8 shrink-0 rounded-[10px] flex items-center justify-center transition-all duration-300 ${
+          <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center backdrop-blur-xl border transition-all duration-300 ${
             filterOpen
-              ? "bg-primary text-on-primary rotate-180 shadow-[0_2px_8px_-2px_rgba(0,40,142,0.5)]"
-              : "bg-surface-container-low text-on-surface-variant group-hover:bg-primary-container group-hover:text-primary"
+              ? "bg-primary/15 text-primary border-primary/30 rotate-180"
+              : "bg-surface-container-low/60 text-on-surface-variant border-transparent group-hover:text-primary"
           }`}>
             <IconChevronDown size={17} stroke={2.5} />
           </div>
@@ -245,7 +245,7 @@ export default function Bookings() {
 
         {filterOpen && (
           <div
-            className={`sg-dropdown-list absolute left-0 right-0 z-50 rounded-2xl border border-outline-variant/80 bg-surface shadow-[0_28px_70px_-16px_rgba(2,6,23,0.35)] overflow-hidden animate-dropdown-in ${
+            className={`sg-dropdown-list absolute left-0 right-0 z-50 rounded-xl border border-outline-variant/80 bg-surface shadow-[0_28px_70px_-16px_rgba(2,6,23,0.35)] overflow-hidden animate-dropdown-in ${
               filterPlacement === "up" ? "bottom-[calc(100%+10px)]" : "top-[calc(100%+10px)]"
             }`}
           >
@@ -258,17 +258,17 @@ export default function Bookings() {
                     key={t.key}
                     type="button"
                     onClick={() => { setFilter(t.key); setCurrentPage(1); closeFilter(); }}
-                    className={`w-full flex items-center gap-2.5 p-2.5 rounded-xl text-left transition-all duration-150 cursor-pointer ${
+                    className={`w-full flex items-center gap-2.5 p-2.5 rounded-lg text-left transition-all duration-150 cursor-pointer border ${
                       isSel
-                        ? "bg-primary-container/70 text-on-primary-container shadow-2xs"
-                        : "hover:bg-surface-container-low text-on-surface"
+                        ? "bg-primary/15 border-primary/30 text-on-surface backdrop-blur-xl"
+                        : "border-transparent hover:bg-surface-container-low text-on-surface"
                     }`}
                   >
                     <span className={`w-2 h-2 rounded-full shrink-0 ${st.dot}`} />
                     <span className="flex-1 min-w-0 text-[13.5px] font-bold truncate">{t.label}</span>
                     {counts[t.key] > 0 && (
-                      <span className={`inline-flex h-4.5 min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-extrabold leading-none ${
-                        isSel ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface-variant"
+                      <span className={`inline-flex h-4.5 min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-extrabold leading-none backdrop-blur-xl border ${
+                        isSel ? "bg-primary/20 border-primary/30 text-primary" : "bg-surface-container text-on-surface-variant border-transparent"
                       }`}>
                         {counts[t.key]}
                       </span>
