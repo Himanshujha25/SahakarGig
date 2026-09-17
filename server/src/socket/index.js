@@ -15,6 +15,9 @@ function haversineKm(a, b) {
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+const Provider = require('../models/Provider');
+const Booking = require('../models/Booking');
+
 // Persist the live fix into Provider.geoLocation so it survives restarts —
 // throttled (max ~1 write / min, or immediately if the worker moved > 200 m).
 async function persistLocation(userId, lat, lng) {
@@ -24,13 +27,22 @@ async function persistLocation(userId, lat, lng) {
     const moved = last ? haversineKm(last, { lat, lng }) : 1;
     if (!last || now - last.at > 60000 || moved > 0.2) {
       _persistAt.set(userId, { lat, lng, at: now });
-      const Provider = require('../models/Provider');
       await Provider.updateOne({ userId }, { geoLocation: { lat, lng } });
     }
   } catch (e) {
     // persistence is best-effort — live cache still works
   }
 }
+
+// Prune _persistAt periodically (entries older than 10 min)
+setInterval(() => {
+  const now = Date.now();
+  for (const [uid, item] of _persistAt.entries()) {
+    if (now - item.at > 10 * 60 * 1000) {
+      _persistAt.delete(uid);
+    }
+  }
+}, 5 * 60 * 1000);
 
 function initSocket(io) {
   _io = io;
@@ -60,7 +72,6 @@ function initSocket(io) {
         if (lat == null || lng == null) return;
         setLive(socket.userId, data);
         if (bookingId) {
-          const Booking = require('../models/Booking');
           const b = await Booking.findById(bookingId);
           if (b && b.householdId) {
             emitTo(b.householdId.toString(), 'provider:location_update', {
