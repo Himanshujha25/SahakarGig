@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const Provider = require('../models/Provider');
 const Cooperative = require('../models/Cooperative');
@@ -235,7 +236,6 @@ async function providerBookings(req, res) {
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, parseInt(req.query.limit) || 20);
 
-  const mongoose = require('mongoose');
   const pId = mongoose.Types.ObjectId.isValid(provider._id)
     ? new mongoose.Types.ObjectId(provider._id)
     : provider._id;
