@@ -21,4 +21,14 @@ function getFresh(userId) {
   return null;
 }
 
+// Periodically prune stale entries older than 3 minutes to avoid unbounded memory growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of _cache.entries()) {
+    if (!val || now - val.at > FRESH_MS * 2) {
+      _cache.delete(key);
+    }
+  }
+}, 3 * 60 * 1000);
+
 module.exports = { setLive, getFresh, FRESH_MS };

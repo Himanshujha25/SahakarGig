@@ -16,6 +16,9 @@ async function connect(uri) {
 
   const options = {
     serverSelectionTimeoutMS: 4000, // 4s fast timeout instead of 30s hang
+    maxPoolSize: 10,                // Prevents creating up to 100 connections (saves 150MB+ RAM)
+    minPoolSize: 2,
+    socketTimeoutMS: 45000,
   };
 
   try {

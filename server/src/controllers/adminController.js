@@ -75,8 +75,7 @@ async function dashboard(req, res) {
       { $match: { status: 'released' } },
       { $lookup: { from: 'bookings', localField: 'bookingId', foreignField: '_id', as: 'b' } },
       { $unwind: '$b' },
-      { $match: { 'b.cooperativeId': coop._id } },
-      { $group: { _id: null, revenue: { $sum: '$cooperativeCommission' }, payments: { $push: '$$ROOT' } } },
+      { $group: { _id: null, revenue: { $sum: '$cooperativeCommission' }, payments: { $push: { createdAt: '$createdAt', cooperativeCommission: '$cooperativeCommission' } } } },
     ]),
   ]);
 

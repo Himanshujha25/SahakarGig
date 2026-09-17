@@ -25,8 +25,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 
 const server = http.createServer(app);
@@ -88,9 +88,16 @@ setInterval(() => {
   const targetUrl = process.env.RENDER_EXTERNAL_URL || 'https://sahakargig.onrender.com';
   try {
     const httpModule = targetUrl.startsWith('https') ? require('https') : require('http');
-    httpModule.get(`${targetUrl}/health`, (res) => {
+    const pingReq = httpModule.get(`${targetUrl}/health`, (res) => {
+      // Must drain/resume the stream to prevent socket and memory leaks
+      res.resume();
       console.log(`[Keep-Alive Ping] (${new Date().toLocaleTimeString()}) ${targetUrl}/health -> ${res.statusCode}`);
-    }).on('error', (err) => {
+    });
+    pingReq.setTimeout(8000, () => {
+      pingReq.destroy();
+      console.warn('[Keep-Alive Ping Timeout] request destroyed after 8s');
+    });
+    pingReq.on('error', (err) => {
       console.warn(`[Keep-Alive Ping Warning] ${err.message}`);
     });
   } catch (err) {
