@@ -107,26 +107,44 @@ export default function Bookings() {
   };
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError(null);
+    async function load(isBackground = false) {
+      if (!isBackground) {
+        setLoading(true);
+        setError(null);
+      }
       try {
-        const all = [];
-        let page = 1;
-        let fetched;
-        do {
-          const { data } = await api.get("/bookings/household/mine", { params: { page, limit: 50 } });
-          fetched = Array.isArray(data) ? data : [];
-          all.push(...fetched);
-          page += 1;
-        } while (fetched.length === 50 && page <= 40);
-        setBookings(all);
+        const { data } = await api.get("/bookings/household/mine", { params: { page: 1, limit: 50 } });
+        const initial = Array.isArray(data) ? data : [];
+        setBookings(initial);
+        if (!isBackground) setLoading(false);
+
+        // If there are 50 items, background-fetch subsequent pages without blocking the UI
+        if (initial.length === 50) {
+          let page = 2;
+          let fetched;
+          do {
+            const res = await api.get("/bookings/household/mine", { params: { page, limit: 50 } });
+            fetched = Array.isArray(res.data) ? res.data : [];
+            if (fetched.length > 0) {
+              setBookings((prev) => {
+                const map = new Map(prev.map((b) => [b._id, b]));
+                fetched.forEach((b) => map.set(b._id, b));
+                return Array.from(map.values());
+              });
+            }
+            page += 1;
+          } while (fetched.length === 50 && page <= 5);
+        }
       } catch (err) {
-        setError("Failed to retrieve your household booking history. Please check connection and try again.");
-      } finally { setLoading(false); }
+        if (!isBackground) {
+          setError("Failed to retrieve your household booking history. Please check connection and try again.");
+        }
+      } finally {
+        if (!isBackground) setLoading(false);
+      }
     }
     load();
-    const id = setInterval(load, 30000);
+    const id = setInterval(() => load(true), 30000);
 
     socket.on("booking:new", upsert);
     socket.on("booking:updated", (b) => upsert(b?.booking || b));

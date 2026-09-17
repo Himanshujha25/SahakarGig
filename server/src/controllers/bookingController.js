@@ -208,9 +208,15 @@ async function getBooking(req, res) {
 async function householdBookings(req, res) {
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, parseInt(req.query.limit) || 20);
-  const b = await Booking.find({ householdId: req.user.userId })
+  const mongoose = require('mongoose');
+  const hId = mongoose.Types.ObjectId.isValid(req.user.userId)
+    ? new mongoose.Types.ObjectId(req.user.userId)
+    : req.user.userId;
+
+  const b = await Booking.find({ householdId: hId })
     .populate({
       path: 'providerId',
+      select: 'userId cooperativeId skills hourlyRate experienceYears bio verified rating completedJobs trustScore',
       populate: [
         { path: 'userId', select: 'name phone email avatar rating' },
         { path: 'cooperativeId', select: 'name registrationId region district address state contactPhone contactEmail logoUrl stampUrl signatureUrl secretaryName' },
@@ -219,12 +225,13 @@ async function householdBookings(req, res) {
     .populate('cooperativeId', 'name registrationId region district address state contactPhone contactEmail logoUrl stampUrl signatureUrl secretaryName')
     .sort('-createdAt')
     .skip((page - 1) * limit)
-    .limit(limit);
+    .limit(limit)
+    .lean();
   res.json(b);
 }
 
 async function providerBookings(req, res) {
-  const provider = await Provider.findOne({ userId: req.user.userId });
+  const provider = await Provider.findOne({ userId: req.user.userId }).select('_id');
   if (!provider) return res.status(401).json({ message: 'Provider record not found — please log in again' });
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, parseInt(req.query.limit) || 20);
@@ -245,12 +252,15 @@ async function providerBookings(req, res) {
     .populate('cooperativeId', 'name registrationId contactPhone')
     .sort('-createdAt')
     .skip((page - 1) * limit)
-    .limit(limit);
+    .limit(limit)
+    .lean();
 
   const sanitized = b.map((doc) => {
-    const obj = doc.toObject();
-    if (obj.status !== 'completed') delete obj.completionOtp;
-    return obj;
+    if (doc.status !== 'completed') {
+      const { completionOtp, ...rest } = doc;
+      return rest;
+    }
+    return doc;
   });
   res.json(sanitized);
 }
