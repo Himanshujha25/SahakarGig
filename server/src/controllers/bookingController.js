@@ -208,12 +208,11 @@ async function getBooking(req, res) {
 async function householdBookings(req, res) {
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, parseInt(req.query.limit) || 20);
-  const mongoose = require('mongoose');
-  const hId = mongoose.Types.ObjectId.isValid(req.user.userId)
-    ? new mongoose.Types.ObjectId(req.user.userId)
-    : req.user.userId;
+  const query = mongoose.Types.ObjectId.isValid(req.user.userId)
+    ? { $or: [{ householdId: new mongoose.Types.ObjectId(req.user.userId) }, { householdId: String(req.user.userId) }] }
+    : { householdId: req.user.userId };
 
-  const b = await Booking.find({ householdId: hId })
+  const b = await Booking.find(query)
     .populate({
       path: 'providerId',
       select: 'userId cooperativeId skills hourlyRate experienceYears bio verified rating completedJobs trustScore',

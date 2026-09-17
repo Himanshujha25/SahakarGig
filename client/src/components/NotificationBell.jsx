@@ -47,7 +47,7 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 3000);
+    const interval = setInterval(fetchAll, 30000);
     function onNotif(n) { setItems(prev => [{ ...n, read: false }, ...prev]); }
     function onCleared() {
       setItems(prev => prev.filter(n => n.type !== 'coop_message'));
